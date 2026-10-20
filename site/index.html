@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>STSWENG Login Demo with automated CI </title>
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <main class="card">
+
+        <section id="login-page">
+
+            <h1>STSWENG Login Demo</h1>
+
+            <label>
+                Username
+                <input id="username">
+            </label>
+
+            <label>
+                Password
+                <input id="password" type="password">
+            </label>
+
+            <button id="login-button">
+                Login
+            </button>
+
+            <p id="error-message"
+               role="alert"></p>
+
+        </section>
+
+        <section id="products-page"
+                 hidden>
+
+            <h1>Products</h1>
+
+            <p>
+                Login successful.
+                The protected page is now visible.
+            </p>
+
+        </section>
+
+    </main>
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>

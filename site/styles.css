@@ -1,0 +1,36 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 60px 20px;
+}
+
+.card {
+    max-width: 420px;
+    margin: auto;
+    background: white;
+    padding: 28px;
+    border: 1px solid #d9e0e5;
+}
+
+label,
+input,
+button {
+    display: block;
+    width: 100%;
+    margin-top: 12px;
+}
+
+input,
+button {
+    box-sizing: border-box;
+    padding: 10px;
+}
+
+button {
+    cursor: pointer;
+}
+
+#error-message {
+    min-height: 1.2em;
+}
