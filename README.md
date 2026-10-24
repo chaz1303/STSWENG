@@ -2,20 +2,20 @@
 
 ## Folder map
 
-| Path                               | Use it for                                                                                       |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `src/client/`                      | The resident PWA (React + Vite). Pages and UI components go here.                                |
-| `src/client/steps.js`              | The happy-path steps, each a placeholder page until its story is built.                          |
-| `src/client/public/`               | Files served as-is: web app manifest, service worker (`sw.js`), icon.                            |
-| `src/server/`                      | The Express API. Add routes in `app.js`; `index.js` only starts the server.                      |
-| `src/server/db.js`                 | The only place that talks to the shared database (engine not chosen yet).                        |
-| `src/services/`                    | Business logic, such as booking and pricing rules. Coverage-checked in CI.                       |
-| `src/utils/`                       | Small shared helpers. Coverage-checked in CI.                                                    |
-| `src/utils/contract.js`            | Service types, durations and booking states shared with Team 2. Change only after Team 2 agrees. |
-| `tests/unit/`                      | Vitest tests for `src/services` and `src/utils`.                                                 |
-| `tests/integration/`               | Supertest tests that call the API.                                                               |
-| `tests/e2e/`                       | Robot Framework tests that drive the built app in a browser.                                     |
-| `.github/workflows/ci.yml`         | The CI pipeline (phases 1–4 live for now).                                                       |
-| `.github/pull_request_template.md` | The PR form: story ID and test evidence.                                                         |
-| `.env.example`                     | Copy to `.env` for local settings. Never commit real values.                                     |
-| `requirements.txt`                 | Python packages for the Robot Framework tests.                                                   |
+| Path                               | Use it for                                                                                                                                               |
+| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/client/`                      | Everything residents see and tap in the app: the screens, buttons and forms.                                                                             |
+| `src/client/steps.js`              | The list of screens in the booking journey, from Register to Complete Service. Each one is a blank page for now.                                         |
+| `src/client/public/`               | What lets people install the app on their phone's home screen, plus the app icon.                                                                        |
+| `src/server/`                      | The behind-the-scenes part the app talks to when it saves or loads anything, like a booking.                                                             |
+| `src/server/db.js`                 | The one doorway to the database we share with Team 2. We haven't picked the database yet.                                                                |
+| `src/services/`                    | The rules of the business, like what a booking costs or when it can be cancelled.                                                                        |
+| `src/utils/`                       | Small helpers the rest of the code reuses.                                                                                                               |
+| `src/utils/contract.js`            | What we've agreed with Team 2: the three service types, how long each takes, and the steps a booking goes through. Don't change it unless Team 2 agrees. |
+| `tests/unit/`                      | Quick automatic checks that the business rules give the right answers.                                                                                   |
+| `tests/integration/`               | Checks that the app and its back end talk to each other correctly.                                                                                       |
+| `tests/e2e/`                       | Tests that click through the app in a real browser, the way a resident would.                                                                            |
+| `.github/workflows/ci.yml`         | The robot that runs all the checks every time someone uploads changes, so mistakes get caught before they're merged.                                     |
+| `.github/pull_request_template.md` | The form you fill in when you ask the team to review your work: which user story it's for, and proof it was tested.                                      |
+| `.env.example`                     | A sample of the private settings each developer needs on their own computer. Real passwords never go in here.                                            |
+| `requirements.txt`                 | The tools a computer needs to install before it can run the browser tests.                                                                               |
