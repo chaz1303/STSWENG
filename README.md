@@ -1,11 +1,12 @@
 # STSWENG
 
 ## Folder map
-Initial folder strucutre for now for progress, used ```feature/qa-pipeline``` framework from QAs
+
+Initial folder strucutre for now for progress, used `feature/qa-pipeline` framework from QAs
 
 | Path                               | Use it for                                                                                                                                                 | For developers                                                                                                                                                                         |
 | ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/client/`                      | Everything residents see and tap in the app e.g. the screens, buttons and forms.                                                                           | React 19 + Vite root (stack for now) (`index.html`, `main.jsx`, `App.jsx`). Builds to `dist/`.                                                                                                         |
+| `src/client/`                      | Everything residents see and tap in the app e.g. the screens, buttons and forms.                                                                           | React 19 + Vite root (stack for now) (`index.html`, `main.jsx`, `App.jsx`). Builds to `dist/`.                                                                                         |
 | `src/client/steps.js`              | The list of screens in the booking journey, from Register to Complete Service.                                                                             | Happy-path step array (`path`, `title`, `story`). `App.jsx` switches on `location.hash`; no router yet.                                                                                |
 | `src/client/public/`               | What lets people install the app on their phone's home screen, plus the app icon.                                                                          | Copied as-is to `dist/`: `manifest.webmanifest`, `sw.js` (network-first cache, skips `/api`), `icon.svg`. SW registers in production builds only.                                      |
 | `src/server/`                      | The behind-the-scenes part the app talks to when it saves or loads anything.                                                                               | Express 5. `app.js` exports the app without `listen()` (used by Supertest and mounted in the Vite dev server); `index.js` listens on `PORT`.                                           |
