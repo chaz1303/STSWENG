@@ -3,7 +3,18 @@ import globals from 'globals';
 import prettier from 'eslint-config-prettier';
 
 export default [
-  { ignores: ['dist/', 'coverage/', 'reports/', 'docs/', 'icm/', 'graphify-out/', '.impeccable/'] },
+  {
+    ignores: [
+      'dist/',
+      'coverage/',
+      'reports/',
+      'docs/',
+      'icm/',
+      'graphify-out/',
+      '.impeccable/',
+      'prototype/',
+    ],
+  },
   js.configs.recommended,
   {
     files: ['**/*.{js,jsx}'],
