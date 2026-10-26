@@ -4,6 +4,32 @@ coverage/
 reports/
 .env
 
+# Secrets: env overrides, keys, certs, cloud credentials (.env.example stays tracked)
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+id_rsa*
+id_ed25519*
+.npmrc
+secrets/
+credentials*.json
+service-account*.json
+*-firebase-adminsdk-*.json
+.gcloud/
+.aws/
+
+# Local databases and dumps (engine still undecided; may hold real resident data)
+*.sqlite
+*.sqlite3
+*.db
+*.db-journal
+*.dump
+*.bak
+
 # Robot Framework / Python
 output.xml
 log.html
