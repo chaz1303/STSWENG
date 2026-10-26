@@ -1,0 +1,80 @@
+# CI plan (docs/CI_Plane.pdf §4, §8). Phases 1–4 are live; 5–7 are stubs for later sprints.
+name: mang-juan-user-ci
+
+on:
+  push:
+    branches: [develop, main, 'feature/**', 'fix/**', 'release/**']
+  pull_request:
+    branches: [develop, main]
+  schedule:
+    - cron: '0 18 * * *' # 02:00 Asia/Manila
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Phase 1 (setup) runs at the start of every job: checkout, Node from .nvmrc, npm ci.
+
+  lint: # Phase 2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run lint
+
+  audit: # Phase 2
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm audit --audit-level=high
+
+  # contract: # Phase 2. Compare src/utils/contract.js with Team 2's definitions once they publish them.
+  #   runs-on: ubuntu-latest
+  #   steps: ...
+
+  build: # Phase 3
+    needs: [lint, audit]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npm run build
+      # TODO: bundle size budget check (CI plan §4.4) once a budget is set.
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: dist/ }
+
+  unit: # Phase 4
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - run: npx vitest run tests/unit --coverage
+
+  # integration: # Phase 5. needs: unit; skip on feature pushes; DB service container from the shared schema.
+  #   if: github.event_name != 'push' || !startsWith(github.ref, 'refs/heads/feature/')
+  #   steps: ... npx vitest run tests/integration
+
+  # e2e: # Phase 6. needs: integration; Robot Framework (requirements.txt) + Lighthouse CI.
+  #   steps:
+  #     - uses: actions/setup-python@v5
+  #     - run: pip install -r requirements.txt
+  #     - run: npm run test:e2e
+  #     - upload reports/e2e as an artifact
+
+  # deploy-staging: # Phase 7. needs: e2e; if: develop or release/*. Host undecided.
+  # deploy-production: # Phase 7. needs: e2e; if: main; environment: production (manual approval).

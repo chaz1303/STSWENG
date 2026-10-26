@@ -1,0 +1,20 @@
+node_modules/
+dist/
+coverage/
+reports/
+.env
+
+# Robot Framework / Python
+output.xml
+log.html
+report.html
+.venv/
+__pycache__/
+
+# Local only, never committed
+/docs/
+/icm/
+/graphify-out/
+/.impeccable/
+/DESIGN.md
+/PRODUCT.md
