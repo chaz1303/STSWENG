@@ -85,7 +85,7 @@ function full3State() {
   return {
     tier: 's', addr3: 0, addrPickSel: 0,
     addrs: [
-      { label: 'Home', bldg: 'Avida Towers Prime Taft', short: 'Unit 12B, Tower 1', city: 'Pasay', note: 'Guard has the lobby PIN' },
+      { label: 'Home', bldg: 'Green Residences', short: 'Unit 12B, Tower 1', city: 'Malate', note: 'Guard has the lobby PIN' },
       { label: "Parents' house", bldg: '24 Mabini St', short: '', city: 'Cabanatuan City', note: '' },
       { label: 'Office', bldg: 'One Ayala, Ayala Ave', short: '18F', city: 'Makati', note: 'Ask for the admin desk' },
     ],
@@ -182,7 +182,7 @@ const S3 = {};
 S3['b-welcome'] = () => `<div class="f3-welcome">${statusBar()}
   <div class="pad" style="padding-top:104px"><img class="f3-logo" src="${A}svg/mang-juan-badge.svg" alt="Mang Juan" />
     <p class="f3-tag">Book a trusted Manong for repairs, cleaning, locks and moving.</p>
-    <ul class="f3-why">${[['shieldCheck', 'Every Manong is ID-verified'], ['check', 'Fixed prices you see before booking'], ['cash', 'Pay after job is done']]
+    <ul class="f3-why">${[['shieldCheck', 'Every Manong is ID-verified'], ['check', 'Prices you see before booking'], ['cash', 'Pay after job is done']]
       .map(([i, t]) => `<li><span class="f3-disc">${ic(i)}</span>${t}</li>`).join('')}</ul></div>
   <div class="f3-signin"><button class="btn primary" data-act="regStart" data-arg="new">${ic('phone').replace('class="i ', 'class="i " style="color:var(--mango)" ')}Continue with mobile number</button>
     <div class="or">or continue with</div>${socialB()}

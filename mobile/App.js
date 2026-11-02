@@ -1,122 +1,117 @@
 import { useEffect, useState } from 'react';
+import { BackHandler, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
-import { STEPS } from '../src/client/steps.js';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  useFonts,
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { BOOKING_TYPES } from '../src/utils/contract.js';
-import { createBooking, getServices } from './api.js';
+import { createBooking, getCatalog } from './api.js';
+import { C } from './theme.js';
+import { AllSet, Address, Code, Name, Phone, Welcome } from './screens/Onboarding.js';
+import { Home } from './screens/Home.js';
+import { Finding, Problem, Review, Schedule, Size } from './screens/Book.js';
+import { Charges, Rate, Status, Thanks } from './screens/After.js';
 
-function Choice({ label, selected, onPress }) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      style={[styles.choice, selected && styles.choiceSelected]}
-    >
-      <Text style={selected && styles.choiceTextSelected}>{label}</Text>
-    </Pressable>
-  );
-}
+// Flow 3 "Full overhaul" happy path from prototype/full.js.
+const SCREENS = {
+  welcome: Welcome,
+  phone: Phone,
+  code: Code,
+  name: Name,
+  address: Address,
+  allset: AllSet,
+  home: Home,
+  size: Size,
+  problem: Problem,
+  schedule: Schedule,
+  finding: Finding,
+  review: Review,
+  status: Status,
+  charges: Charges,
+  rate: Rate,
+  thanks: Thanks,
+};
 
-// shortcut: one index instead of a navigator; move to Expo Router once screens are ported from prototype/.
+const newDraft = (category, serviceType = 'STANDARD') => ({
+  category,
+  serviceType,
+  desc: '',
+  symptoms: [],
+  bookingType: BOOKING_TYPES.SCHEDULED,
+  day: null,
+  time: null,
+  payment: 'gcash',
+  manong: null,
+});
+
+// shortcut: a plain screen stack instead of a navigator; move to Expo Router when deep links or tabs land.
 export default function App() {
-  const [index, setIndex] = useState(-1);
-  const [services, setServices] = useState([]);
-  const [draft, setDraft] = useState({ serviceType: null, bookingType: null, problem: '' });
-  const [booking, setBooking] = useState(null);
+  const [fontsLoaded] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+  const [stack, setStack] = useState(['welcome']);
+  const [state, setState] = useState({
+    catalog: null,
+    user: { first: '', last: '', phone: '' },
+    address: null,
+    draft: null,
+    booking: null,
+  });
 
   useEffect(() => {
-    getServices().then(setServices);
+    getCatalog().then((catalog) => setState((s) => ({ ...s, catalog })));
   }, []);
 
-  const step = STEPS[index];
-  const set = (field) => (value) => setDraft((d) => ({ ...d, [field]: value }));
+  const merge = (key) => (patch) =>
+    setState((s) => ({ ...s, [key]: patch && { ...s[key], ...patch } }));
+  const back = () => setStack((st) => (st.length > 1 ? st.slice(0, -1) : st));
 
-  async function next() {
-    if (step.path === 'review') setBooking(await createBooking(draft));
-    setIndex(index + 1);
-  }
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (stack.length === 1) return false;
+      back();
+      return true;
+    });
+    return () => sub.remove();
+  }, [stack.length]);
 
-  function body() {
-    switch (step.path) {
-      case 'service':
-        return services.map((s) => (
-          <Choice
-            key={s.id}
-            label={s.label}
-            selected={draft.serviceType === s.id}
-            onPress={() => set('serviceType')(s.id)}
-          />
-        ));
-      case 'describe':
-        return (
-          <TextInput
-            accessibilityLabel="Describe the problem"
-            multiline
-            value={draft.problem}
-            onChangeText={set('problem')}
-            style={styles.input}
-          />
-        );
-      case 'when':
-        return Object.values(BOOKING_TYPES).map((t) => (
-          <Choice
-            key={t}
-            label={t}
-            selected={draft.bookingType === t}
-            onPress={() => set('bookingType')(t)}
-          />
-        ));
-      case 'review':
-        return <Text>{JSON.stringify(draft, null, 2)}</Text>;
-      case 'status':
-        return <Text>Status: {booking?.status ?? 'No booking yet'}</Text>;
-      default:
-        return <Text>Placeholder for {step.story}.</Text>;
-    }
-  }
+  const app = {
+    state,
+    back,
+    go: (screen, { replace } = {}) =>
+      setStack((st) => [...(replace ? st.slice(0, -1) : st), screen]),
+    home: () => setStack(['home']),
+    setUser: merge('user'),
+    setAddress: (address) => setState((s) => ({ ...s, address })),
+    setDraft: merge('draft'),
+    setBooking: (booking) => setState((s) => ({ ...s, booking })),
+    startBooking: (category) => {
+      setState((s) => ({ ...s, draft: newDraft(category, s.catalog[category].defaultTier) }));
+      setStack(['home', 'size']);
+    },
+    confirmBooking: async () => {
+      const booking = await createBooking(state.draft);
+      setState((s) => ({ ...s, booking }));
+      setStack(['home', 'status']);
+    },
+  };
 
-  // Review can't confirm a booking without the choices the contract needs.
-  const blocked = step?.path === 'review' && !(draft.serviceType && draft.bookingType);
-
+  if (!fontsLoaded || !state.catalog) return <View style={{ flex: 1, backgroundColor: C.mango }} />;
+  const Current = SCREENS[stack.at(-1)];
   return (
     <SafeAreaProvider>
-      <SafeAreaView style={styles.screen}>
-        <ScrollView contentContainerStyle={styles.content}>
-          <Text style={styles.h1}>Mang Juan</Text>
-          {step ? (
-            <View style={styles.gap}>
-              <Text style={styles.h2}>{step.title}</Text>
-              {body()}
-              <View style={styles.row}>
-                <Choice label="Back" onPress={() => setIndex(index - 1)} />
-                {index < STEPS.length - 1 && !blocked && <Choice label="Next" onPress={next} />}
-              </View>
-            </View>
-          ) : (
-            <View style={styles.gap}>
-              {STEPS.map((s, i) => (
-                <Choice key={s.path} label={`${i + 1}. ${s.title}`} onPress={() => setIndex(i)} />
-              ))}
-            </View>
-          )}
-        </ScrollView>
-        <StatusBar style="auto" />
-      </SafeAreaView>
+      <Current app={app} />
+      <StatusBar style="dark" />
     </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 16, gap: 16 },
-  gap: { gap: 8 },
-  row: { flexDirection: 'row', gap: 8 },
-  h1: { fontSize: 24, fontWeight: '700' },
-  h2: { fontSize: 18, fontWeight: '600' },
-  choice: { padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8 },
-  choiceSelected: { backgroundColor: '#222', borderColor: '#222' },
-  choiceTextSelected: { color: '#fff' },
-  input: { minHeight: 96, padding: 12, borderWidth: 1, borderColor: '#ccc', borderRadius: 8 },
-});
