@@ -512,7 +512,7 @@ S['a-thanks'] = () => `${statusBar()}<div class="scroll" style="display:flex;fle
 // ==========================================================
 // FLOW 2 · Redesign (Overhaul / Color)
 // ==========================================================
-const wordmark = () => `<img class="wordmark" src="${A}wordmark.png" alt="mang juan" />`;
+const wordmark = () => `<img class="wordmark" src="${A}svg/mang-juan-wordmark.svg" alt="mang juan" />`;
 const socialB = () => `<div class="social"><button class="btn white" data-act="social" data-arg="Google">${gLogo()}Google</button>
   <button class="btn white" data-act="social" data-arg="Facebook"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#1877f2" d="M14 22v-8h2.7l.4-3.2H14V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.4c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.5-4 4.1v2.4H8.2V14H11v8z"/></svg>Facebook</button></div>`;
 
@@ -1416,19 +1416,21 @@ const GROUP_DESC = {
 };
 function renderPanel() {
   const f = flow();
-  const list = JUMP[f].map((s) => (s === 'a-service' && st.variant === 'v3' ? 'a-service-map' : s));
+  const list = (JUMP[st.variant] || JUMP[f]).map((s) => (s === 'a-service' && st.variant === 'v3' ? 'a-service-map' : s));
   const sims = SIM[st.screen] || [];
-  const variants = Object.entries(VARIANTS).filter(([, v]) => v.flow === f);
+  const group = VARIANTS[st.variant].group;
+  const variants = Object.entries(VARIANTS).filter(([, v]) => v.group === group);
   // The active card has no data-variant, so clicking it doesn't reset the flow you're in.
-  const flowCard = (key, n, first) => {
-    const on = f === key;
+  const flowCard = (g) => {
+    const on = g === group;
+    const first = Object.keys(VARIANTS).find((k) => VARIANTS[k].group === g);
     return `<button class="flowcard ${on ? 'on' : ''}" role="radio" aria-checked="${on}" ${on ? '' : `data-variant="${first}"`}>
-      <span class="fhead"><span class="fradio"></span><b>Flow ${n}</b>${on ? '<span class="fnow">Viewing</span>' : ''}</span>
-      <small>${GROUP_DESC['Flow ' + n]}</small></button>`;
+      <span class="fhead"><span class="fradio"></span><b>${g}</b>${on ? '<span class="fnow">Viewing</span>' : ''}</span>
+      <small>${GROUP_DESC[g]}</small></button>`;
   };
   panel.innerHTML = `<h1>Mang Juan prototype</h1><p>Pick a flow to try.</p>
-    <div class="flowpick" role="radiogroup" aria-label="Choose a flow">${flowCard('A', 1, 'main')}${flowCard('B', 2, 'overhaul')}</div>
-    <h2>Flow ${f === 'A' ? 1 : 2} variations</h2><div class="seg">${variants.map(([k, v]) => `<button class="${st.variant === k ? 'on' : ''}" data-variant="${k}">${v.label}</button>`).join('')}</div>
+    <div class="flowpick" role="radiogroup" aria-label="Choose a flow">${Object.keys(GROUP_DESC).map(flowCard).join('')}</div>
+    ${variants.length > 1 ? `<h2>${group} variations</h2><div class="seg">${variants.map(([k, v]) => `<button class="${st.variant === k ? 'on' : ''}" data-variant="${k}">${v.label}</button>`).join('')}</div>` : ''}
     ${sims.length ? `<h2>Simulate (things the Manong or system does)</h2><div class="sim">${sims.map(([l], i) => `<button data-sim="${i}">${l}</button>`).join('')}</div>` : ''}
     ${f === 'B' ? `<h2>Scheduling outcome</h2><div class="seg"><button class="${st.outcome === 'found' ? 'on' : ''}" data-outcome="found">Manong found</button><button class="${st.outcome === 'none' ? 'on' : ''}" data-outcome="none">No Manong free</button></div>
       <p class="muted" style="margin-top:6px">Pick "Now" on step 3 for the on-demand path.</p>` : ''}
@@ -1564,4 +1566,5 @@ function boot() {
   render(true);
 }
 window.addEventListener('hashchange', boot);
-boot();
+// Waits for full.js (Flow 3) to register its variant before reading the URL.
+window.addEventListener('DOMContentLoaded', boot);

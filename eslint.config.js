@@ -13,6 +13,7 @@ export default [
       'graphify-out/',
       '.impeccable/',
       'prototype/',
+      'mobile/.expo/',
     ],
   },
   js.configs.recommended,
