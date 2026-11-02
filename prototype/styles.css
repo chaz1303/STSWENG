@@ -179,6 +179,82 @@ svg.i.fill {
   font-size: 12px;
 }
 
+/* Flow 1 vs Flow 2 picker */
+.flowpick {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+.flowcard {
+  text-align: left;
+  border: 2px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.flowcard:hover {
+  border-color: var(--mango);
+}
+.flowcard.on {
+  border-color: var(--mango);
+  background: var(--mango);
+  color: var(--cocoa);
+  cursor: default;
+}
+.flowcard .fhead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.flowcard b {
+  font-size: 22px;
+  font-weight: 800;
+  flex: 1;
+}
+.flowcard small {
+  font-size: 12px;
+  line-height: 1.45;
+  opacity: 0.75;
+}
+.flowcard.on small {
+  opacity: 0.9;
+}
+.fradio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  flex: none;
+  opacity: 0.6;
+}
+.flowcard.on .fradio {
+  opacity: 1;
+  background: var(--cocoa);
+  box-shadow: inset 0 0 0 4px var(--mango);
+}
+.fnow {
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--cocoa);
+  color: var(--mango);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.flow-badge {
+  margin: 0;
+  background: var(--mango);
+  color: var(--cocoa);
+  border-radius: 999px;
+  padding: 8px 18px;
+  font-size: 15px;
+}
+.flow-badge b {
+  font-weight: 800;
+}
+
 .stage {
   display: flex;
   flex-direction: column;
@@ -1491,7 +1567,9 @@ svg.i.fill {
   height: 100%;
   background: var(--mango);
   border-radius: 3px;
-  transition: width 0.5s linear;
+  width: 100%;
+  transform-origin: left;
+  transition: transform 0.5s linear;
 }
 .B.color .band .bar i {
   background: var(--ink);
@@ -2238,9 +2316,7 @@ svg.i.fill {
   display: grid;
   place-items: center;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
-  transition:
-    left 2.5s ease,
-    top 2.5s ease;
+  transition: transform 2.5s ease;
 }
 .A .pin svg {
   width: 18px;
@@ -2370,7 +2446,9 @@ svg.i.fill {
   display: block;
   height: 100%;
   background: var(--mango);
-  transition: width 0.9s linear;
+  width: 100%;
+  transform-origin: left;
+  transition: transform 0.9s linear;
 }
 .A .greybox {
   background: #f2f2f2;
