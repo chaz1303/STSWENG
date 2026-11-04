@@ -25,43 +25,43 @@ const T = (name, desc, price, meta, gold, tk) => ({ name, desc, price, meta, gol
 const CAT3 = {
   plumbing: {
     q: 'How big is the job?', issue: 'Issue', crew: 'Manong', def: 's',
-    note: 'Prices are fixed. If parts are needed, Manong will let you know.',
-    tiers: { q: T('Quick checkup', 'Inspection or a very small fix', 250, 'Base charge'), s: T('Standard repair', 'Typical repair in one visit', 450, 'Most booked', 1), m: T('Major repair', 'Installation or longer work', 800, 'Starting price') },
+    note: 'Prices are fixed. If parts are needed, Manong gives you a quote first.',
+    tiers: { q: T('Quick checkup', 'e.g. Inspection or a very small fix', 250, 'Base charge'), s: T('Standard repair', 'e.g. Typical repairs', 450, 'Most booked', 1), m: T('Major repair', 'e.g. Installation or longer work', 800, 'Starting price') },
     chips: 'Add a symptom', symptoms: ['Leak', 'Clogged drain', 'No water', 'Low pressure', 'Running toilet'],
     ph: 'e.g. water dripping under the kitchen sink', extra: [["Plumber's tape", 35]], part: ['P-trap, PVC 1½ in', 180, 'Cracked, causing the leak.'],
   },
   electrical: {
     q: 'How big is the job?', issue: 'Issue', crew: 'Manong', def: 's',
-    note: 'Smell burning? Switch off the main breaker first, then book.',
-    tiers: { q: T('Quick check', 'Breaker or dead outlet', 300, 'Base charge'), s: T('Standard repair', 'Outlet, switch or light', 550, 'Most booked', 1), m: T('Rewiring', 'New circuit or panel work', 1200, 'Starting price') },
+    note: '',
+    tiers: { q: T('Quick check', 'e.g. Breaker or dead outlet', 300, 'Base charge'), s: T('Standard repair', 'e.g. Outlet, switch or light', 550, 'Most booked', 1), m: T('Rewiring', 'e.g. New circuit or panel work', 1200, 'Starting price') },
     chips: 'Add a symptom', symptoms: ['No power', 'Tripping breaker', 'Sparking outlet', 'Flickering lights', 'Dead switch'],
     ph: 'e.g. the kitchen outlet sparks when I plug in', extra: [['Electrical tape', 30]], part: ['Duplex outlet', 160, 'Burnt inside, needs replacing.'],
   },
   cleaning: {
     q: 'How big is your place?', issue: 'Details', crew: 'Manong', def: 's',
-    note: 'Cleaners bring their own supplies. You can mention pets in the next step.',
-    tiers: { q: T('Studio', 'Up to 25 sqm, about 2 hrs', 800, 'Fixed price'), s: T('1 bedroom', '26 to 45 sqm, about 3 hrs', 1200, 'Most booked', 1), m: T('2 bedrooms', '46 to 70 sqm, about 4 hrs', 1700, 'Fixed price') },
+    note: '',
+    tiers: { q: T('Studio', 'e.g. Up to 25 sqm', 800, 'Fixed price'), s: T('1 bedroom', 'e.g. 26 to 45 sqm', 1200, 'Most booked', 1), m: T('2 bedrooms', 'e.g. 46 to 70 sqm', 1700, 'Fixed price') },
     chips: 'Anything we should know?', symptoms: ['Has pets', 'Deep clean', 'Kitchen', 'Bathroom', 'Inside the fridge'],
     ph: 'e.g. focus on the kitchen and bathroom', extra: [], part: ['Mold remover', 120, 'Mold behind the shower tiles.'],
   },
   locks: {
     q: 'What do you need?', issue: 'Issue', crew: 'Manong', def: 'q',
-    note: 'Have your ID ready. Manong checks that you live here before opening the door.',
-    tiers: { q: T("I'm locked out", 'A Manong comes now', 650, 'Arrives in ~30 min', 1, 'locked out'), s: T('Change a lock', 'New cylinder or deadbolt', 900, 'Fixed price'), m: T('Fit a smart lock', 'You provide the lock', 1500, 'Starting price') },
+    note: '',
+    tiers: { q: T("I'm locked out", 'e.g. Lost keys or a jammed lock', 650, 'Base charge', 0, 'locked out'), s: T('Change a lock', 'e.g. New cylinder or deadbolt', 900, 'Fixed price'), m: T('Fit a smart lock', 'e.g. A keypad lock you already have', 1500, 'Starting price') },
     chips: 'What happened?', symptoms: ['Lost my keys', 'Key broke inside', 'Door is jammed', 'Lock is old'],
     ph: 'e.g. left my keys inside the unit', extra: [], part: ['Lock cylinder', 350, 'Old cylinder is worn out.'],
   },
   moving: {
     q: 'How much are you moving?', issue: 'Route', crew: 'Movers', def: 's',
     note: 'Prices cover moves within Metro Manila. Longer trips get a quote first.',
-    tiers: { q: T('A few items', 'Up to 10 boxes, 1 van', 1500, 'Fixed price'), s: T('Studio', '1 truck, 2 movers', 3500, 'Most booked', 1), m: T('1 to 2 bedrooms', '1 truck, 3 movers', 6000, 'Starting price') },
+    tiers: { q: T('A few items', 'e.g. Up to 10 boxes, 1 van', 1500, 'Fixed price'), s: T('Studio', 'e.g. 1 truck, 2 movers', 3500, 'Most booked', 1), m: T('1 to 2 bedrooms', 'e.g. 1 truck, 3 movers', 6000, 'Starting price') },
     chips: 'Anything movers should know?', symptoms: ['Elevator at pick-up', 'Elevator at drop-off', 'Fragile items', 'Needs packing', 'Stairs only'],
     ph: '', extra: [], part: ['Extra packing boxes', 150, 'Ran out of boxes for the kitchen.'],
   },
   repairs: {
     q: 'What needs repairing?', issue: 'Issue', crew: 'Manong', def: 's',
-    note: 'Not sure which one? Pick the closest. Manong confirms the price before starting.',
-    tiers: { q: T('Small fix', 'Hinge, shelf or curtain rod', 400, 'Base charge'), s: T('Standard repair', 'Door, cabinet or wall', 700, 'Most booked', 1), m: T('Painting', 'One wall, no paint', 1800, 'Starting price') },
+    note: 'Prices are fixed. If parts are needed, Manong gives you a quote first.',
+    tiers: { q: T('Small fix', 'e.g. Hinge or shelf', 400, 'Base charge'), s: T('Standard repair', 'e.g. Door, cabinet or wall', 700, 'Most booked', 1), m: T('Painting', 'e.g. One wall, no paint', 1800, 'Starting price') },
     chips: 'Add a symptom', symptoms: ['Door', 'Cabinet', 'Wall patch', 'Furniture', 'Window'],
     ph: 'e.g. the cabinet door hinge came off', extra: [], part: ['Hinges (pair)', 140, 'Old hinges are rusted.'],
   },
@@ -91,7 +91,7 @@ function full3State() {
     ],
     user: { first: 'Bruce', last: 'Wayne', phone: '+63 917 123 4567' },
     booking: { id: 'MJ-8821', cat: 'plumbing', tier: 's', problem: 'Leak under the sink', day: 21, time: '10:30 AM', addr: 0, manong: ALF3, status: 'confirmed', mode: 'schedule', pay: 'gcash', parts: [] },
-    upcoming: [{ day: 28, time: '9:00 AM', dur: 'About 3 hrs', title: 'Cleaning, 1 bedroom', with: 'James Gordon' }],
+    upcoming: [{ day: 28, time: '9:00 AM', title: 'Cleaning, 1 bedroom', with: 'James Gordon' }],
     past3: [
       P3('MJ-8790', 'plumbing', 'Plumbing, leak repair', 'Fri, Oct 2', '2:00 PM', ALF3, [['Base charge', 450], ['P-trap, PVC 1½ in', 180], ["Plumber's tape", 35]], 'paid', 4),
       P3('MJ-8655', 'cleaning', 'Cleaning, 1 bedroom', 'Mon, Sep 14', '9:00 AM', GORDON, [['1 bedroom clean', 1200]], 'paid', 5),
@@ -101,7 +101,7 @@ function full3State() {
     ],
     notifs3: [
       { g: 'Today', icon: 'check', t: 'Alfred confirmed your booking for Wed, Oct 21 at 10:30 AM.', time: '4:15 PM', unread: true, act: 'status' },
-      { g: 'Today', icon: 'clock', t: 'Your booking is tomorrow. Have your lobby PIN ready for Alfred.', time: '9:00 AM', unread: true, act: 'status' },
+      { g: 'Today', icon: 'clock', t: 'Your booking is tomorrow. Let your condo guards know Alfred is coming.', time: '9:00 AM', unread: true, act: 'status' },
       { g: 'Yesterday', icon: 'cash', t: 'Your ₱665 payment to Alfred went through.', time: '6:40 PM', unread: false, act: 'receipt' },
       { g: 'Yesterday', icon: 'star', t: 'How did Alfred do? Rate your Manong.', time: '6:41 PM', unread: false, act: 'receipt' },
       { g: 'Earlier', icon: 'sparkle', t: 'Deep cleaning is ₱200 off until Sunday.', time: 'Oct 15', unread: false, act: 'cleaning' },
@@ -132,6 +132,8 @@ const addrShort = (a) => (a ? [a.short, a.bldg].filter(Boolean).join(', ') : '')
 const addrFull = (a) => (a ? [a.short, a.bldg, a.city].filter(Boolean).join(', ') : '');
 const lastWord = (s) => s.split(',').pop().trim().split(' ').pop();
 const route3 = () => (st.dropoff.trim() ? `${lastWord(addrShort(where3()) || 'Home')} to ${lastWord(st.dropoff)}, 14 km` : '');
+// Flow 2's whenB promises "in about 30 min" for Now; Flow 3 makes no time promises.
+const whenB3 = () => (st.when === 'now' ? 'Now, as soon as possible' : whenB());
 const issue3 = () => (st.cat === 'moving' ? route3() : problemB());
 const mats3 = (b) => [...(b.parts || []), ...c3(b.cat).extra];
 const base3 = (b) => t3(b).price;
@@ -139,13 +141,42 @@ const total3 = (b) => base3(b) + mats3(b).reduce((s, [, p]) => s + p, 0);
 const svcName = (b) => `${CATS[b.cat].name}, ${t3(b).tk}`;
 const nextManong = () => (st.when === 'now' || st.altManong ? JOHN3 : ALF3);
 const ini = (m, size = 44) => `<span class="av ini" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.4)}px">${m.ini}</span>`;
+// Status ring (Design Kit "Status / Ring"): [label, filled fifths, colour, icon]. Replaces the tilted stamps in Flow 3.
+const RING = {
+  booked: ['Booked', 1, '#5F5E5E', 'calendar'],
+  confirmed: ['Confirmed', 2, '#1F7A4D', 'check'],
+  onway: ['On the way', 3, '#005BC0', 'nav'],
+  late: ['Running late', 3, '#B26A00', 'clock'],
+  inprogress: ['In progress', 4, '#FFC72C', 'wrench'],
+  completed: ['Completed', 5, '#1F7A4D', 'check'],
+  cancelled: ['Cancelled', 5, '#C62828', 'x'],
+};
+const RING_C = 2 * Math.PI * 20;
+function ring3(status, { label, caption } = {}) {
+  const [name, n, color, icon] = RING[status];
+  const done = status === 'completed';
+  const iconColor = done ? '#fff' : status === 'inprogress' ? '#5A4300' : color;
+  return `<div class="f3-ring"><svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true">
+    <circle cx="22" cy="22" r="20" fill="none" stroke="${color}" stroke-opacity=".18" stroke-width="4"/>
+    <circle cx="22" cy="22" r="20" fill="none" stroke="${color}" stroke-width="4" stroke-dasharray="${(RING_C * n) / 5} ${RING_C}" transform="rotate(-90 22 22)"/>
+    ${done ? `<circle cx="22" cy="22" r="16" fill="${color}"/>` : ''}
+    <svg x="13" y="13" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${P[icon]}</svg></svg>
+    <span><b>${label || name}</b><small>${caption || (status === 'cancelled' ? 'Booking closed' : `Step ${n} of 5`)}</small></span></div>`;
+}
+// Booking status values used in Flow 3 mapped onto ring states.
+const ringFor = (s) =>
+  ({
+    accepted: ring3('confirmed', { label: 'Accepted' }),
+    paid: ring3('completed', { label: 'Paid', caption: 'Booking closed' }),
+    mcancelled: ring3('cancelled', { label: 'Manong cancelled', caption: 'Choose what to do next' }),
+  })[s] || ring3(RING[s] ? s : 'booked');
 const fmtPhone = (d) => d.replace(/\D/g, '').replace(/^(\d{3})(\d{3})(\d{0,4}).*/, '$1 $2 $3').trim();
 
 function ticket3Inner({ manong } = {}) {
   const c = c3();
   return `<div class="sec head"><span class="t">${CATS[st.cat].name}, ${t3().tk}</span><span class="p">${peso(t3().price)}</span></div>
   <div class="tear"></div>
-  <div class="sec rows"><div><span>${c.issue}</span>${val(issue3())}</div><div><span>When</span>${val(['b-size', 'b-problem', 'b-route'].includes(st.screen) ? '' : whenB())}</div><div><span>${c.crew}</span>${manong ? `<span class="${manong === 'Looking now' ? 'na' : 'v'}">${manong}</span>` : val(st.preferred ? st.preferred + ' (requested)' : '')}</div></div>`;
+  <div class="sec rows"><div><span>${c.issue}</span>${val(issue3())}</div><div><span>When</span>${val(['b-size', 'b-problem', 'b-route'].includes(st.screen) ? '' : whenB3())}</div><div><span>${c.crew}</span>${manong ? `<span class="${manong === 'Looking now' ? 'na' : 'v'}">${manong}</span>` : val(st.preferred ? st.preferred + ' (requested)' : '')}</div></div>`;
 }
 const baseTicket = ticketBInner;
 ticketBInner = (o) => (st.variant === 'full' ? ticket3Inner(o) : baseTicket(o));
@@ -249,9 +280,9 @@ S3['b-reg5'] = () => `${statusBar()}<div class="scroll pad" style="padding-top:1
 const whoLine3 = (b) => {
   const m = b.manong.first;
   return {
-    confirmed: [`${m} is booked`, bkWhen(b)], accepted: [`${m} is booked`, 'Today, arriving in about 25 min'],
-    onway: [`${m} is on the way`, 'Arriving around 10:28 AM, 6 km away'], late: [`${m} is running late`, 'New arrival around 10:45 AM'],
-    inprogress: [`${m} is working on it`, 'About 35 min left'], completed: [`${m} finished the job`, 'Check the charges and pay'],
+    confirmed: [`${m} is booked`, bkWhen(b)], accepted: [`${m} is booked`, "Today, we'll tell you when he heads out"],
+    onway: [`${m} is on the way`, 'On his way, 6 km away'], late: [`${m} is running late`, "We'll tell you when he's close"],
+    inprogress: [`${m} is working on it`, 'Started 10:32 AM'], completed: [`${m} finished the job`, 'Check the charges and pay'],
     mcancelled: [`${m} had to cancel`, 'Choose what to do next'],
   }[b.status] || [`${m} is booked`, bkWhen(b)];
 };
@@ -264,7 +295,7 @@ S3['b-home'] = () => {
   if (b) {
     const [l1, l2] = whoLine3(b);
     card = `<button class="ticket hometicket" data-act="openBooking" style="--notch:var(--mango)">
-      <div class="sec head"><div><div class="t" style="font-size:17px;font-weight:700">${CATS[b.cat].name}</div><div class="sub">${t3(b).name}, ${esc(b.problem.toLowerCase())}</div></div>${stamp(b.status)}</div>
+      <div class="sec head f3-headcol"><div><div class="t" style="font-size:17px;font-weight:700">${CATS[b.cat].name}</div><div class="sub">${t3(b).name}, ${esc(b.problem.toLowerCase())}</div></div>${ringFor(b.status)}</div>
       <div class="tear"></div><div class="sec who">${ini(b.manong)}<div class="grow"><b>${l1}</b><small>${l2}</small></div>${ic('chevR')}</div></button>`;
   } else if (st.pendingReview) {
     card = `<button class="card f3-emptycard" data-act="go" data-arg="b-review"><div class="grow"><b>A Manong is free</b><small>Tap to review and confirm.</small></div><span class="callbtn" style="background:var(--mango);color:var(--ink)">${ic('arrowR')}</span></button>`;
@@ -275,7 +306,7 @@ S3['b-home'] = () => {
     <div class="top">${wordmark().replace('class="wordmark"', 'class="wordmark" style="height:36px"')}<button class="bell" data-act="go" data-arg="b-notifs" aria-label="Notifications">${ic('bell')}${unread ? '<span class="dot"></span>' : ''}</button></div>
     <button class="unit" data-act="pickWhere">${ic('pin')}<span>${a ? esc(addrShort(a)) : 'Add your address'}</span>${ic('chevR')}</button>
     ${card}</div>
-  <div class="pad" style="padding-top:${b ? 110 : 62}px">
+  <div class="pad" style="padding-top:${b ? 116 : 62}px">
     <h3 class="sect">What needs fixing?</h3>
     <div class="grid6">${Object.entries(CATS).map(([k, c]) => `<button class="tile" data-act="startB" data-arg="${k}"><span class="disc">${ic(c.icon)}</span>${c.name}</button>`).join('')}</div>
     ${again ? `<h3 class="sect" style="font-size:17px;margin:20px 0 10px">Book again</h3>
@@ -296,7 +327,7 @@ S3['b-size'] = () => {
   return `${statusBar()}${head3(bookTitle(), 1)}<div class="scroll pad"><h2 class="q" style="margin-top:26px;margin-bottom:16px">${c.q}</h2>
   ${Object.entries(c.tiers).map(([k, t]) => `<button class="optrow ${st.tier === k ? 'on' : ''}" data-act="tierB" data-arg="${k}" role="radio" aria-checked="${st.tier === k}">
     <span class="radio"></span><span class="grow"><b>${t.name}</b><small>${t.desc}</small></span><span class="price"><b>${peso(t.price)}</b><small class="${t.gold ? 'gold' : ''}">${t.meta}</small></span></button>`).join('')}
-  ${note3(c.note)}<div style="height:12px"></div></div>
+  ${c.note ? note3(c.note) : ''}<div style="height:12px"></div></div>
   <div class="pad">${ticketB()}</div><div class="footer"><button class="btn primary" data-act="go" data-arg="${st.cat === 'moving' ? 'b-route' : 'b-problem'}">Continue</button></div>`;
 };
 
@@ -333,7 +364,7 @@ S3['b-schedule'] = () => `${statusBar()}${head3(bookTitle(), 3)}<div class="scro
   <div class="pad">${ticketB()}</div><div class="footer"><button class="btn primary" data-act="findB">Find my Manong</button></div>`;
 
 S3['b-finding'] = () => `${statusBar()}${head3(bookTitle(), 0, 'leaveFinding')}<div class="scroll pad">
-  <h2 class="q" style="margin-top:28px">Finding your Manong</h2><p class="qs">This usually takes under a minute. You can leave this screen, we'll notify you.</p>
+  <h2 class="q" style="margin-top:28px">Finding your Manong</h2><p class="qs">You can leave this screen. We'll notify you once a Manong accepts.</p>
   <div class="f3-radar" aria-hidden="true"><i></i><i></i><span><img src="${A}svg/mang-juan-mark.svg" alt="" /></span></div>
   <div class="bar"><i data-live-w="findPct"></i></div><div style="height:18px"></div>
   ${ticketB({ manong: 'Looking now' })}<div style="height:16px"></div>${note3('Tip: let your lobby guard know a Manong is coming.')}</div>
@@ -368,7 +399,7 @@ S3['b-review'] = () => {
       <div style="font-size:13px;display:flex;gap:4px;align-items:center"><span style="color:#fdbb16">${icFill('star').replace('class="i fill"', 'class="i fill" style="width:16px;height:16px"')}</span><b style="display:inline;font-size:13px">${m.rating}</b> <span style="color:var(--slate)">from ${m.jobs} jobs</span></div></div>${ic('chevR')}</button>
     <div class="ticket"><div class="sec rows big">
       <div><span>Service</span><span class="v">${CATS[st.cat].name}, ${t3().tk}</span></div>
-      <div><span>${c.issue === 'Issue' ? 'Problem' : c.issue}</span>${val(issue3())}</div><div><span>When</span>${val(whenB())}</div>
+      <div><span>${c.issue === 'Issue' ? 'Problem' : c.issue}</span>${val(issue3())}</div><div><span>When</span>${val(whenB3())}</div>
       <button class="f3-rowbtn" data-act="pickWhere"><span>Where</span>${a ? `<span class="v f3-ell">${esc(addrShort(a))}</span>` : '<span class="na">Add address</span>'}</button></div>
       <div class="tear"></div>
       <div class="sec rows big"><div><span>Base charge</span><span class="v">${peso(t3().price)}</span></div>
@@ -389,26 +420,88 @@ function status3(onDemand) {
   if (!b) return `${statusBar()}${head3('Booking', 0, 'home')}<div class="empty">This booking is closed.<br /><button class="link" data-act="home">Back to home</button></div>`;
   if (b.status === 'inprogress') return inprog3(b);
   if (b.status === 'mcancelled') return mcancel3(b);
+  if (b.status === 'onway') return onway3(b);
   const m = b.manong;
+  // Flow 2's shared timeline promises an arrival time for on-demand; Flow 3 never does.
+  const tl = timeline(b).replace(', arriving in about 25 min', ", we'll tell you when he heads out");
   return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}<div class="scroll pad" style="padding-top:20px">
-    <div class="ticket"><div class="sec head" style="padding-top:18px"><div style="min-width:0"><div style="font-size:18px;font-weight:700">${svcName(b)}</div>
-      <div style="font-size:15px;font-weight:600;margin-top:2px">${onDemand ? 'Requested now' : `${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}`}</div><div class="f3-ell">${esc(addrShort(st.addrs[b.addr]))}</div></div>${stamp(b.status)}</div>
-      <div class="tear"></div><div class="sec">${timeline(b)}</div><div class="tear"></div>${manongRow(m)}</div>
-    <div style="height:12px"></div>${b.status === 'late' ? note3(`${m.first} is running about 15 minutes late. New arrival around 10:45 AM.`, 'clock') : note3(`Show PIN ${b.id} at the lobby so ${m.first} can go straight up.`)}
-    <button class="btn secondary" style="margin-top:12px" data-act="trackLive">${ic('pin')}See ${m.first} on the way</button>
-    <div style="margin-top:20px"><b style="font-size:15px">Plans changed?</b><p style="color:var(--slate);font-size:13px;margin:4px 0 0">You can cancel for free until Manong starts the job.</p></div></div>
-  <div class="footer"><button class="btn danger" data-act="cancelStart">Cancel booking</button></div>`;
+    <div class="ticket"><div class="sec head f3-headcol" style="padding-top:18px"><div style="min-width:0"><div style="font-size:18px;font-weight:700">${svcName(b)}</div>
+      <div style="font-size:15px;font-weight:600;margin-top:2px">${onDemand ? 'Requested now' : `${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}`}</div><div class="f3-ell">${esc(addrShort(st.addrs[b.addr]))}</div></div>${ringFor(b.status)}</div>
+      <div class="tear"></div><div class="sec">${tl}</div><div class="tear"></div>${manongRow(m)}</div>
+    <div style="height:12px"></div>${b.status === 'late' ? note3(`${m.first} is running late. We'll tell you when he's close.`, 'clock') : note3(guardTip(b))}</div>
+  <div class="footer">${b.status === 'late' ? `<button class="btn secondary" data-act="go" data-arg="b-chat">Message ${m.first}</button>`
+    : '<p class="f3-small" style="margin:0 0 4px;text-align:center">You can cancel for free until Manong starts the job.</p><button class="btn danger" data-act="cancelStart">Cancel booking</button>'}</div>`;
 }
+// Replaces the old "show your PIN" tip: the resident tells their own guard who is coming.
+const GUARD_JOB = { plumbing: 'a plumbing repair', electrical: 'an electrical repair', cleaning: 'a cleaning', repairs: 'a repair', locks: 'a lock job', moving: 'your move' };
+const guardTip = (b) => `Make sure your condo guards know ${b.cat === 'moving' ? 'the movers are' : 'a Manong is'} coming for ${GUARD_JOB[b.cat]}.`;
+// Timeline rows marked 'done' (checked), 'cur3' (current) or '' (still to come).
+const tl3 = (steps) => `<div class="tl">${steps.map(([t, s, c]) => `<div class="step ${c}"><span class="node">${c === 'done' ? ic('check') : ''}</span><div><b>${t}</b><small>${esc(s)}</small>${c === 'cur3' ? '<span class="cur">Current status</span>' : ''}</div></div>`).join('')}</div>`;
 function inprog3(b) {
   const m = b.manong;
   const steps = [['Confirmed', 'Oct 20, 4:15 PM', 'done'], [`${m.first} arrived`, `10:28 AM, at ${st.addrs[b.addr]?.short || 'your place'}`, 'done'],
     ['In progress', `Fixing the ${b.problem.toLowerCase()}`, 'cur3'], ['Completed', 'You review charges and pay', '']];
   return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}<div class="scroll pad" style="padding-top:20px">
-    <div class="ticket"><div class="sec head" style="padding-top:18px"><div><div style="font-size:18px;font-weight:700">${svcName(b)}</div><div style="font-size:13px;color:var(--slate);margin-top:2px">Started 10:32 AM, about 35 min left</div></div>${stamp('inprogress')}</div>
-      <div class="tear"></div><div class="sec"><div class="tl">${steps.map(([t, s, c]) => `<div class="step ${c}"><span class="node">${c === 'done' ? ic('check') : ''}</span><div><b>${t}</b><small>${esc(s)}</small>${c === 'cur3' ? '<span class="cur">Current status</span>' : ''}</div></div>`).join('')}</div></div>
+    <div class="ticket"><div class="sec head f3-headcol" style="padding-top:18px"><div><div style="font-size:18px;font-weight:700">${svcName(b)}</div><div style="font-size:13px;color:var(--slate);margin-top:2px">Started 10:32 AM</div></div>${ring3('inprogress')}</div>
+      <div class="tear"></div><div class="sec">${tl3(steps)}</div>
       <div class="tear"></div>${manongRow(m, false)}</div></div>
   <div class="footer"><button class="btn secondary" data-act="go" data-arg="b-chat">Message ${m.first}</button></div>`;
 }
+
+// Book 5b: day of the job. The map fills the screen; a draggable sheet holds the details.
+const SHEET_PEEK = 440;
+const SHEET_OPEN = 130;
+function onway3(b) {
+  const m = b.manong;
+  const where = st.addrs[b.addr];
+  const tower = where?.short.split(', ').pop() || 'your place';
+  const top = st.sheetTop || SHEET_PEEK;
+  const steps = [['Pending confirmation', 'Oct 20, 4:12 PM', 'done'], ['Confirmed', `${m.first} confirmed at 4:15 PM`, 'done'],
+    ['On the way', `${m.first} is heading to ${tower}`, 'cur3'], ['In progress', `Starts once ${m.first} arrives`, ''], ['Completed', 'You review charges and pay', '']];
+  return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}
+  <div class="mapfull f3-onmap" aria-label="Map: ${m.first} is 6 km away">
+    <svg width="375" height="440" style="position:absolute;inset:0" aria-hidden="true"><path d="M300 170 C 285 220, 270 240, 250 280 S 210 350, 190 375" stroke="#111" stroke-width="4" fill="none" stroke-linecap="round"/></svg>
+    <span class="f3-pin" style="left:283px;top:150px">${ic('home')}</span>
+    <span class="mappill" style="left:262px;top:192px;padding:4px 10px">${esc(tower)}</span>
+    <span class="f3-mapav" style="transform:translate(222px, 270px)">${m.ini}</span>
+    <span class="mappill" style="left:130px;top:228px;background:#111;color:#fff">${ic('nav')}6 km</span></div>
+  ${top === SHEET_PEEK ? `<button class="floatbtn" style="right:24px;top:${top - 60}px;z-index:2" data-act="toast" data-arg="Centered on your building" aria-label="Center map">${ic('locate')}</button>` : ''}
+  <div class="f3-sheet" style="top:${top}px">
+    <div class="f3-drag" data-drag><button class="f3-grab" data-act="sheetToggle" aria-label="${top === SHEET_PEEK ? 'Show more details' : 'Show less'}"></button>
+      <div style="font-size:18px;font-weight:700">${svcName(b)}</div><div style="font-size:15px;font-weight:600;margin-top:2px">Today at ${b.time}</div>
+      <div class="f3-ell" style="color:var(--slate);font-size:13px">${esc(addrShort(where))}</div><div style="height:12px"></div>${ring3('onway')}</div>
+    <div class="tear"></div>
+    <div class="sec who">${ini(m)}<div class="grow"><b>${m.name}</b><small>${m.vehicle}</small></div><button class="callbtn" data-act="call" data-arg="${m.key}" aria-label="Call ${m.first}">${ic('phone')}</button></div>
+    <div class="tear"></div><div class="sec">${tl3(steps)}</div></div>`;
+}
+// Dragging the sheet's top area moves it; letting go snaps it open or back to the peek height.
+phone.addEventListener('pointerdown', (e) => {
+  const zone = e.target.closest('[data-drag]');
+  if (!zone) return;
+  const el = zone.closest('.f3-sheet');
+  st.sheetDragged = false; // only the click that ends this drag is swallowed
+  const scale = phone.getBoundingClientRect().height / phone.offsetHeight;
+  const y0 = e.clientY;
+  const top0 = el.offsetTop;
+  let moved = false;
+  el.style.transition = 'none'; // follow the finger; the CSS transition only animates the snap
+  const move = (ev) => {
+    const dy = (ev.clientY - y0) / scale;
+    if (Math.abs(dy) > 4) moved = true;
+    el.style.top = `${Math.min(SHEET_PEEK, Math.max(SHEET_OPEN, top0 + dy))}px`;
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', up);
+    el.style.transition = '';
+    if (!moved) return;
+    st.sheetDragged = true;
+    st.sheetTop = parseFloat(el.style.top) < (SHEET_PEEK + SHEET_OPEN) / 2 ? SHEET_OPEN : SHEET_PEEK;
+    render();
+  };
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', up);
+});
 function mcancel3(b) {
   const m = b.manong;
   return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}<div class="scroll pad"><h2 class="q" style="margin-top:32px">${m.first} had to cancel</h2>
@@ -419,6 +512,7 @@ function mcancel3(b) {
 }
 S3['b-status'] = () => status3(false);
 S3['b-ondemand'] = () => status3(true);
+S3['b-onway'] = () => status3(false);
 
 S3['b-live'] = () => {
   const b = bk();
@@ -433,14 +527,14 @@ S3['b-live'] = () => {
     <span style="position:absolute;left:283px;top:130px;width:36px;height:36px;border-radius:50%;background:#111;color:var(--mango);display:grid;place-items:center">${ic('home')}</span>
     <span class="mappill" style="left:262px;top:172px;padding:4px 10px">${esc(st.addrs[b.addr]?.short.split(', ').pop() || 'Home')}</span>
     <span class="f3-mapav" style="transform:translate(${x - 26}px, ${y - 26}px)">${m.ini}</span>
-    <span class="mappill" style="left:262px;top:262px;background:#111;color:#fff">${ic('clock')}${t > 0 ? t + ' min' : 'Here'}</span></div>
+    <span class="mappill" style="left:262px;top:262px;background:#111;color:#fff">${ic('nav')}${t > 0 ? `${+(t / 3).toFixed(1)} km` : 'Here'}</span></div>
   <button class="floatbtn" style="left:24px;top:56px" data-act="back" aria-label="Back">${ic('chevL')}</button>
   <span class="mappill" style="right:24px;top:58px"><span class="live"></span>Live location</span>
   <button class="floatbtn" style="right:24px;top:410px" data-act="toast" data-arg="Centered on your building" aria-label="Center map">${ic('locate')}</button>
   <div class="mapsheet"><div class="grab" style="width:40px;height:5px;border-radius:3px;background:rgba(0,0,0,.15);margin:0 auto"></div>
     <h2>${t > 0 ? `${m.first} is on the way` : `${m.first} has arrived`}</h2>
-    <p style="margin:0 0 14px;color:var(--slate);font-size:14px">${t > 0 ? `Arrives in about ${t} min, ${(t / 3).toFixed(1)} km away` : 'He is at your lobby now'}</p>
-    <div class="ticket"><div class="sec head"><div><div style="font-size:16px;font-weight:600">${svcName(b)}</div><div style="font-size:13px;color:var(--slate)">${esc(st.addrs[b.addr]?.short || '')}, ${b.id}</div></div>${stamp(t > 0 ? 'confirmed' : 'inprogress')}</div>
+    <p style="margin:0 0 14px;color:var(--slate);font-size:14px">${t > 0 ? `${+(t / 3).toFixed(1)} km away. Follow him live on the map.` : 'He is at your lobby now'}</p>
+    <div class="ticket"><div class="sec head f3-headcol"><div><div style="font-size:16px;font-weight:600">${svcName(b)}</div><div style="font-size:13px;color:var(--slate)">${esc(st.addrs[b.addr]?.short || '')}, ${b.id}</div></div>${ring3(t > 0 ? 'onway' : 'inprogress')}</div>
       <div class="tear"></div><div class="sec who">${ini(m)}<div class="grow"><b>${m.name}</b><small>${m.vehicle}</small></div><button class="callbtn" data-act="call" data-arg="${m.key}" aria-label="Call">${ic('phone')}</button></div></div>
     ${t <= 0 ? '<button class="btn primary" style="margin-top:12px" data-act="go" data-arg="b-status">View job status</button>' : '<div style="text-align:center;margin-top:8px"><button class="link" style="color:var(--destructive)" data-act="cancelStart">Cancel booking</button></div>'}
   </div>`;
@@ -460,7 +554,7 @@ S3['b-part'] = () => {
 
 const bill3 = (b) => {
   const mats = mats3(b);
-  return `<div class="ticket"><div class="sec head" style="padding-top:18px"><span class="t" style="font-size:16px">${t3(b).name}</span>${stamp('completed')}</div>
+  return `<div class="ticket"><div class="sec head" style="padding-top:18px;align-items:center"><span class="t" style="font-size:16px">${t3(b).name}</span>${ring3('completed')}</div>
     <div class="sec rows" style="padding-top:0"><div><span>Base charge</span><span class="v">${peso(base3(b))}</span></div></div>
     ${mats.length ? `<div class="tear"></div><div class="sec rows"><div><span class="v" style="font-weight:600">Materials added <span style="color:var(--slate);font-weight:400">${mats.length} item${mats.length > 1 ? 's' : ''}</span></span><span></span></div>
       ${mats.map(([n, p]) => `<div><span>${n}</span><span class="v">${peso(p)}</span></div>`).join('')}</div>` : ''}
@@ -485,7 +579,7 @@ S3['b-payfail'] = () => {
 S3['b-rate'] = () => {
   const b = bk();
   const m = b.manong;
-  return `${statusBar()}<div class="scroll"><div class="f3-rateband"><div class="ticket" style="--notch:var(--mango)"><div class="sec head" style="align-items:center"><span class="t">${svcName(b)}</span>${stamp('paid')}</div><div class="tear"></div>
+  return `${statusBar()}<div class="scroll"><div class="f3-rateband"><div class="ticket" style="--notch:var(--mango)"><div class="sec head" style="align-items:center"><span class="t">${svcName(b)}</span>${ringFor('paid')}</div><div class="tear"></div>
       <div class="sec" style="font-size:13px;color:var(--slate)">${peso(total3(b))} with ${st.pay === 'gcash' ? 'GCash' : 'cash'}, receipt emailed</div></div></div>
   <div class="pad" style="padding-top:16px">${ini(m, 56)}
     <h2 class="q" style="margin-top:12px">How did ${m.first} do?</h2><p class="qs">Your rating helps other residents in ${esc(st.addrs[b.addr]?.bldg || 'your building')}.</p>
@@ -509,7 +603,7 @@ S3['b-cancelled'] = () => {
   const b = c.b;
   return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}<div class="scroll pad"><h2 class="q" style="margin-top:32px">Booking cancelled</h2>
   <p class="qs">${c.fee ? `You paid a ${peso(c.fee)} trip fee. ${b.manong.first} has been told.` : `You weren't charged. ${b.manong.first} has been told, and the slot is free again.`}</p><div style="height:20px"></div>
-  <div class="ticket"><div class="sec head" style="padding-top:18px"><div><div style="font-size:18px;font-weight:700">${svcName(b)}</div><div style="font-size:13px;color:var(--slate)">Was set for ${b.mode === 'now' ? 'today, now' : `${DAY_LONG[b.day]}, Oct ${b.day}, ${b.time}`}</div></div>${stamp('cancelled')}</div>
+  <div class="ticket"><div class="sec head f3-headcol" style="padding-top:18px"><div><div style="font-size:18px;font-weight:700">${svcName(b)}</div><div style="font-size:13px;color:var(--slate)">Was set for ${b.mode === 'now' ? 'today, now' : `${DAY_LONG[b.day]}, Oct ${b.day}, ${b.time}`}</div></div>${ring3('cancelled')}</div>
     <div class="tear"></div><div class="sec rows"><div><span>Cancelled on</span><span class="v">Oct 20, 6:02 PM</span></div><div><span>Reason</span><span class="v">${esc(c.reason)}</span></div><div><span>Charge</span><span class="v">${peso(c.fee)}</span></div></div></div></div>
   <div class="footer"><button class="btn primary" data-act="rebookFromCancel">Book a new time</button><button class="link" data-act="home">Go to home</button></div>`;
 };
@@ -526,9 +620,9 @@ S3['b-report'] = () => {
 S3['b-reportsent'] = () => {
   const b = bk() || st.cancelled?.b || { id: 'MJ-8821', manong: ALF3 };
   return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}<div class="scroll pad"><h2 class="q" style="margin-top:32px">We got your report</h2>
-  <p class="qs">Ticket ${b.id}-R1. We'll text you an update within 24 hours.</p><div style="height:20px"></div>
+  <p class="qs">Ticket ${b.id}-R1. We'll text you each time there's an update.</p><div style="height:20px"></div>
   <div class="card" style="padding:18px 20px"><b style="font-size:17px">What happens next</b><ol class="f3-steps">
-    <li><span>1</span><div><b>We review your report</b><small>Usually within a few hours.</small></div></li>
+    <li><span>1</span><div><b>We review your report</b><small>We'll text you once we've looked at it.</small></div></li>
     <li><span>2</span><div><b>We check with ${b.manong.first}</b><small>He gets a chance to explain.</small></div></li>
     <li><span>3</span><div><b>We make it right</b><small>A free revisit or a refund if the fix failed.</small></div></li></ol></div></div>
   <div class="footer"><button class="btn primary" data-act="reportBack">Back to booking</button><button class="link" data-act="home">Go to home</button></div>`;
@@ -538,11 +632,11 @@ S3['b-reportsent'] = () => {
 const upcoming3 = () => {
   const list = [];
   const b = bk();
-  if (b && b.status !== 'paid') list.push({ day: b.day, time: b.mode === 'now' ? 'Now' : b.time, dur: 'About 1 hr', title: b.cat === 'plumbing' ? 'Plumbing repair' : svcName(b), sub: `${b.manong.name}, ${(STAMP[b.status] || '').toLowerCase()}`, act: 'openBooking', arg: '' });
+  if (b && b.status !== 'paid') list.push({ day: b.day, time: b.mode === 'now' ? 'Now' : b.time, title: b.cat === 'plumbing' ? 'Plumbing repair' : svcName(b), sub: `${b.manong.name}, ${(STAMP[b.status] || '').toLowerCase()}`, act: 'openBooking', arg: '' });
   st.upcoming.forEach((u, i) => list.push({ ...u, sub: `${u.with}, confirmed`, act: 'openUpcoming', arg: i }));
   return list.sort((x, y) => x.day - y.day);
 };
-const entry3 = (e) => `<button class="f3-entry" data-act="${e.act}" data-arg="${e.arg}"><span class="tm"><b>${e.time}</b><small>${e.dur}</small></span><span class="grow"><b>${esc(e.title)}</b><small>${esc(e.sub)}</small></span>${ic('chevR')}</button>`;
+const entry3 = (e) => `<button class="f3-entry" data-act="${e.act}" data-arg="${e.arg}"><span class="tm"><b>${e.time}</b></span><span class="grow"><b>${esc(e.title)}</b><small>${esc(e.sub)}</small></span>${ic('chevR')}</button>`;
 function calendar3() {
   const mo = MONTHS[st.calMonth + 1];
   const oct = st.calMonth === 0;
@@ -572,7 +666,7 @@ S3['b-receipt'] = () => {
   const p = st.past3[st.receiptIdx];
   const paid = p.status === 'paid';
   return `${statusBar()}${head3(`Booking ${p.id}`)}<div class="scroll pad" style="padding-top:20px">
-  <div class="ticket"><div class="sec head" style="padding-top:18px"><div><div style="font-size:18px;font-weight:700">${esc(p.title)}</div><div style="font-size:13px;color:var(--slate)">${p.date}, ${p.time}</div></div>${stamp(p.status)}</div>
+  <div class="ticket"><div class="sec head f3-headcol" style="padding-top:18px"><div><div style="font-size:18px;font-weight:700">${esc(p.title)}</div><div style="font-size:13px;color:var(--slate)">${p.date}, ${p.time}</div></div>${ringFor(p.status)}</div>
     ${p.manong ? `<div class="tear"></div><div class="sec who">${ini(p.manong)}<div class="grow"><b>${p.manong.name}</b><small>${p.stars ? `You rated him ${p.stars} stars` : 'Not rated yet'}</small></div>
       <span class="f3-mini">${[1, 2, 3, 4, 5].map((n) => `<span class="${n <= p.stars ? 'on' : ''}">${icFill('star')}</span>`).join('')}</span></div>` : ''}
     <div class="tear"></div><div class="sec rows">${p.lines.map(([n, v]) => `<div><span>${n}</span><span class="v">${peso(v)}</span></div>`).join('')}</div>
@@ -794,8 +888,12 @@ const ACT3 = {
     const b = bk();
     if (!b) return;
     if (b.status === 'completed') return go('b-charges');
-    if (b.status === 'onway') return go('b-live');
     go(b.mode === 'now' ? 'b-ondemand' : 'b-status');
+  },
+  sheetToggle() {
+    if (st.sheetDragged) return void (st.sheetDragged = false);
+    st.sheetTop = (st.sheetTop || SHEET_PEEK) === SHEET_PEEK ? SHEET_OPEN : SHEET_PEEK;
+    render();
   },
   trackLive() {
     const b = bk();
@@ -1085,11 +1183,15 @@ const SIM3 = {
     if (b.status === 'inprogress') return [[`${m} needs a part → approve it`, () => go('b-part')], ['Job done → charges', () => ACT.jobDoneB()]];
     if (b.status === 'mcancelled') return [];
     return [
-      [`${m} is on the way → live map`, () => ACT3.trackLive()],
+      [`${m} is on the way (Book 5b)`, () => {
+        b.status = 'onway';
+        st.sheetTop = SHEET_PEEK;
+        render(true);
+      }],
       [`${m} is running late`, () => {
         b.status = 'late';
         render();
-        toast(`${m} is running about 15 min late`);
+        toast(`${m} is running late`);
       }],
       [`${m} had to cancel`, () => {
         b.status = 'mcancelled';
@@ -1129,6 +1231,7 @@ const SIM3 = {
   }]],
 };
 SIM3['b-ondemand'] = SIM3['b-status'];
+SIM3['b-onway'] = SIM3['b-status'];
 
 const FRAMES3 = {
   'b-welcome': 'V3 · Welcome', 'b-login': 'V3 · Log in', 'b-reg1': 'V3 · Register 1: Mobile number', 'b-reg2': 'V3 · Register 2: Verify code',
@@ -1138,7 +1241,7 @@ const FRAMES3 = {
   'b-size@locks': 'V3 · Locks 1: What you need', 'b-size@moving': 'V3 · Moving 1: Move size', 'b-size@repairs': 'V3 · Repairs 1: Job type',
   'b-problem': 'V3 · Book 2: Problem', 'b-route': 'V3 · Moving 2: Route', 'b-schedule': 'V3 · Book 3: Schedule', 'b-finding': 'V3 · State: Finding your Manong',
   'b-none': 'V3 · State: No Manong free', 'b-nonearby': 'V3 · State: No Manong nearby now', 'b-review': 'V3 · Book 4: Review and confirm',
-  'b-status': 'V3 · Book 5: Booking status', 'b-ondemand': 'V3 · State: On-demand accepted', 'b-live': 'V3 · State: Manong on the way (live map)',
+  'b-status': 'V3 · Book 5: Booking status', 'b-onway': 'V3 · Book 5b: Manong on the way', 'b-ondemand': 'V3 · State: On-demand accepted', 'b-live': 'V3 · State: Manong on the way (live map)',
   'b-late': 'V3 · State: Manong running late', 'b-inprog': 'V3 · Booking status: in progress', 'b-part': 'V3 · Approve extra part',
   'b-mcancel': 'V3 · State: Manong cancelled', 'b-sheet-cancel': 'V3 · Cancel booking: reason', 'b-sheet-late': 'V3 · Cancel booking: late fee',
   'b-cancelled': 'V3 · Booking cancelled', 'b-charges': 'V3 · Book 6: Charges and payment', 'b-payfail': 'V3 · State: Payment failed',
@@ -1182,6 +1285,7 @@ function jump3(s) {
     case 'b-nonearby': seedDraft(); st.when = 'now'; break;
     case 'b-route': Object.assign(st, { cat: 'moving', tier: 's', symptoms: ['Elevator at pick-up'], dropoff: '' }); break;
     case 'b-status': seedBk('confirmed'); break;
+    case 'b-onway': seedBk('onway'); st.sheetTop = SHEET_PEEK; break;
     case 'b-ondemand': seedBk('accepted', 'now'); break;
     case 'b-live': seedBk('onway'); st.liveEta = 18; break;
     case 'b-late': seedBk('late'); screen = 'b-status'; break;

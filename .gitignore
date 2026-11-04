@@ -12,6 +12,9 @@ reports/
 *.p12
 *.pfx
 *.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
 id_rsa*
 id_ed25519*
 .npmrc

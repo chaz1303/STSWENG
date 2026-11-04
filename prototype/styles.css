@@ -3854,3 +3854,88 @@ svg.i.fill {
   display: grid;
   place-items: center;
 }
+
+/* Flow 3 status ring (Design Kit "Status / Ring") */
+.f3-ring {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+}
+.f3-ring svg {
+  flex: none;
+}
+.f3-ring span {
+  display: grid;
+  gap: 1px;
+  text-align: left;
+}
+.f3-ring b {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.f3-ring small {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--slate);
+}
+/* Ticket header with the ring under the text, so the text gets the full card width. */
+.B .ticket .head.f3-headcol {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+/* Book 5b: Manong on the way (map behind a draggable bottom sheet) */
+.f3-onmap {
+  bottom: auto;
+  height: 520px;
+  z-index: 1; /* keeps the map pills under the sheet */
+}
+.f3-pin {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #111;
+  color: var(--mango);
+  display: grid;
+  place-items: center;
+}
+.f3-sheet {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  background: #fff;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  padding: 0 24px 32px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  transition: top 0.2s ease;
+}
+.f3-sheet::-webkit-scrollbar {
+  display: none;
+}
+.f3-sheet .sec {
+  padding-left: 0;
+  padding-right: 0;
+}
+.f3-drag {
+  padding-top: 8px;
+  touch-action: none;
+  cursor: grab;
+}
+.f3-grab {
+  display: block;
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.15);
+  margin: 0 auto 14px;
+  /* Bigger hit area than the visible handle */
+  box-shadow: 0 0 0 12px transparent;
+}
