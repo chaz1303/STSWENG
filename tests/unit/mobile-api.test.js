@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOOKING_STATES as S, BOOKING_TYPES, canTransition } from '../../src/utils/contract.js';
-import { createBooking, getBooking, statusSteps } from '../../mobile/api.js';
+import { createBooking, getBooking, statusSteps } from '../../mobile/api';
 
 describe('mobile mock api', () => {
   it('derives each booking type happy path from the contract', () => {
@@ -24,6 +24,7 @@ describe('mobile mock api', () => {
       category: 'plumbing',
       serviceType: 'STANDARD',
       bookingType: type,
+      manong: { name: 'Alfred Pennyworth', first: 'Alfred', initial: 'A' },
     });
     for (let i = 0; i < 5; i++) {
       const prev = b.status;

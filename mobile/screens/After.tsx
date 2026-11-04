@@ -2,8 +2,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { BOOKING_STATES } from '../../src/utils/contract.js';
-import { getBooking, payBooking, rateBooking, statusSteps } from '../api.js';
-import { C, peso } from '../theme.js';
+import { getBooking, payBooking, rateBooking, statusSteps } from '../api';
+import { C, peso } from '../theme';
 import {
   Avatar,
   Btn,
@@ -20,8 +20,9 @@ import {
   Sub,
   T,
   Tear,
-} from '../ui.js';
-import { PayPicker, whenOf } from './Book.js';
+} from '../ui';
+import type { App, Booking, Catalog } from '../types';
+import { PayPicker, whenOf } from './Book';
 
 const STARS = [
   'Tap a star',
@@ -41,19 +42,17 @@ const PRAISE = [
 ];
 const POLL_MS = 3000;
 
-const svcName = (app) => {
-  const { booking: b, catalog } = app.state;
+const svcName = (b: Booking, catalog: Catalog) => {
   return `${catalog[b.category].name}, ${catalog[b.category].tiers[b.serviceType].name.toLowerCase()}`;
 };
-const totalOf = (app) => {
-  const { booking: b, catalog } = app.state;
+const totalOf = (b: Booking, catalog: Catalog) => {
   return (
     catalog[b.category].tiers[b.serviceType].price + b.materials.reduce((sum, [, p]) => sum + p, 0)
   );
 };
 
-export function Status({ app }) {
-  const b = app.state.booking;
+export function Status({ app }: { app: App }) {
+  const b = app.state.booking!; // these screens open only after a booking exists
   const done = b.status === BOOKING_STATES.COMPLETED;
   const steps = statusSteps(b.bookingType);
   const cur = steps.indexOf(b.status);
@@ -73,7 +72,7 @@ export function Status({ app }) {
         <View style={s.between}>
           <View style={{ flex: 1 }}>
             <T w={700} style={{ fontSize: 18 }}>
-              {svcName(app)}
+              {svcName(b, app.state.catalog)}
             </T>
             <T w={600} style={{ marginTop: 2 }}>
               {whenOf(b)}
@@ -120,10 +119,10 @@ export function Status({ app }) {
   );
 }
 
-export function Charges({ app }) {
-  const b = app.state.booking;
+export function Charges({ app }: { app: App }) {
+  const b = app.state.booking!; // these screens open only after a booking exists
   const [pay, setPay] = useState(b.payment);
-  const total = totalOf(app);
+  const total = totalOf(b, app.state.catalog);
   const base = app.state.catalog[b.category].tiers[b.serviceType];
 
   async function payNow() {
@@ -189,12 +188,12 @@ export function Charges({ app }) {
   );
 }
 
-export function Rate({ app }) {
-  const b = app.state.booking;
+export function Rate({ app }: { app: App }) {
+  const b = app.state.booking!; // these screens open only after a booking exists
   const [stars, setStars] = useState(0);
-  const [praise, setPraise] = useState([]);
+  const [praise, setPraise] = useState<string[]>([]);
   const [note, setNote] = useState('');
-  const toggle = (p) =>
+  const toggle = (p: string) =>
     setPraise(praise.includes(p) ? praise.filter((x) => x !== p) : [...praise, p]);
 
   async function submit() {
@@ -214,12 +213,13 @@ export function Rate({ app }) {
       <View style={s.rateBand}>
         <Card>
           <View style={s.between}>
-            <T w={600}>{svcName(app)}</T>
+            <T w={600}>{svcName(b, app.state.catalog)}</T>
             <Stamp label="Paid" filled />
           </View>
           <Tear />
           <Sub style={{ fontSize: 13 }}>
-            {peso(totalOf(app))} with {b.payment === 'gcash' ? 'GCash' : 'cash'}, receipt emailed
+            {peso(totalOf(b, app.state.catalog))} with {b.payment === 'gcash' ? 'GCash' : 'cash'},
+            receipt emailed
           </Sub>
         </Card>
       </View>
@@ -261,7 +261,7 @@ export function Rate({ app }) {
   );
 }
 
-export function Thanks({ app }) {
+export function Thanks({ app }: { app: App }) {
   return (
     <Screen
       footer={

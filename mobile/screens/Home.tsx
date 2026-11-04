@@ -1,11 +1,12 @@
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BOOKING_STATES } from '../../src/utils/contract.js';
-import { C } from '../theme.js';
-import { Avatar, Icon, Note, Stamp, Sub, T } from '../ui.js';
-import { whenOf } from './Book.js';
+import { C } from '../theme';
+import { Avatar, Icon, Note, Stamp, Sub, T } from '../ui';
+import type { App } from '../types';
+import { whenOf } from './Book';
 
-export function Home({ app }) {
+export function Home({ app }: { app: App }) {
   const { catalog, address, booking: b } = app.state;
   const active = b && !b.paid;
   return (

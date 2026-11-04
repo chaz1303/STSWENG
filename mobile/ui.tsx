@@ -1,20 +1,46 @@
 import { Feather } from '@expo/vector-icons';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import type { ComponentProps, ReactNode } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+  type TextInputProps,
+  type TextProps,
+  type ViewProps,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { C, F } from './theme.js';
+import { C, F, type Weight } from './theme';
 
 export { Feather as Icon };
+export type IconName = ComponentProps<typeof Feather>['name'];
 
-export function T({ w = 400, style, ...props }) {
+type TProps = TextProps & { w?: Weight };
+
+export function T({ w = 400, style, ...props }: TProps) {
   return <Text style={[{ fontFamily: F[w], color: C.ink }, style]} {...props} />;
 }
 
-export const H = ({ style, ...p }) => <T w={700} style={[s.h, style]} {...p} />;
-export const Sub = ({ style, ...p }) => <T style={[s.sub, style]} {...p} />;
-export const Label = ({ style, ...p }) => <T w={600} style={[s.label, style]} {...p} />;
+export const H = ({ style, ...p }: TProps) => <T w={700} style={[s.h, style]} {...p} />;
+export const Sub = ({ style, ...p }: TProps) => <T style={[s.sub, style]} {...p} />;
+export const Label = ({ style, ...p }: TProps) => <T w={600} style={[s.label, style]} {...p} />;
 
 // Scrolling body with an optional pinned footer, like the prototype's .scroll + .footer.
-export function Screen({ header, footer, children, bg = C.paper, pad = true }) {
+export function Screen({
+  header,
+  footer,
+  children,
+  bg = C.paper,
+  pad = true,
+}: {
+  header?: ReactNode;
+  footer?: ReactNode;
+  children?: ReactNode;
+  bg?: string;
+  pad?: boolean;
+}) {
   return (
     <SafeAreaView
       edges={header ? ['bottom'] : ['top', 'bottom']}
@@ -29,7 +55,15 @@ export function Screen({ header, footer, children, bg = C.paper, pad = true }) {
   );
 }
 
-export function Header({ title, step, onBack }) {
+export function Header({
+  title,
+  step,
+  onBack,
+}: {
+  title: string;
+  step?: number;
+  onBack: () => void;
+}) {
   return (
     <SafeAreaView edges={['top']} style={s.head}>
       <View style={s.headRow}>
@@ -49,7 +83,7 @@ export function Header({ title, step, onBack }) {
       {!!step && (
         <View style={s.progress}>
           {[1, 2, 3, 4].map((i) => (
-            <View key={i} style={[s.bar, i <= step && { backgroundColor: C.ink }]} />
+            <View key={i} style={[s.bar, i <= (step ?? 0) && { backgroundColor: C.ink }]} />
           ))}
         </View>
       )}
@@ -57,7 +91,19 @@ export function Header({ title, step, onBack }) {
   );
 }
 
-export function Btn({ kind = 'primary', label, onPress, disabled, icon }) {
+export function Btn({
+  kind = 'primary',
+  label,
+  onPress,
+  disabled,
+  icon,
+}: {
+  kind?: 'primary' | 'secondary' | 'danger' | 'link';
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  icon?: IconName;
+}) {
   if (kind === 'link')
     return (
       <Pressable
@@ -97,7 +143,23 @@ export function Btn({ kind = 'primary', label, onPress, disabled, icon }) {
   );
 }
 
-export function Option({ title, desc, right, rightSub, gold, selected, onPress }) {
+export function Option({
+  title,
+  desc,
+  right,
+  rightSub,
+  gold,
+  selected,
+  onPress,
+}: {
+  title: string;
+  desc?: string;
+  right?: string;
+  rightSub?: string;
+  gold?: boolean;
+  selected: boolean;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       accessibilityRole="radio"
@@ -128,7 +190,7 @@ export function Option({ title, desc, right, rightSub, gold, selected, onPress }
   );
 }
 
-export function Chip({ label, on, onPress }) {
+export function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -143,11 +205,11 @@ export function Chip({ label, on, onPress }) {
   );
 }
 
-export const Chips = ({ children }) => (
+export const Chips = ({ children }: { children: ReactNode }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{children}</View>
 );
 
-export function Note({ text, icon = 'info' }) {
+export function Note({ text, icon = 'info' }: { text: string; icon?: IconName }) {
   return (
     <View style={s.note}>
       <Feather name={icon} size={18} color={C.ink} />
@@ -156,11 +218,18 @@ export function Note({ text, icon = 'info' }) {
   );
 }
 
-export const Card = ({ style, ...p }) => <View style={[s.card, style]} {...p} />;
+export const Card = ({ style, ...p }: ViewProps) => <View style={[s.card, style]} {...p} />;
 export const Tear = () => <View style={s.tear} />;
 
 // Label/value rows; a missing value shows "Not set yet" like the prototype's val().
-export function Rows({ rows, big }) {
+/** [label, value]; a falsy value shows as "Not set yet". */
+export function Rows({
+  rows,
+  big,
+}: {
+  rows: [string, string | null | undefined | false][];
+  big?: boolean;
+}) {
   return (
     <View style={{ gap: big ? 10 : 6 }}>
       {rows.map(([k, v]) => (
@@ -184,7 +253,7 @@ export function Rows({ rows, big }) {
   );
 }
 
-export function Avatar({ initial, size = 44 }) {
+export function Avatar({ initial, size = 44 }: { initial: string; size?: number }) {
   return (
     <View style={[s.av, { width: size, height: size, borderRadius: size / 2 }]}>
       <T w={700} style={{ fontSize: Math.round(size * 0.4) }}>
@@ -194,7 +263,7 @@ export function Avatar({ initial, size = 44 }) {
   );
 }
 
-export function Stamp({ label, filled }) {
+export function Stamp({ label, filled }: { label: string; filled?: boolean }) {
   return (
     <View style={[s.stamp, filled && { backgroundColor: C.ink }]}>
       <T w={700} style={{ fontSize: 12, color: filled ? C.mango : C.success }}>
@@ -204,7 +273,11 @@ export function Stamp({ label, filled }) {
   );
 }
 
-export function Field({ label, optional, ...input }) {
+export function Field({
+  label,
+  optional,
+  ...input
+}: TextInputProps & { label: string; optional?: boolean }) {
   return (
     <View style={{ gap: 6 }}>
       <View style={s.kv}>

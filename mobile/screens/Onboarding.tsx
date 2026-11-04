@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { Image, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { sendCode, verifyCode } from '../api.js';
-import { C, F } from '../theme.js';
-import { Btn, Field, H, Header, Icon, Label, Note, Rows, Screen, Sub, T } from '../ui.js';
+import { sendCode, verifyCode } from '../api';
+import { C, F } from '../theme';
+import { Btn, Field, H, Header, Icon, Label, Note, Rows, Screen, Sub, T } from '../ui';
+import type { Address as AddressT, App } from '../types';
 
-const fmtPhone = (d) =>
+const fmtPhone = (d: string) =>
   d
     .replace(/\D/g, '')
     .replace(/^(\d{3})(\d{3})(\d{0,4}).*/, '$1 $2 $3')
     .trim();
-const Err = ({ text }) => !!text && <T style={{ color: C.destructive, fontSize: 13 }}>{text}</T>;
-const regHeader = (app, step) => <Header title="Create account" step={step} onBack={app.back} />;
+const Err = ({ text }: { text: string }) =>
+  !!text && <T style={{ color: C.destructive, fontSize: 13 }}>{text}</T>;
+const regHeader = (app: App, step: number) => (
+  <Header title="Create account" step={step} onBack={app.back} />
+);
 
-export function Welcome({ app }) {
+export function Welcome({ app }: { app: App }) {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: C.white }} edges={['top']}>
       <View style={{ flex: 1, padding: 20, paddingTop: 72, gap: 18 }}>
@@ -25,11 +29,13 @@ export function Welcome({ app }) {
         <Sub style={{ fontSize: 16, lineHeight: 24 }}>
           Book a trusted Manong for repairs, cleaning, locks and moving.
         </Sub>
-        {[
-          ['shield', 'Every Manong is ID-verified'],
-          ['check', 'Prices you see before booking'],
-          ['credit-card', 'Pay after job is done'],
-        ].map(([i, t]) => (
+        {(
+          [
+            ['shield', 'Every Manong is ID-verified'],
+            ['check', 'Prices you see before booking'],
+            ['credit-card', 'Pay after job is done'],
+          ] as const
+        ).map(([i, t]) => (
           <View key={t} style={s.why}>
             <View style={s.disc}>
               <Icon name={i} size={16} color={C.ink} />
@@ -46,7 +52,7 @@ export function Welcome({ app }) {
   );
 }
 
-export function Phone({ app }) {
+export function Phone({ app }: { app: App }) {
   const [phone, setPhone] = useState(app.state.user.phone);
   const [err, setErr] = useState('');
   async function send() {
@@ -55,7 +61,7 @@ export function Phone({ app }) {
       app.setUser({ phone });
       app.go('code');
     } catch (e) {
-      setErr(e.message);
+      setErr((e as Error).message);
     }
   }
   return (
@@ -98,7 +104,7 @@ export function Phone({ app }) {
   );
 }
 
-export function Code({ app }) {
+export function Code({ app }: { app: App }) {
   const [code, setCode] = useState('');
   const [err, setErr] = useState('');
   async function verify() {
@@ -106,7 +112,7 @@ export function Code({ app }) {
       await verifyCode(app.state.user.phone, code);
       app.go('name');
     } catch (e) {
-      setErr(e.message);
+      setErr((e as Error).message);
       setCode('');
     }
   }
@@ -140,7 +146,7 @@ export function Code({ app }) {
   );
 }
 
-export function Name({ app }) {
+export function Name({ app }: { app: App }) {
   const { first, last } = app.state.user;
   return (
     <Screen
@@ -166,9 +172,9 @@ export function Name({ app }) {
   );
 }
 
-export function Address({ app }) {
+export function Address({ app }: { app: App }) {
   const [a, setA] = useState(app.state.address ?? { bldg: '', unit: '', note: '' });
-  const set = (k) => (v) => setA({ ...a, [k]: v });
+  const set = (k: keyof AddressT) => (v: string) => setA({ ...a, [k]: v });
   return (
     <Screen
       header={regHeader(app, 4)}
@@ -217,7 +223,7 @@ export function Address({ app }) {
   );
 }
 
-export function AllSet({ app }) {
+export function AllSet({ app }: { app: App }) {
   const { user, address } = app.state;
   return (
     <Screen

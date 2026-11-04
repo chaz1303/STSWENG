@@ -2,8 +2,8 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useEffect } from 'react';
 import { Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { BOOKING_TYPES } from '../../src/utils/contract.js';
-import { findManong } from '../api.js';
-import { C, peso } from '../theme.js';
+import { findManong } from '../api';
+import { C, peso } from '../theme';
 import {
   Avatar,
   Btn,
@@ -21,31 +21,42 @@ import {
   Sub,
   T,
   Tear,
-} from '../ui.js';
+} from '../ui';
+import type { App, Category, Draft, PaymentMethod, ServiceType, Tier } from '../types';
 
 const TIMES = ['9:00 AM', '10:30 AM', '1:00 PM', '3:00 PM', '4:30 PM', '6:00 PM'];
 const FULL_TIME = '1:00 PM'; // shortcut: one slot always shows as fully booked, until slots come from the API.
 
 // Next five days starting today, as Date objects.
 const nextDays = () => [0, 1, 2, 3, 4].map((i) => new Date(Date.now() + i * 86400000));
-const dayLabel = (d) =>
+const dayLabel = (d: Date) =>
   d.toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' });
 
-export const issueOf = (d) => {
+export const issueOf = (d: Pick<Draft, 'symptoms' | 'desc'>) => {
   if (d.symptoms.length) return d.symptoms.join(', ');
   const t = d.desc.trim();
   return t.length > 26 ? t.slice(0, 26) + '…' : t;
 };
-export const whenOf = (d) =>
+export const whenOf = (d: Pick<Draft, 'bookingType' | 'day' | 'time'>) =>
   d.bookingType === BOOKING_TYPES.ON_DEMAND
     ? 'Now, in about 30 min'
     : d.day && d.time
       ? `${dayLabel(d.day)}, ${d.time}`
       : '';
 
-const titleOf = (cat) => `Book ${cat.name.toLowerCase()}`;
+const titleOf = (cat: Category) => `Book ${cat.name.toLowerCase()}`;
 
-function Summary({ cat, d, showWhen = true, manong }) {
+function Summary({
+  cat,
+  d,
+  showWhen = true,
+  manong,
+}: {
+  cat: Category;
+  d: Draft;
+  showWhen?: boolean;
+  manong?: string;
+}) {
   const t = cat.tiers[d.serviceType];
   return (
     <Card>
@@ -69,7 +80,7 @@ function Summary({ cat, d, showWhen = true, manong }) {
   );
 }
 
-export function Size({ app }) {
+export function Size({ app }: { app: App }) {
   const { draft: d, catalog } = app.state;
   const cat = catalog[d.category];
   return (
@@ -78,7 +89,7 @@ export function Size({ app }) {
       footer={<Btn label="Continue" onPress={() => app.go('problem')} />}
     >
       <H>{cat.q}</H>
-      {Object.entries(cat.tiers).map(([k, t]) => (
+      {(Object.entries(cat.tiers) as [ServiceType, Tier][]).map(([k, t]) => (
         <Option
           key={k}
           title={t.name}
@@ -96,10 +107,10 @@ export function Size({ app }) {
   );
 }
 
-export function Problem({ app }) {
+export function Problem({ app }: { app: App }) {
   const { draft: d, catalog } = app.state;
   const cat = catalog[d.category];
-  const toggle = (x) =>
+  const toggle = (x: string) =>
     app.setDraft({
       symptoms: d.symptoms.includes(x) ? d.symptoms.filter((y) => y !== x) : [...d.symptoms, x],
     });
@@ -133,7 +144,7 @@ export function Problem({ app }) {
   );
 }
 
-export function Schedule({ app }) {
+export function Schedule({ app }: { app: App }) {
   const { draft: d, catalog } = app.state;
   const cat = catalog[d.category];
   const now = d.bookingType === BOOKING_TYPES.ON_DEMAND;
@@ -145,10 +156,12 @@ export function Schedule({ app }) {
     >
       <H>When do you need {d.category === 'moving' ? 'the movers' : 'Manong'}?</H>
       <View style={s.segm} accessibilityRole="tablist">
-        {[
-          [BOOKING_TYPES.ON_DEMAND, 'Now', 'As soon as possible'],
-          [BOOKING_TYPES.SCHEDULED, 'Schedule', 'Pick a day and time'],
-        ].map(([type, t, sub]) => (
+        {(
+          [
+            [BOOKING_TYPES.ON_DEMAND, 'Now', 'As soon as possible'],
+            [BOOKING_TYPES.SCHEDULED, 'Schedule', 'Pick a day and time'],
+          ] as const
+        ).map(([type, t, sub]) => (
           <Pressable
             key={type}
             accessibilityRole="tab"
@@ -220,7 +233,7 @@ export function Schedule({ app }) {
   );
 }
 
-export function Finding({ app }) {
+export function Finding({ app }: { app: App }) {
   const { draft: d, catalog } = app.state;
   const cat = catalog[d.category];
   useEffect(() => {
@@ -256,11 +269,11 @@ export function Finding({ app }) {
   );
 }
 
-export function Review({ app }) {
+export function Review({ app }: { app: App }) {
   const { draft: d, catalog, address } = app.state;
   const cat = catalog[d.category];
+  const m = d.manong!; // Review opens only after Finding picked a Manong
   const t = cat.tiers[d.serviceType];
-  const m = d.manong;
   return (
     <Screen
       header={<Header title={titleOf(cat)} step={4} onBack={app.back} />}
@@ -321,13 +334,21 @@ export function Review({ app }) {
   );
 }
 
-export function PayPicker({ value, onChange }) {
+export function PayPicker({
+  value,
+  onChange,
+}: {
+  value: PaymentMethod;
+  onChange: (method: PaymentMethod) => void;
+}) {
   return (
     <View style={s.row}>
-      {[
-        ['gcash', 'GCash'],
-        ['cash', 'Cash'],
-      ].map(([k, label]) => (
+      {(
+        [
+          ['gcash', 'GCash'],
+          ['cash', 'Cash'],
+        ] as const
+      ).map(([k, label]) => (
         <Pressable
           key={k}
           accessibilityRole="radio"

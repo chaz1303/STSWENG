@@ -23,6 +23,7 @@ export const F = {
   600: 'PlusJakartaSans_600SemiBold',
   700: 'PlusJakartaSans_700Bold',
   800: 'PlusJakartaSans_800ExtraBold',
-};
+} as const;
+export type Weight = keyof typeof F;
 
-export const peso = (n) => '₱' + n.toLocaleString('en-PH');
+export const peso = (n: number) => '₱' + n.toLocaleString('en-PH');

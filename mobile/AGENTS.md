@@ -23,11 +23,14 @@ npx expo install --fix      # fix incompatible package versions
 
 Run lint and typecheck before declaring any task done.
 
-## Navigation & Routing
+## This project
 
-- Use **Expo Router** for all navigation. Routes live in `src/app/` — every file there is a screen, `_layout.tsx` files define navigators. Keep non-route code (components, hooks, utils) outside `src/app/`.
-- Import `Link`, `router`, and `useLocalSearchParams` from `expo-router`.
-- Docs: https://docs.expo.dev/router/introduction.md
+- **TypeScript.** Screens are `.tsx`, the rest `.ts`. `tsconfig.json` extends `expo/tsconfig.base` with `strict` on. Shared data shapes live in `types.ts`.
+- **Navigation:** a plain screen stack in `App.tsx` (`app.go`, `app.back`, `app.home`), not Expo Router. Every screen receives one `app` prop typed as `App` in `types.ts`. Add a screen by adding it to `SCREENS` in `App.tsx`.
+- **Data:** screens call `api.ts`, never hard-coded data. It is an in-memory mock today; each function will become a call to the Express server in `../src/server`.
+- **Shared contract:** service types and booking states come from `../src/utils/contract.js` (shared with Team 2's app). `metro.config.js` lets the app import it. Don't edit it from here.
+- **Design source:** the Flow 3 screens in `../prototype/full.js` are the spec. Theme tokens are in `theme.ts`.
+- **Checks before done:** `npx tsc --noEmit` here, and `npm test` from the repo root (covers `api.ts`).
 
 ## Building with EAS
 

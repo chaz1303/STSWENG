@@ -11,15 +11,16 @@ import {
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 import { BOOKING_TYPES } from '../src/utils/contract.js';
-import { createBooking, getCatalog } from './api.js';
-import { C } from './theme.js';
-import { AllSet, Address, Code, Name, Phone, Welcome } from './screens/Onboarding.js';
-import { Home } from './screens/Home.js';
-import { Finding, Problem, Review, Schedule, Size } from './screens/Book.js';
-import { Charges, Rate, Status, Thanks } from './screens/After.js';
+import { createBooking, getCatalog } from './api';
+import { C } from './theme';
+import type { App as AppApi, AppState, Draft, ScreenName, ServiceType } from './types';
+import { AllSet, Address, Code, Name, Phone, Welcome } from './screens/Onboarding';
+import { Home } from './screens/Home';
+import { Finding, Problem, Review, Schedule, Size } from './screens/Book';
+import { Charges, Rate, Status, Thanks } from './screens/After';
 
 // Flow 3 "Full overhaul" happy path from prototype/full.js.
-const SCREENS = {
+export const SCREENS = {
   welcome: Welcome,
   phone: Phone,
   code: Code,
@@ -38,7 +39,7 @@ const SCREENS = {
   thanks: Thanks,
 };
 
-const newDraft = (category, serviceType = 'STANDARD') => ({
+const newDraft = (category: string, serviceType: ServiceType = 'STANDARD'): Draft => ({
   category,
   serviceType,
   desc: '',
@@ -59,12 +60,15 @@ export default function App() {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
-  const [stack, setStack] = useState(['welcome']);
-  const [state, setState] = useState({
-    catalog: null,
+  const [stack, setStack] = useState<ScreenName[]>(['welcome']);
+  // Nullable here; screens only see it once the catalog (and, for booking steps, the draft) exists.
+  const [state, setState] = useState<
+    Omit<AppState, 'catalog' | 'draft'> & Partial<Pick<AppState, 'catalog' | 'draft'>>
+  >({
+    catalog: undefined,
     user: { first: '', last: '', phone: '' },
     address: null,
-    draft: null,
+    draft: undefined,
     booking: null,
   });
 
@@ -72,8 +76,10 @@ export default function App() {
     getCatalog().then((catalog) => setState((s) => ({ ...s, catalog })));
   }, []);
 
-  const merge = (key) => (patch) =>
-    setState((s) => ({ ...s, [key]: patch && { ...s[key], ...patch } }));
+  const setUser = (patch: Partial<AppState['user']>) =>
+    setState((s) => ({ ...s, user: { ...s.user, ...patch } }));
+  const setDraft = (patch: Partial<Draft>) =>
+    setState((s) => ({ ...s, draft: s.draft && { ...s.draft, ...patch } }));
   const back = () => setStack((st) => (st.length > 1 ? st.slice(0, -1) : st));
 
   useEffect(() => {
@@ -85,21 +91,22 @@ export default function App() {
     return () => sub.remove();
   }, [stack.length]);
 
-  const app = {
-    state,
+  const app: AppApi = {
+    state: state as AppState,
     back,
     go: (screen, { replace } = {}) =>
       setStack((st) => [...(replace ? st.slice(0, -1) : st), screen]),
     home: () => setStack(['home']),
-    setUser: merge('user'),
+    setUser,
     setAddress: (address) => setState((s) => ({ ...s, address })),
-    setDraft: merge('draft'),
+    setDraft,
     setBooking: (booking) => setState((s) => ({ ...s, booking })),
     startBooking: (category) => {
-      setState((s) => ({ ...s, draft: newDraft(category, s.catalog[category].defaultTier) }));
+      setState((s) => ({ ...s, draft: newDraft(category, s.catalog?.[category].defaultTier) }));
       setStack(['home', 'size']);
     },
     confirmBooking: async () => {
+      if (!state.draft) return;
       const booking = await createBooking(state.draft);
       setState((s) => ({ ...s, booking }));
       setStack(['home', 'status']);
@@ -107,7 +114,7 @@ export default function App() {
   };
 
   if (!fontsLoaded || !state.catalog) return <View style={{ flex: 1, backgroundColor: C.mango }} />;
-  const Current = SCREENS[stack.at(-1)];
+  const Current = SCREENS[stack[stack.length - 1]];
   return (
     <SafeAreaProvider>
       <Current app={app} />

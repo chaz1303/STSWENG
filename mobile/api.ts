@@ -1,12 +1,28 @@
 import { BOOKING_STATES, INITIAL_STATE, TRANSITIONS } from '../src/utils/contract.js';
+import type {
+  Booking,
+  BookingStatus,
+  BookingType,
+  Catalog,
+  Draft,
+  Manong,
+  PaymentMethod,
+  Tier,
+} from './types';
 
 // shortcut: in-memory mock with no server, swap each function for a fetch() once the backend routes exist.
 // Catalog, prices and Manongs are copied from prototype/full.js (CAT3, ALF3, JOHN3).
 
-const tier = (name, desc, price, meta, gold = false) => ({ name, desc, price, meta, gold });
+const tier = (name: string, desc: string, price: number, meta: string, gold = false): Tier => ({
+  name,
+  desc,
+  price,
+  meta,
+  gold,
+});
 
 // Tier keys are the contract's SERVICE_TYPES keys (CHECKUP / STANDARD / MAJOR).
-const CATALOG = {
+const CATALOG: Catalog = {
   plumbing: {
     name: 'Plumbing',
     icon: 'droplet',
@@ -118,7 +134,7 @@ const CATALOG = {
   },
 };
 
-const MANONGS = [
+const MANONGS: Manong[] = [
   {
     name: 'Alfred Pennyworth',
     first: 'Alfred',
@@ -138,40 +154,43 @@ const MANONGS = [
 ];
 
 // Each state's first allowed transition in the contract is the happy path.
-export function statusSteps(bookingType) {
-  const steps = [INITIAL_STATE[bookingType]];
+export function statusSteps(bookingType: BookingType): BookingStatus[] {
+  const moves: Partial<Record<BookingStatus, readonly BookingStatus[]>> = TRANSITIONS[bookingType];
+  const steps: BookingStatus[] = [INITIAL_STATE[bookingType]];
   let next;
-  while ((next = TRANSITIONS[bookingType][steps.at(-1)]?.[0])) steps.push(next);
+  while ((next = moves[steps[steps.length - 1]]?.[0])) steps.push(next);
   return steps;
 }
 
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 let nextId = 8821;
-const bookings = {};
+const bookings: Record<string, Booking> = {};
 
 export async function getCatalog() {
   return CATALOG;
 }
 
-export async function sendCode(phone) {
+export async function sendCode(phone: string) {
   if (phone.replace(/\D/g, '').length !== 10) throw new Error('Enter a 10-digit mobile number.');
 }
 
 // shortcut: any 6 digits pass except 000000, which simulates a wrong code.
-export async function verifyCode(phone, code) {
+export async function verifyCode(phone: string, code: string) {
   if (code === '000000')
     throw new Error("That code didn't match. Check the latest text from Mang Juan and try again.");
   return { phone };
 }
 
-export async function findManong(bookingType) {
+export async function findManong(bookingType: BookingType) {
   await wait(2500);
   return MANONGS[bookingType === 'on-demand' ? 1 : 0];
 }
 
-export async function createBooking(draft) {
-  const booking = {
+export async function createBooking(draft: Draft): Promise<Booking> {
+  if (!draft.manong) throw new Error('Pick a Manong before confirming.');
+  const booking: Booking = {
     ...draft,
+    manong: draft.manong,
     id: `MJ-${nextId++}`,
     status: INITIAL_STATE[draft.bookingType],
     materials: [],
@@ -181,7 +200,7 @@ export async function createBooking(draft) {
 }
 
 // Each call moves the booking one step along the happy path, standing in for the aide side.
-export async function getBooking(id) {
+export async function getBooking(id: string): Promise<Booking> {
   const b = bookings[id];
   const steps = statusSteps(b.bookingType);
   const i = steps.indexOf(b.status);
@@ -190,11 +209,11 @@ export async function getBooking(id) {
   return { ...b };
 }
 
-export async function payBooking(id, method) {
+export async function payBooking(id: string, method: PaymentMethod): Promise<Booking> {
   Object.assign(bookings[id], { paid: true, payment: method });
   return { ...bookings[id] };
 }
 
-export async function rateBooking(id, rating) {
+export async function rateBooking(id: string, rating: NonNullable<Booking['rating']>) {
   bookings[id].rating = rating;
 }
