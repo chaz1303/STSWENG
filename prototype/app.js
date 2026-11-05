@@ -512,7 +512,7 @@ S['a-thanks'] = () => `${statusBar()}<div class="scroll" style="display:flex;fle
 // ==========================================================
 // FLOW 2 · Redesign (Overhaul / Color)
 // ==========================================================
-const wordmark = () => `<img class="wordmark" src="${A}wordmark.png" alt="mang juan" />`;
+const wordmark = () => `<img class="wordmark" src="${A}svg/mang-juan-wordmark.svg" alt="mang juan" />`;
 const socialB = () => `<div class="social"><button class="btn white" data-act="social" data-arg="Google">${gLogo()}Google</button>
   <button class="btn white" data-act="social" data-arg="Facebook"><svg width="18" height="18" viewBox="0 0 24 24"><path fill="#1877f2" d="M14 22v-8h2.7l.4-3.2H14V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.4c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.5-4 4.1v2.4H8.2V14H11v8z"/></svg>Facebook</button></div>`;
 
@@ -867,7 +867,7 @@ const LIVE = {
 };
 function live() {
   phone.querySelectorAll('[data-live]').forEach((el) => (el.textContent = LIVE[el.dataset.live]()));
-  phone.querySelectorAll('[data-live-w]').forEach((el) => (el.style.width = LIVE[el.dataset.liveW]()));
+  phone.querySelectorAll('[data-live-w]').forEach((el) => (el.style.transform = `scaleX(${parseFloat(LIVE[el.dataset.liveW]()) / 100})`));
   phone.querySelectorAll('[data-live-html="ticketB"]').forEach((el) => {
     const manong = st.screen === 'b-finding' ? { manong: 'Looking now' } : {};
     el.innerHTML = ticketBInner(manong);
@@ -884,8 +884,9 @@ const AFTER = {
       st.findSecs = Math.max(0, st.findSecs - 3);
       const pins = phone.querySelectorAll('.pin');
       pins.forEach((p, i) => {
-        p.style.left = 140 + Math.sin(Date.now() / 900 + i * 2) * 90 + 'px';
-        p.style.top = 230 + Math.cos(Date.now() / 900 + i * 2) * 70 + 'px';
+        const x = 140 + Math.sin(Date.now() / 900 + i * 2) * 90;
+        const y = 230 + Math.cos(Date.now() / 900 + i * 2) * 70;
+        p.style.transform = `translate(${x - parseFloat(p.style.left)}px, ${y - parseFloat(p.style.top)}px)`;
       });
       live();
       if (st.findPct >= 100) {
@@ -905,8 +906,7 @@ const AFTER = {
       st.km = Math.max(0, st.km - 0.14);
       const bike = phone.querySelector('[data-pin="0"]');
       if (bike) {
-        bike.style.left = 70 + (10 - st.eta) * 9.5 + 'px';
-        bike.style.top = 175 + (10 - st.eta) * 12 + 'px';
+        bike.style.transform = `translate(${(10 - st.eta) * 9.5}px, ${(10 - st.eta) * 12}px)`;
       }
       live();
       if (st.eta === 0) {
@@ -1392,7 +1392,8 @@ function render(screenChanged) {
     }, 1000);
   }
   const fr = FRAMES[st.screen];
-  document.getElementById('frameName').textContent = 'Figma frame: ' + (typeof fr === 'object' ? fr[v] || Object.values(fr)[0] : fr || st.screen);
+  document.getElementById('flowBadge').innerHTML = `<b>${VARIANTS[v].group}</b> · ${VARIANTS[v].label}`;
+  document.getElementById('frameName').textContent ='Figma frame: ' + (typeof fr === 'object' ? fr[v] || Object.values(fr)[0] : fr || st.screen);
   try {
     history.replaceState(null, '', `#${v}/${st.screen}`);
   } catch {
@@ -1414,13 +1415,22 @@ const GROUP_DESC = {
     "For when something's already gone wrong, and you're stressed before you even open the app. So each screen has less clutter, built on Nielsen's usability heuristics (Nielsen, 2006) and cognitive load theory (Sweller, 1988).",
 };
 function renderPanel() {
-  const groups = {};
-  Object.entries(VARIANTS).forEach(([k, v]) => (groups[v.group] ||= []).push([k, v]));
   const f = flow();
-  const list = JUMP[f].map((s) => (s === 'a-service' && st.variant === 'v3' ? 'a-service-map' : s));
+  const list = (JUMP[st.variant] || JUMP[f]).map((s) => (s === 'a-service' && st.variant === 'v3' ? 'a-service-map' : s));
   const sims = SIM[st.screen] || [];
-  panel.innerHTML = `<h1>Mang Juan prototype</h1>
-    ${Object.entries(groups).map(([g, vs]) => `<h2>${g}</h2><p style="margin-bottom:10px">${GROUP_DESC[g]}</p><div class="seg">${vs.map(([k, v]) => `<button class="${st.variant === k ? 'on' : ''}" data-variant="${k}">${v.label}</button>`).join('')}</div>`).join('')}
+  const group = VARIANTS[st.variant].group;
+  const variants = Object.entries(VARIANTS).filter(([, v]) => v.group === group);
+  // The active card has no data-variant, so clicking it doesn't reset the flow you're in.
+  const flowCard = (g) => {
+    const on = g === group;
+    const first = Object.keys(VARIANTS).find((k) => VARIANTS[k].group === g);
+    return `<button class="flowcard ${on ? 'on' : ''}" role="radio" aria-checked="${on}" ${on ? '' : `data-variant="${first}"`}>
+      <span class="fhead"><span class="fradio"></span><b>${g}</b>${on ? '<span class="fnow">Viewing</span>' : ''}</span>
+      <small>${GROUP_DESC[g]}</small></button>`;
+  };
+  panel.innerHTML = `<h1>Mang Juan prototype</h1><p>Pick a flow to try.</p>
+    <div class="flowpick" role="radiogroup" aria-label="Choose a flow">${Object.keys(GROUP_DESC).map(flowCard).join('')}</div>
+    ${variants.length > 1 ? `<h2>${group} variations</h2><div class="seg">${variants.map(([k, v]) => `<button class="${st.variant === k ? 'on' : ''}" data-variant="${k}">${v.label}</button>`).join('')}</div>` : ''}
     ${sims.length ? `<h2>Simulate (things the Manong or system does)</h2><div class="sim">${sims.map(([l], i) => `<button data-sim="${i}">${l}</button>`).join('')}</div>` : ''}
     ${f === 'B' ? `<h2>Scheduling outcome</h2><div class="seg"><button class="${st.outcome === 'found' ? 'on' : ''}" data-outcome="found">Manong found</button><button class="${st.outcome === 'none' ? 'on' : ''}" data-outcome="none">No Manong free</button></div>
       <p class="muted" style="margin-top:6px">Pick "Now" on step 3 for the on-demand path.</p>` : ''}
@@ -1556,4 +1566,5 @@ function boot() {
   render(true);
 }
 window.addEventListener('hashchange', boot);
-boot();
+// Waits for full.js (Flow 3) to register its variant before reading the URL.
+window.addEventListener('DOMContentLoaded', boot);

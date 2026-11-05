@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.expo.json",
+  "compilerOptions": {
+    "strict": true,
+    "allowJs": true
+  },
+  "include": ["**/*.ts", "**/*.tsx", "../src/utils/contract.js"]
+}
