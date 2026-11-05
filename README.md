@@ -1,5 +1,16 @@
 # STSWENG
 
+## Run the mobile app
+
+1. Install **Expo Go** on your phone, phone and computer must be on the same Wi-Fi.
+2. on root
+   ```bash
+   cd mobile
+   npm install
+   npx expo start
+   ```
+3. Scan the QR code
+
 ## Folder map
 
 Initial folder strucutre for now for progress, used `feature/qa-pipeline` framework from QAs
