@@ -1,6 +1,8 @@
 import { Feather } from '@expo/vector-icons';
 import type { ComponentProps, ReactNode } from 'react';
 import {
+  ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,7 +14,9 @@ import {
   type ViewProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { C, F, type Weight } from './theme';
+import Svg, { Circle } from 'react-native-svg';
+import { C, F, R, SHADOW, type Weight } from './theme';
+import type { Stage } from './types';
 
 export { Feather as Icon };
 export type IconName = ComponentProps<typeof Feather>['name'];
@@ -26,6 +30,12 @@ export function T({ w = 400, style, ...props }: TProps) {
 export const H = ({ style, ...p }: TProps) => <T w={700} style={[s.h, style]} {...p} />;
 export const Sub = ({ style, ...p }: TProps) => <T style={[s.sub, style]} {...p} />;
 export const Label = ({ style, ...p }: TProps) => <T w={600} style={[s.label, style]} {...p} />;
+export const ErrorText = ({ text }: { text?: string | null }) =>
+  text ? (
+    <T accessibilityRole="alert" style={{ color: C.destructive, fontSize: 13 }}>
+      {text}
+    </T>
+  ) : null;
 
 // Scrolling body with an optional pinned footer, like the prototype's .scroll + .footer.
 export function Screen({
@@ -34,16 +44,19 @@ export function Screen({
   children,
   bg = C.paper,
   pad = true,
+  top = true,
 }: {
   header?: ReactNode;
   footer?: ReactNode;
   children?: ReactNode;
   bg?: string;
   pad?: boolean;
+  /** false when the content draws its own band under the status bar. */
+  top?: boolean;
 }) {
   return (
     <SafeAreaView
-      edges={header ? ['bottom'] : ['top', 'bottom']}
+      edges={header || !top ? ['bottom'] : ['top', 'bottom']}
       style={{ flex: 1, backgroundColor: bg }}
     >
       {header}
@@ -59,10 +72,12 @@ export function Header({
   title,
   step,
   onBack,
+  right,
 }: {
   title: string;
   step?: number;
   onBack: () => void;
+  right?: ReactNode;
 }) {
   return (
     <SafeAreaView edges={['top']} style={s.head}>
@@ -75,15 +90,16 @@ export function Header({
         >
           <Feather name="chevron-left" size={22} color={C.ink} />
         </Pressable>
-        <T w={700} style={{ fontSize: 17, flex: 1 }}>
+        <T w={700} numberOfLines={1} style={{ fontSize: 17, flex: 1 }}>
           {title}
         </T>
         {!!step && <T style={{ fontSize: 13, color: C.gold }}>Step {step} of 4</T>}
+        {right}
       </View>
       {!!step && (
         <View style={s.progress}>
           {[1, 2, 3, 4].map((i) => (
-            <View key={i} style={[s.bar, i <= (step ?? 0) && { backgroundColor: C.ink }]} />
+            <View key={i} style={[s.bar, i <= step && { backgroundColor: C.ink }]} />
           ))}
         </View>
       )}
@@ -96,13 +112,16 @@ export function Btn({
   label,
   onPress,
   disabled,
+  loading,
   icon,
 }: {
-  kind?: 'primary' | 'secondary' | 'danger' | 'link';
+  kind?: 'primary' | 'secondary' | 'danger' | 'link' | 'white';
   label: string;
   onPress: () => void;
   disabled?: boolean;
-  icon?: IconName;
+  /** Shows a spinner and blocks taps while a request runs. */
+  loading?: boolean;
+  icon?: ReactNode;
 }) {
   if (kind === 'link')
     return (
@@ -117,19 +136,22 @@ export function Btn({
       </Pressable>
     );
   const primary = kind === 'primary';
+  const off = disabled || loading;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      disabled={disabled}
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!off, busy: !!loading }}
+      disabled={off}
       onPress={onPress}
       style={[
         s.btn,
         primary ? s.btnPrimary : s.btnSecondary,
-        disabled && { backgroundColor: '#9a9a9a' },
+        kind === 'white' && { borderColor: C.white },
+        disabled && { backgroundColor: '#9a9a9a', borderColor: '#9a9a9a' },
       ]}
     >
-      {icon && <Feather name={icon} size={18} color={primary ? C.mango : C.ink} />}
+      {loading ? <ActivityIndicator color={primary ? C.white : C.ink} /> : icon}
       <T
         w={600}
         style={{
@@ -176,11 +198,13 @@ export function Option({
         </T>
         {!!desc && <Sub style={{ marginTop: 2 }}>{desc}</Sub>}
       </View>
-      {!!right && (
+      {!!(right || rightSub) && (
         <View style={{ alignItems: 'flex-end' }}>
-          <T w={700} style={{ fontSize: 16 }}>
-            {right}
-          </T>
+          {!!right && (
+            <T w={700} style={{ fontSize: 16 }}>
+              {right}
+            </T>
+          )}
           <T w={gold ? 700 : 400} style={{ fontSize: 13, color: gold ? C.gold : C.slate }}>
             {rightSub}
           </T>
@@ -209,10 +233,18 @@ export const Chips = ({ children }: { children: ReactNode }) => (
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{children}</View>
 );
 
-export function Note({ text, icon = 'info' }: { text: string; icon?: IconName }) {
+export function Note({
+  text,
+  icon = 'info',
+  bad,
+}: {
+  text: string;
+  icon?: IconName;
+  bad?: boolean;
+}) {
   return (
-    <View style={s.note}>
-      <Feather name={icon} size={18} color={C.ink} />
+    <View style={[s.note, bad && { backgroundColor: '#fde3e1' }]}>
+      <Feather name={icon} size={18} color={bad ? C.destructive : C.ink} />
       <T style={{ flex: 1, fontSize: 13, lineHeight: 18 }}>{text}</T>
     </View>
   );
@@ -221,8 +253,7 @@ export function Note({ text, icon = 'info' }: { text: string; icon?: IconName })
 export const Card = ({ style, ...p }: ViewProps) => <View style={[s.card, style]} {...p} />;
 export const Tear = () => <View style={s.tear} />;
 
-// Label/value rows; a missing value shows "Not set yet" like the prototype's val().
-/** [label, value]; a falsy value shows as "Not set yet". */
+/** [label, value]; a falsy value shows as "Not set yet", like the prototype's val(). */
 export function Rows({
   rows,
   big,
@@ -263,12 +294,85 @@ export function Avatar({ initial, size = 44 }: { initial: string; size?: number 
   );
 }
 
-export function Stamp({ label, filled }: { label: string; filled?: boolean }) {
+// Design Kit "Status / Ring": [label, filled fifths, colour, icon].
+const RING: Record<
+  'booked' | 'confirmed' | 'onway' | 'late' | 'inprogress' | 'completed' | 'cancelled',
+  [string, number, string, IconName]
+> = {
+  booked: ['Booked', 1, '#5F5E5E', 'calendar'],
+  confirmed: ['Confirmed', 2, '#1F7A4D', 'check'],
+  onway: ['On the way', 3, '#005BC0', 'navigation'],
+  late: ['Running late', 3, '#B26A00', 'clock'],
+  inprogress: ['In progress', 4, '#FFC72C', 'tool'],
+  completed: ['Completed', 5, '#1F7A4D', 'check'],
+  cancelled: ['Cancelled', 5, '#C62828', 'x'],
+};
+const RING_C = 2 * Math.PI * 20;
+
+/** Status ring with label and caption. `accepted` shows the Confirmed ring labelled "Accepted". */
+export function Ring({
+  stage,
+  accepted,
+  label,
+  caption,
+}: {
+  stage: Stage;
+  accepted?: boolean;
+  label?: string;
+  caption?: string;
+}) {
+  const key = stage === 'paid' ? 'completed' : stage === 'mcancelled' ? 'cancelled' : stage;
+  const [name, n, color, icon] = RING[key];
+  const done = key === 'completed';
+  const defaults: Partial<Record<Stage, [string, string]>> = {
+    paid: ['Paid', 'Booking closed'],
+    mcancelled: ['Manong cancelled', 'Choose what to do next'],
+  };
+  const text =
+    label ?? defaults[stage]?.[0] ?? (accepted && key === 'confirmed' ? 'Accepted' : name);
+  const sub =
+    caption ?? defaults[stage]?.[1] ?? (key === 'cancelled' ? 'Booking closed' : `Step ${n} of 5`);
   return (
-    <View style={[s.stamp, filled && { backgroundColor: C.ink }]}>
-      <T w={700} style={{ fontSize: 12, color: filled ? C.mango : C.success }}>
-        {label}
-      </T>
+    <View style={s.ringRow} accessibilityLabel={`${text}, ${sub}`}>
+      <View style={{ width: 44, height: 44 }}>
+        <Svg width={44} height={44} viewBox="0 0 44 44">
+          <Circle
+            cx={22}
+            cy={22}
+            r={20}
+            fill="none"
+            stroke={color}
+            strokeOpacity={0.18}
+            strokeWidth={4}
+          />
+          <Circle
+            cx={22}
+            cy={22}
+            r={20}
+            fill="none"
+            stroke={color}
+            strokeWidth={4}
+            strokeDasharray={`${(RING_C * n) / 5} ${RING_C}`}
+            transform="rotate(-90 22 22)"
+          />
+          {done && <Circle cx={22} cy={22} r={16} fill={color} />}
+        </Svg>
+        <View style={s.ringIcon}>
+          <Feather
+            name={icon}
+            size={18}
+            color={done ? C.white : key === 'inprogress' ? C.goldText : color}
+          />
+        </View>
+      </View>
+      <View style={{ gap: 1 }}>
+        <T w={600} style={{ fontSize: 14 }}>
+          {text}
+        </T>
+        <T w={500} style={{ fontSize: 11, color: C.slate }}>
+          {sub}
+        </T>
+      </View>
     </View>
   );
 }
@@ -291,6 +395,81 @@ export function Field({
         {...input}
       />
     </View>
+  );
+}
+
+/** Bottom sheet over a scrim, like the prototype's .sheet. Tapping the scrim closes it. */
+export function Sheet({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean;
+  onClose: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        style={{ flex: 1, backgroundColor: C.scrim }}
+        onPress={onClose}
+      />
+      <SafeAreaView edges={['bottom']} style={s.sheet}>
+        <View style={s.grab} />
+        {children}
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+export function Loader({ label }: { label?: string }) {
+  return (
+    <View style={{ padding: 32, alignItems: 'center', gap: 10 }}>
+      <ActivityIndicator color={C.ink} />
+      {!!label && <Sub>{label}</Sub>}
+    </View>
+  );
+}
+
+export function Toast({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <View pointerEvents="none" style={s.toastWrap}>
+      <View style={s.toast} accessibilityLiveRegion="polite">
+        <T w={500} style={{ color: C.white, fontSize: 14, textAlign: 'center' }}>
+          {message}
+        </T>
+      </View>
+    </View>
+  );
+}
+
+export type Tab = 'home' | 'bookings' | 'profile';
+export function TabBar({ on, go }: { on: Tab; go: (tab: Tab) => void }) {
+  const tabs: [Tab, IconName, string][] = [
+    ['home', 'home', 'Home'],
+    ['bookings', 'calendar', 'Bookings'],
+    ['profile', 'user', 'Profile'],
+  ];
+  return (
+    <SafeAreaView edges={['bottom']} style={s.tabbar}>
+      {tabs.map(([k, icon, label]) => (
+        <Pressable
+          key={k}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: on === k }}
+          onPress={() => go(k)}
+          style={s.tab}
+        >
+          <Feather name={icon} size={22} color={on === k ? C.ink : C.slate} />
+          <T w={on === k ? 700 : 500} style={{ fontSize: 12, color: on === k ? C.ink : C.slate }}>
+            {label}
+          </T>
+        </Pressable>
+      ))}
+    </SafeAreaView>
   );
 }
 
@@ -320,20 +499,22 @@ const s = StyleSheet.create({
   bar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: C.white },
   btn: {
     height: 56,
-    borderRadius: 999,
+    borderRadius: R.full,
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 16,
   },
   btnPrimary: { backgroundColor: C.ink },
   btnSecondary: { backgroundColor: C.white, borderWidth: 1, borderColor: C.line },
   card: {
     backgroundColor: C.white,
-    borderRadius: 16,
+    borderRadius: R.card,
     borderWidth: 1,
     borderColor: C.cloud,
     padding: 16,
+    ...SHADOW.ticket,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   radio: {
@@ -349,7 +530,7 @@ const s = StyleSheet.create({
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 9,
-    borderRadius: 999,
+    borderRadius: R.full,
     borderWidth: 1,
     borderColor: C.line,
     backgroundColor: C.white,
@@ -358,28 +539,70 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     gap: 10,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: R.control,
     backgroundColor: C.mangoSoft,
     alignItems: 'center',
   },
   tear: { height: 1, backgroundColor: C.cloud, marginVertical: 14 },
   kv: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   av: { backgroundColor: C.mangoSoft, alignItems: 'center', justifyContent: 'center' },
-  stamp: {
-    borderWidth: 1.5,
-    borderColor: C.success,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    transform: [{ rotate: '-4deg' }],
+  ringRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  ringIcon: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   input: {
     backgroundColor: C.cloud,
-    borderRadius: 12,
+    borderRadius: R.control,
     paddingHorizontal: 14,
     height: 52,
     fontFamily: F[400],
     fontSize: 15,
     color: C.ink,
   },
+  sheet: {
+    backgroundColor: C.white,
+    borderTopLeftRadius: R.sheet,
+    borderTopRightRadius: R.sheet,
+    padding: 24,
+    paddingTop: 10,
+    gap: 12,
+    ...SHADOW.sheet,
+  },
+  grab: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+    alignSelf: 'center',
+    marginBottom: 6,
+  },
+  toastWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 110,
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  toast: {
+    backgroundColor: C.ink,
+    borderRadius: R.full,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    maxWidth: 360,
+  },
+  tabbar: {
+    flexDirection: 'row',
+    backgroundColor: C.white,
+    borderTopWidth: 1,
+    borderTopColor: C.cloud,
+    paddingTop: 8,
+  },
+  tab: { flex: 1, alignItems: 'center', gap: 2, paddingBottom: 8, minHeight: 44 },
 });

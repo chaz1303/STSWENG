@@ -4,6 +4,11 @@ coverage/
 reports/
 .env
 
+# Logs and browser-tool output (console logs, page snapshots)
+*.log
+logs/
+.playwright-mcp/
+
 # Secrets: env overrides, keys, certs, cloud credentials (.env.example stays tracked)
 .env.*
 !.env.example

@@ -25,12 +25,13 @@ Run lint and typecheck before declaring any task done.
 
 ## This project
 
-- **TypeScript.** Screens are `.tsx`, the rest `.ts`. `tsconfig.json` extends `expo/tsconfig.base` with `strict` on. Shared data shapes live in `types.ts`.
+- **TypeScript.** Screens are `.tsx`, the rest `.ts`. `tsconfig.json` extends `tsconfig.expo.json` (a committed copy of Expo's base, because CI runs Vitest without `mobile/node_modules`) with `strict` on. Shared data shapes live in `types.ts`.
 - **Navigation:** a plain screen stack in `App.tsx` (`app.go`, `app.back`, `app.home`), not Expo Router. Every screen receives one `app` prop typed as `App` in `types.ts`. Add a screen by adding it to `SCREENS` in `App.tsx`.
-- **Data:** screens call `api.ts`, never hard-coded data. It is an in-memory mock today; each function will become a call to the Express server in `../src/server`.
+- **Data:** screens call `services/*`, never `mocks/` directly. Services are `async` and return mock data today; every spot that needs the real back end is marked `TODO(backend)`. Settings come from `config.ts` (env). Long-running calls use `useTask` for loading and error state.
+- **Statuses:** screens show a `Stage` (the status ring). `contractStatus()` in `services/bookings.ts` maps it onto the shared contract (ICM open item 20). In development, the **Dev** button flips the mock status and failure cases.
 - **Shared contract:** service types and booking states come from `../src/utils/contract.js` (shared with Team 2's app). `metro.config.js` lets the app import it. Don't edit it from here.
 - **Design source:** the Flow 3 screens in `../prototype/full.js` are the spec. Theme tokens are in `theme.ts`.
-- **Checks before done:** `npx tsc --noEmit` here, and `npm test` from the repo root (covers `api.ts`).
+- **Checks before done:** `npx tsc --noEmit` here, and `npm test` from the repo root (covers `services/`).
 
 ## Building with EAS
 
