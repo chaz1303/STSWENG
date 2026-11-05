@@ -1,0 +1,17 @@
+{
+  "//": "Copy of expo/tsconfig.base (SDK 58). Kept in the repo because CI runs Vitest without installing mobile/node_modules, so extending the package directly fails there. Re-copy it after an Expo SDK upgrade.",
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["DOM", "ESNext"],
+    "module": "preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "customConditions": ["react-native"],
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "ESNext"
+  }
+}
