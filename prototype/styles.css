@@ -3939,3 +3939,283 @@ svg.i.fill {
   /* Bigger hit area than the visible handle */
   box-shadow: 0 0 0 12px transparent;
 }
+
+/* Duration line under a service option, and the Manong picker (Book 4b) */
+.B .optrow small.dur3 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+.B .optrow small.dur3 svg {
+  width: 14px;
+  height: 14px;
+}
+.f3-rate {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.f3-pick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.f3-pick .optrow {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+  gap: 10px;
+}
+.f3-pick .optrow:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.f3-pick .optrow:disabled:active {
+  transform: none;
+}
+.f3-pick .f3-disc.sq {
+  width: 40px;
+  height: 40px;
+}
+
+/* Keyboard focus: visible on every tappable control */
+.phone button:focus-visible,
+.phone [data-act]:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* ==========================================================
+   FLOW 4 (Final): additions built from Flow 1's own components
+   ========================================================== */
+.f4ini { border-radius: 50%; background: var(--mango-soft); color: var(--cocoa); display: grid; place-items: center; font-weight: 800; flex: none; }
+.A .lvl:disabled { opacity: 0.55; cursor: not-allowed; }
+.A .lvl:disabled:active { transform: none; }
+.A .lvl .pr small { display: block; font-size: 11px; color: #555; }
+.A .f4active { display: flex; align-items: center; gap: 12px; margin: 0 27px 18px; padding: 12px 14px; width: calc(100% - 54px); background: var(--mango-pale); border: 1px solid #f2d68a; border-radius: 14px; text-align: left; }
+.A .f4active span { flex: 1; min-width: 0; }
+.A .f4active b { display: block; font-size: 14px; }
+.A .f4active small { font-size: 12px; color: #6b4b00; }
+.A .f4tl { list-style: none; margin: 0; padding: 0; }
+.A .f4tl li { position: relative; padding: 0 0 16px 30px; color: #777; }
+.A .f4tl li:last-child { padding-bottom: 0; }
+.A .f4tl li::before { content: ''; position: absolute; left: 0; top: 2px; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ccc; background: #fff; }
+.A .f4tl li:not(:last-child)::after { content: ''; position: absolute; left: 8px; top: 22px; bottom: 2px; width: 2px; background: #ddd; }
+.A .f4tl li b { display: block; font-size: 15px; font-weight: 600; }
+.A .f4tl li small { font-size: 12px; }
+.A .f4tl li.done, .A .f4tl li.cur { color: var(--ink); }
+.A .f4tl li.done::before { background: var(--success); border-color: var(--success); }
+.A .f4tl li.done::after { background: var(--success); }
+.A .f4tl li.cur::before { background: var(--mango); border-color: var(--mango); box-shadow: 0 0 0 4px rgba(255, 199, 44, 0.3); }
+
+/* Flow 4: schedule picker, tab pages, review block */
+.A .f4mon { font-size: 13px; font-weight: 700; color: #555; margin: 16px 0 8px; }
+.A .f4dates { display: flex; gap: 6px; overflow-x: auto; margin: 0 -4px; padding: 2px 4px 4px; scrollbar-width: none; }
+.A .f4date { flex: none; width: 48px; padding: 8px 0 7px; border-radius: 12px; background: #f3f3f3; display: flex; flex-direction: column; align-items: center; gap: 0; }
+.A .f4date small { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; color: #777; }
+.A .f4date b { font-size: 18px; font-weight: 700; line-height: 1.25; }
+.A .f4date.on { background: var(--ink); color: #fff; }
+.A .f4date.on small { color: var(--mango); }
+.A .f4lab { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #888; margin: 16px 0 8px; }
+.A .f4times { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.A .f4time { height: 40px; border-radius: 10px; background: #f3f3f3; font-size: 14px; font-weight: 500; }
+.A .f4time.on { background: var(--mango); font-weight: 700; }
+.A .f4time:disabled { background: transparent; color: #b5b5b5; text-decoration: line-through; cursor: not-allowed; }
+.A .f4sum { margin: 14px 0 0; font-size: 14px; color: #555; }
+.A .f4sum b { color: var(--ink); }
+.A .f4rev { margin-top: 14px; padding: 14px 0 0; border-top: 1px solid #e3e3e3; }
+.A .f4rev > b { font-size: 15px; display: block; margin-bottom: 10px; }
+.A .f4rev .link { color: var(--gcash); font-weight: 600; font-size: 14px; }
+.A .f4stick { position: sticky; bottom: -34px; margin: 12px -4px 0; padding: 10px 4px 34px; background: #fff; }
+.A .f4hr { display: flex; align-items: center; gap: 10px; }
+.A .f4bell { position: relative; width: 40px; height: 40px; border-radius: 50%; background: rgba(255, 255, 255, 0.55); display: grid; place-items: center; }
+.A .f4bell i { position: absolute; top: 8px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--destructive); border: 2px solid var(--mango); }
+.A .f4again { padding: 8px 16px 24px; }
+.A .f4again h3 { font-size: 20px; font-weight: 400; margin: 0 11px 12px; }
+.A .f4seg { display: flex; margin: 8px 16px 8px; padding: 4px; background: #ececec; border-radius: 999px; flex: none; }
+.A .f4seg button { flex: 1; height: 38px; border-radius: 999px; font-size: 14px; font-weight: 600; color: #666; }
+.A .f4seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14); }
+.A .f4chip { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; white-space: nowrap; background: #eee; color: #444; }
+.A .f4chip.pending { background: #fff3cf; color: #7a5a00; }
+.A .f4chip.confirmed { background: #e3f4ea; color: #1f6f43; }
+.A .f4chip.declined { background: #fde8e8; color: #a12323; }
+.A .f4amt { text-align: right; flex: none; }
+.A .f4amt b { display: block; font-size: 15px; }
+.A .f4amt small { font-size: 11px; color: #777; }
+.A .f4val { font-size: 14px; color: #666; margin-right: 4px; }
+.A .f4group { margin-top: 16px; }
+.A .f4group h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #777; margin: 0 11px 8px; }
+.A .f4empty { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 28px 24px; gap: 6px; }
+.A .f4empty img { width: 150px; margin-bottom: 6px; }
+.A .f4empty b { font-size: 18px; }
+.A .f4empty p { margin: 0 0 14px; color: #666; font-size: 14px; }
+
+/* Flow 4: auth, home, notifications, account, thank you */
+.A .f4wm { filter: url(#f4bold); display: block; width: auto; }
+.A .f4tag { font-size: 16px; color: var(--gold-text); line-height: 1.4; margin: 12px 0 0; }
+.A .f4cta { width: 100%; height: 54px; border-radius: 27px; background: var(--ink); color: #fff; font-size: 16px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.A .f4cta svg { color: var(--mango); width: 20px; height: 20px; }
+.A .f4cta.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); }
+.A .f4or2 { display: flex; align-items: center; gap: 12px; margin: 16px 0; font-size: 13px; color: var(--gold-text); }
+.A .f4or2::before, .A .f4or2::after { content: ''; flex: 1; height: 1px; background: rgba(90, 67, 0, 0.35); }
+.A .f4soc { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.A .f4soc button { height: 50px; border-radius: 25px; background: #fff; border: 1.5px solid #ddd; font-size: 15px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.A .f4alt { text-align: center; margin: 16px 0 0; font-size: 14px; }
+.A .f4rev .link { color: var(--gcash); font-weight: 600; }
+.A .oldauth .link { color: var(--ink); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.A .link { color: var(--gcash); font-weight: 600; }
+.A .f4hh { background: var(--mango); border-radius: 0 0 28px 28px; padding: 54px 20px 46px; flex: none; }
+.A .f4row { display: flex; align-items: center; justify-content: space-between; }
+.A .f4hh h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 16px 0 10px; }
+.A .f4loc { display: flex; align-items: center; gap: 6px; max-width: 100%; font-size: 14px; font-weight: 600; }
+.A .f4loc svg { width: 16px; height: 16px; flex: none; }
+.A .f4loc span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.A .f4loc u { color: #5a4300; font-weight: 500; flex: none; margin-left: 2px; }
+.A .f4search { display: flex; align-items: center; gap: 10px; height: 52px; margin: -26px 20px 0; padding: 0 18px; background: #fff; border-radius: 26px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12); position: relative; flex: none; }
+.A .f4search input { flex: 1; border: 0; outline: 0; font-size: 16px; background: transparent; min-width: 0; }
+.A .f4search svg { color: #777; flex: none; }
+.A .f4body { padding: 8px 16px 24px; }
+.A .f4h { font-size: 18px; font-weight: 700; margin: 24px 4px 10px; }
+.A .f4hero { position: relative; display: flex; flex-direction: column; justify-content: flex-end; width: 100%; height: 170px; margin-top: 18px; padding: 18px; border-radius: 20px; overflow: hidden; background-size: cover; background-position: center; color: #fff; text-align: left; gap: 2px; }
+.A .f4hero::before { content: ''; position: absolute; inset: 0; background: rgba(20, 14, 0, 0.45); }
+.A .f4hero > * { position: relative; }
+.A .f4hero small { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mango); }
+.A .f4hero b { font-size: 24px; font-weight: 700; }
+.A .f4hero span { font-size: 14px; opacity: 0.92; }
+.A .f4svcs { background: #fff; border-radius: 18px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07); overflow: hidden; }
+.A .f4svc { display: flex; align-items: center; gap: 12px; width: 100%; padding: 16px 18px; text-align: left; border-bottom: 1px solid #eee; }
+.A .f4svc:last-child { border-bottom: 0; }
+.A .f4svc b { display: block; font-size: 16px; font-weight: 600; }
+.A .f4svc small { font-size: 13px; color: #666; }
+.A .f4from { text-align: right; }
+.A .f4from small { display: block; font-size: 11px; color: #888; }
+.A .f4from b { font-size: 15px; }
+.A .f4svc > svg { color: #aaa; flex: none; }
+.A .f4jobs { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 0 16px 4px; scrollbar-width: none; }
+.A .f4job { flex: none; width: 172px; text-align: left; }
+.A .f4job img { width: 100%; height: 108px; object-fit: cover; border-radius: 14px; display: block; }
+.A .f4job b { display: block; font-size: 14px; margin-top: 8px; }
+.A .f4job small { font-size: 12px; color: #666; }
+.A .f4dot { width: 9px; height: 9px; border-radius: 50%; background: var(--unread, #e53935); flex: none; }
+.A .f4dot.off { background: transparent; }
+.A .f4prof { display: flex; align-items: center; gap: 14px; background: var(--mango); border-radius: 0 0 28px 28px; padding: 54px 20px 22px; flex: none; }
+.A .f4av { width: 64px; height: 64px; border-radius: 50%; background: var(--ink); color: var(--mango); display: grid; place-items: center; font-size: 22px; font-weight: 800; flex: none; }
+.A .f4prof h1 { font-size: 21px; font-weight: 700; margin: 0 0 2px; }
+.A .f4prof p { margin: 0; font-size: 13px; color: rgba(0, 0, 0, 0.65); }
+.A .f4edit { height: 34px; padding: 0 16px; border: 1.5px solid var(--ink); border-radius: 17px; font-size: 13px; font-weight: 600; flex: none; }
+.A .f4stats { display: grid; grid-template-columns: repeat(3, 1fr); margin: 16px 0 0; background: #fff; border-radius: 16px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07); }
+.A .f4stats div { padding: 14px 4px; text-align: center; border-left: 1px solid #eee; }
+.A .f4stats div:first-child { border-left: 0; }
+.A .f4stats b { display: block; font-size: 20px; }
+.A .f4stats small { font-size: 11px; color: #777; }
+.A .f4sw { width: 46px; height: 28px; border-radius: 14px; background: #d3d3d3; position: relative; flex: none; transition: background 0.15s; }
+.A .f4sw i { position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: left 0.15s; }
+.A .f4sw.on { background: var(--success); }
+.A .f4sw.on i { left: 21px; }
+.A .f4ver { text-align: center; font-size: 12px; color: #999; margin: 20px 0 0; }
+.A .f4quick { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-top: 14px; padding: 16px 18px; background: var(--ink); color: #fff; border-radius: 18px; text-align: left; }
+.A .f4quick small { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--mango); }
+.A .f4quick b { display: block; font-size: 17px; margin: 2px 0; }
+.A .f4quick em { font-style: normal; font-size: 13px; color: rgba(255, 255, 255, 0.75); }
+.A .f4go { display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--mango); }
+.A .f4or { text-align: center; font-size: 12px; color: #888; margin: 14px 0 10px; }
+.A .f4thx { display: flex; flex-direction: column; height: 100%; background: var(--mango); }
+.A .f4thxtop { flex: 1; display: grid; place-items: center; padding-top: 48px; }
+.A .f4thxtop img { width: 230px; max-width: 70%; }
+.A .f4thxsheet { background: #fff; border-radius: 28px 28px 0 0; padding: 26px 24px 40px; }
+.A .f4kick { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #7a5a00; }
+.A .f4thxsheet h1 { font-size: 30px; margin: 6px 0 8px; letter-spacing: -0.01em; }
+.A .f4thxsheet p { margin: 0 0 18px; color: #555; font-size: 15px; line-height: 1.45; }
+.A .f4thxsheet .kv { margin-bottom: 20px; }
+.A .f4txt { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 12px; padding: 8px; color: #555; font-size: 14px; }
+/* ===== Flow 4 v0.5: shared header, active strip, home address, account, alignment ===== */
+.A .oldauth .f4soc button { border: 0; background: #fff; }
+.A .oldauth .f4cta.ghost { border-color: rgba(90, 67, 0, 0.55); }
+.A .f4lab2 { display: block; font-size: 13px; font-weight: 600; color: var(--gold-text); margin: 14px 2px 6px; }
+.A .f4top { flex: none; padding: 54px 20px 8px; background: var(--a-bg, #f7f7f7); }
+.A .f4top .f4row { gap: 10px; justify-content: flex-start; }
+.A .f4top h1 { flex: 1; font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.A .f4back { width: 40px; height: 40px; margin-left: -10px; border-radius: 50%; display: grid; place-items: center; flex: none; }
+.A .f4hdrlink { font-size: 14px; font-weight: 600; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.A .f4hh { padding: 54px 20px 40px; }
+.A .f4hh .f4row { gap: 12px; }
+.A .f4loc2 { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; text-align: left; min-height: 44px; }
+.A .f4loc2 > svg { width: 20px; height: 20px; flex: none; }
+.A .f4locT { display: flex; flex-direction: column; min-width: 0; }
+.A .f4locT small { font-size: 11px; font-weight: 600; letter-spacing: 0.04em; color: var(--gold-text); }
+.A .f4locT b { font-size: 16px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.A .f4loc2 > svg:last-child { width: 18px; height: 18px; }
+.A .f4strip { display: flex; align-items: center; gap: 12px; width: calc(100% - 24px); margin: 0 12px 8px; padding: 10px 14px; background: var(--ink); color: #fff; border-radius: 16px; text-align: left; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22); flex: none; }
+.A .f4strip .grow { flex: 1; min-width: 0; }
+.A .f4strip b { display: block; font-size: 14px; font-weight: 700; }
+.A .f4strip small { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.75); }
+.A .f4strip > svg { color: var(--mango); flex: none; }
+.A .f4tdot { display: inline-block; width: 8px; height: 8px; margin-left: 4px; border-radius: 50%; background: var(--destructive, #e53935); vertical-align: top; }
+.A .f4chip.finding, .A .f4chip.onway, .A .f4chip.arrived { background: #fff3cf; color: #7a5a00; }
+.A .f4chip.done, .A .f4chip.paid { background: #e3f4ea; color: #1f6f43; }
+.A .f4acc { padding: 4px 16px 24px; }
+.A .f4acc .f4group h3 { margin-left: 4px; }
+.A .f3-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+.A .f3-row b { flex: 1; min-width: 0; }
+.A .f3-row small { margin-left: auto; text-align: right; color: #777; }
+.A .f3-row > svg:last-child { color: #aaa; flex: none; }
+.A .listrow { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; }
+.A .listrow .grow { flex: 1; min-width: 0; }
+.A .listrow > .f4chip, .A .listrow > .f4amt, .A .listrow > .smallbtn { margin-left: auto; flex: none; }
+.A .lvl .pr { margin-left: auto; text-align: right; flex: none; }
+.A .lvl .pr b, .A .lvl .pr small { display: block; }
+.A .kv > div { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.A .kv > div > :last-child { margin-left: auto; text-align: right; }
+.A .kv button { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--ink); }
+.A .kv button svg { width: 14px; height: 14px; color: #777; }
+.A .abtn .amt { margin-left: auto; margin-right: 0; font-weight: 700; }
+.A .abtn:has(.amt) { justify-content: space-between; }
+.A .smallbtn { height: 34px; padding: 0 16px; border-radius: 17px; background: var(--mango); font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; }
+/* ===== Flow 4: logo, bottom nav, account ===== */
+.A .f4nav { padding: 8px 8px 26px; border-top: 0; background: #fff; box-shadow: 0 -1px 0 #ececec; }
+.A .f4nav button { position: relative; gap: 3px; font-size: 11.5px; font-weight: 500; color: #8a8a8a; padding-top: 6px; }
+.A .f4nav button svg { width: 24px; height: 24px; stroke-width: 1.7; }
+.A .f4nav button.on { color: var(--ink); font-weight: 700; }
+.A .f4nav button.on::before { content: ''; position: absolute; top: -9px; left: 50%; width: 26px; height: 3px; margin-left: -13px; border-radius: 0 0 3px 3px; background: var(--ink); }
+.A .f4nav .f4tdot { position: absolute; top: 4px; left: calc(50% + 7px); margin: 0; border: 2px solid #fff; width: 11px; height: 11px; box-sizing: border-box; }
+.A .f4acc2 { padding: 0 0 24px; }
+.A .f4me { display: flex; align-items: center; gap: 14px; padding: 62px 20px 20px; background: var(--mango); border-radius: 0 0 28px 28px; }
+.A .f4me h1 { font-size: 22px; font-weight: 800; margin: 0 0 2px; letter-spacing: -0.01em; }
+.A .f4me p { margin: 0; font-size: 12.5px; color: rgba(0, 0, 0, 0.65); }
+.A .f4tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 18px 16px 0; }
+.A .f4tile { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 16px 16px 14px; min-height: 104px; text-align: left; background: #fff; border: 1.5px solid #e4e4e4; border-radius: 16px; }
+.A .f4tile svg { width: 26px; height: 26px; stroke-width: 1.6; margin-bottom: auto; color: var(--ink); }
+.A .f4tile b { font-size: 16px; font-weight: 700; margin-top: 14px; }
+.A .f4tile small { font-size: 12.5px; color: #777; }
+.A .f4promo { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: calc(100% - 32px); margin: 10px 16px 0; padding: 14px 16px; background: var(--ink); color: #fff; border-radius: 16px; text-align: left; }
+.A .f4promo small { display: block; font-size: 12px; color: rgba(255, 255, 255, 0.7); }
+.A .f4promo b { font-size: 16px; }
+.A .f4promo em { font-style: normal; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; padding: 6px 10px; border: 1.5px dashed var(--mango); color: var(--mango); border-radius: 8px; }
+.A .f4cap { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8a8a8a; margin: 24px 20px 4px; }
+.A .f4lines { margin: 0 16px; }
+.A .f4line { display: flex; align-items: center; gap: 10px; width: 100%; padding: 15px 4px; text-align: left; font-size: 15.5px; border-bottom: 1px solid #ececec; }
+.A .f4line span { flex: 1; }
+.A .f4line small { color: #888; font-size: 13.5px; }
+.A .f4line svg { width: 18px; height: 18px; color: #b0b0b0; }
+
+/* Flow 4 v0.6: logo, centered welcome, aligned list rows */
+.A .f4wm { filter: none; display: block; width: auto; }
+.A .f4center { flex: 1; display: grid; place-items: center; padding-bottom: 24px; }
+.A .f4tag { text-align: center; }
+.A .f4svc .grow { flex: 1; min-width: 0; }
+.A .f4svc .f4from { flex: none; width: 76px; text-align: right; }
+.A .f4svc > svg { flex: none; width: 18px; height: 18px; }
+.A .f4svc .smallbtn { flex: none; margin-left: auto; }
+.A .f4svc > img, .A .listrow > img, .A .f4svc > .f4ini { flex: none; }
+.A .listrow .f4amt { min-width: 64px; }
+.A .listrow > svg:last-child { flex: none; margin-left: auto; width: 18px; height: 18px; color: #aaa; }
+
+/* Flow 4 v0.7: quiet status label, scrollable dates */
+.A .f4pill { flex: none; font-size: 11px; font-weight: 600; color: #666; padding: 1px 7px; background: #fff; border: 1px solid #e2e2e2; border-radius: 8px; }
+.A .f4dates { gap: 8px; margin: 0 -16px; padding: 2px 16px 6px; scroll-snap-type: x proximity; scroll-padding-left: 16px; -webkit-overflow-scrolling: touch; }
+.A .f4date { width: 54px; scroll-snap-align: start; }
+
+/* Flow 4 v0.8: plain service icons, same style as Flow 1 (no tile or color behind them) */
+.A .f4svc > svg.f4sico { flex: none; width: 28px; height: 28px; stroke-width: 1.5; color: var(--ink); margin-right: 2px; }
