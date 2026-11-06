@@ -1,299 +1,335 @@
 import { useState } from 'react';
-import { Image, StyleSheet, TextInput, View } from 'react-native';
+import { Image, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { sendCode, verifyCode } from '../api';
-import { C, F } from '../theme';
-import { Btn, Field, H, Header, Icon, Label, Note, Rows, Screen, Sub, T } from '../ui';
-import type { Address as AddressT, App } from '../types';
+import {
+  logIn,
+  logInWithPhone,
+  sendPasswordReset,
+  signInWithProvider,
+  signUp,
+  type Provider,
+} from '../services/auth';
+import { C, FI, R } from '../theme';
+import {
+  Btn,
+  ErrorText,
+  FontAwesome,
+  Icon,
+  IMG,
+  InterScope,
+  Sheet,
+  SheetTitle,
+  Sub,
+  T,
+} from '../ui';
+import { useTask } from '../useTask';
+import type { App } from '../types';
 
-const fmtPhone = (d: string) =>
-  d
-    .replace(/\D/g, '')
-    .replace(/^(\d{3})(\d{3})(\d{0,4}).*/, '$1 $2 $3')
-    .trim();
-const Err = ({ text }: { text: string }) =>
-  !!text && <T style={{ color: C.destructive, fontSize: 13 }}>{text}</T>;
-const regHeader = (app: App, step: number) => (
-  <Header title="Create account" step={step} onBack={app.back} />
-);
+type SheetKind = 'phone' | 'signup' | 'forgot' | null;
 
-export function Welcome({ app }: { app: App }) {
+function Social({ app }: { app: App }) {
+  const task = useTask();
+  const [which, setWhich] = useState<Provider | null>(null);
+  const go = (p: Provider) => {
+    setWhich(p);
+    task.run(async () => app.signIn(await signInWithProvider(p), `Signed in with ${p}`));
+  };
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.white }} edges={['top']}>
-      <View style={{ flex: 1, padding: 20, paddingTop: 72, gap: 18 }}>
-        <Image
-          source={require('../assets/badge.png')}
-          style={{ width: 168, height: 131 }}
-          accessibilityLabel="Mang Juan"
-        />
-        <Sub style={{ fontSize: 16, lineHeight: 24 }}>
-          Book a trusted Manong for repairs, cleaning, locks and moving.
-        </Sub>
-        {(
-          [
-            ['shield', 'Every Manong is ID-verified'],
-            ['check', 'Prices you see before booking'],
-            ['credit-card', 'Pay after job is done'],
-          ] as const
-        ).map(([i, t]) => (
-          <View key={t} style={s.why}>
-            <View style={s.disc}>
-              <Icon name={i} size={16} color={C.ink} />
-            </View>
-            <T style={{ fontSize: 15 }}>{t}</T>
-          </View>
+    <View style={{ gap: 6 }}>
+      <View style={{ flexDirection: 'row', gap: 12 }}>
+        {(['Google', 'Facebook'] as const).map((p) => (
+          <Btn
+            key={p}
+            kind="white"
+            label={p}
+            style={{ flex: 1 }}
+            loading={task.busy && which === p}
+            disabled={task.busy && which !== p}
+            icon={
+              <FontAwesome
+                name={p === 'Google' ? 'google' : 'facebook'}
+                size={20}
+                color={p === 'Google' ? '#4285F4' : '#1877F2'}
+              />
+            }
+            onPress={() => go(p)}
+          />
         ))}
       </View>
-      <SafeAreaView edges={['bottom']} style={s.signin}>
-        <Btn label="Continue with mobile number" icon="phone" onPress={() => app.go('phone')} />
-        <Btn kind="link" label="Have an account? Log in" onPress={() => app.go('phone')} />
-      </SafeAreaView>
-    </SafeAreaView>
+      <ErrorText text={task.error} />
+    </View>
   );
 }
 
-export function Phone({ app }: { app: App }) {
-  const [phone, setPhone] = useState(app.state.user.phone);
-  const [err, setErr] = useState('');
-  async function send() {
-    try {
-      await sendCode(phone);
-      app.setUser({ phone });
-      app.go('code');
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  }
+const Or = () => (
+  <View style={s.or}>
+    <View style={s.orLine} />
+    <Sub style={{ color: C.goldText, fontSize: 12 }}>or continue with</Sub>
+    <View style={s.orLine} />
+  </View>
+);
+
+const Link = ({ label, onPress }: { label: string; onPress: () => void }) => (
+  <T
+    w={700}
+    accessibilityRole="link"
+    onPress={onPress}
+    style={{ textDecorationLine: 'underline', fontSize: 14 }}
+  >
+    {label}
+  </T>
+);
+
+/** The sign-in sheets Welcome and Log in share. */
+function AuthSheets({ app, open, close }: { app: App; open: SheetKind; close: () => void }) {
+  const [phone, setPhone] = useState('');
+  const [name, setName] = useState('');
+  const [id, setId] = useState('');
+  const [pw, setPw] = useState('');
+  const [email, setEmail] = useState('');
+  const task = useTask();
+  const shut = () => {
+    task.setError(null);
+    close();
+  };
   return (
-    <Screen
-      header={regHeader(app, 1)}
-      footer={
-        <>
-          <Sub style={{ textAlign: 'center', fontSize: 12 }}>
-            By continuing, you agree to the Terms of Use and Privacy Policy.
-          </Sub>
-          <Btn label="Send code" onPress={send} />
-        </>
-      }
-    >
-      <H>What's your mobile number?</H>
-      <Sub>We'll text you a 6-digit code to confirm it's you.</Sub>
-      <Label>Mobile number</Label>
-      <View style={s.phoneRow}>
-        <T w={600}>PH +63</T>
+    <>
+      <Sheet open={open === 'phone'} onClose={shut}>
+        <SheetTitle title="Log in with mobile" sub="We'll text a one-time code." />
         <TextInput
-          accessibilityLabel="Mobile number"
-          keyboardType="number-pad"
-          maxLength={12}
-          value={fmtPhone(phone)}
-          onChangeText={(v) => {
-            setPhone(v);
-            setErr('');
-          }}
-          placeholder="917 123 4567"
-          placeholderTextColor={C.slate}
-          style={[s.input, { flex: 1 }]}
+          accessibilityLabel="Mobile"
+          keyboardType="phone-pad"
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="+63 917 555 0142"
+          placeholderTextColor={C.muted}
+          style={s.sheetIn}
         />
-      </View>
-      <Err text={err} />
-      <Note
-        icon="shield"
-        text="We never share your number. A Manong only sees it after you book him."
-      />
-    </Screen>
+        <ErrorText text={task.error} />
+        <Btn
+          label="Send code & log in"
+          loading={task.busy}
+          onPress={() =>
+            task.run(async () => app.signIn(await logInWithPhone(phone), 'Code verified'))
+          }
+        />
+      </Sheet>
+      <Sheet open={open === 'signup'} onClose={shut}>
+        <SheetTitle
+          title="Create your account"
+          sub="Takes 30 seconds. We'll verify your unit later."
+        />
+        <TextInput
+          accessibilityLabel="Full name"
+          value={name}
+          onChangeText={setName}
+          placeholder="Full name"
+          placeholderTextColor={C.muted}
+          autoComplete="name"
+          style={s.sheetIn}
+        />
+        <TextInput
+          accessibilityLabel="Email or mobile"
+          value={id}
+          onChangeText={setId}
+          placeholder="Email or mobile"
+          placeholderTextColor={C.muted}
+          autoCapitalize="none"
+          style={s.sheetIn}
+        />
+        <TextInput
+          accessibilityLabel="Password"
+          value={pw}
+          onChangeText={setPw}
+          placeholder="Password"
+          placeholderTextColor={C.muted}
+          secureTextEntry
+          autoComplete="new-password"
+          style={s.sheetIn}
+        />
+        <ErrorText text={task.error} />
+        <Btn
+          label="Create account"
+          loading={task.busy}
+          onPress={() =>
+            task.run(async () => {
+              const account = await signUp(name, id, pw);
+              app.signIn(account, `Account created. Welcome, ${name.trim().split(' ')[0]}!`);
+            })
+          }
+        />
+        <Btn kind="grey" label="Cancel" onPress={shut} />
+      </Sheet>
+      <Sheet open={open === 'forgot'} onClose={shut}>
+        <SheetTitle title="Reset your password" sub="We'll email you a link to set a new one." />
+        <TextInput
+          accessibilityLabel="Email"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="name@email.com"
+          placeholderTextColor={C.muted}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          style={s.sheetIn}
+        />
+        <ErrorText text={task.error} />
+        <Btn
+          label="Send reset link"
+          loading={task.busy}
+          onPress={() =>
+            task.run(async () => {
+              await sendPasswordReset(email);
+              shut();
+              app.toast('Reset link sent. Check your inbox.');
+            })
+          }
+        />
+      </Sheet>
+    </>
   );
 }
 
-export function Code({ app }: { app: App }) {
-  const [code, setCode] = useState('');
-  const [err, setErr] = useState('');
-  async function verify() {
-    try {
-      await verifyCode(app.state.user.phone, code);
-      app.go('name');
-    } catch (e) {
-      setErr((e as Error).message);
-      setCode('');
-    }
-  }
+export function Welcome({ app }: { app: App }) {
+  const [sheet, setSheet] = useState<SheetKind>(null);
   return (
-    <Screen
-      header={regHeader(app, 2)}
-      footer={<Btn label="Verify" disabled={code.length !== 6} onPress={verify} />}
-    >
-      <H>Enter the code</H>
-      <Sub>Sent to +63 {fmtPhone(app.state.user.phone)}.</Sub>
-      <TextInput
-        accessibilityLabel="6-digit code"
-        keyboardType="number-pad"
-        textContentType="oneTimeCode"
-        autoComplete="sms-otp"
-        maxLength={6}
-        value={code}
-        onChangeText={(v) => {
-          setCode(v.replace(/\D/g, ''));
-          setErr('');
-        }}
-        placeholder="••••••"
-        placeholderTextColor={C.slate}
-        style={[s.input, s.otp, !!err && { borderColor: C.destructive, borderWidth: 2 }]}
-      />
-      <Err text={err} />
-      <Sub style={{ fontSize: 12 }}>
-        Mock: any 6 digits work, 000000 shows the wrong-code state.
-      </Sub>
-    </Screen>
-  );
-}
-
-export function Name({ app }: { app: App }) {
-  const { first, last } = app.state.user;
-  return (
-    <Screen
-      header={regHeader(app, 3)}
-      footer={<Btn label="Continue" disabled={!first.trim()} onPress={() => app.go('address')} />}
-    >
-      <H>What should Manong call you?</H>
-      <Field
-        label="First name"
-        value={first}
-        onChangeText={(first) => app.setUser({ first })}
-        placeholder="First name"
-        autoComplete="given-name"
-      />
-      <Field
-        label="Last name"
-        value={last}
-        onChangeText={(last) => app.setUser({ last })}
-        placeholder="Last name"
-        autoComplete="family-name"
-      />
-    </Screen>
-  );
-}
-
-export function Address({ app }: { app: App }) {
-  const [a, setA] = useState(app.state.address ?? { bldg: '', unit: '', note: '' });
-  const set = (k: keyof AddressT) => (v: string) => setA({ ...a, [k]: v });
-  return (
-    <Screen
-      header={regHeader(app, 4)}
-      footer={
-        <>
-          <Btn
-            label="Save address"
-            disabled={!a.bldg.trim() || !a.unit.trim()}
-            onPress={() => {
-              app.setAddress(a);
-              app.go('allset');
-            }}
-          />
-          <Btn
-            kind="link"
-            label="Skip for now"
-            onPress={() => {
-              app.setAddress(null);
-              app.go('allset');
-            }}
-          />
-        </>
-      }
-    >
-      <H>Where should Manong go?</H>
-      <Field
-        label="Building or street"
-        value={a.bldg}
-        onChangeText={set('bldg')}
-        placeholder="e.g. Green Residences, Malate"
-      />
-      <Field
-        label="Unit and tower"
-        value={a.unit}
-        onChangeText={set('unit')}
-        placeholder="e.g. Unit 12B, Tower 1"
-      />
-      <Field
-        label="Note for the guard"
-        optional
-        value={a.note}
-        onChangeText={set('note')}
-        placeholder="e.g. Leave your ID at the lobby"
-      />
-    </Screen>
-  );
-}
-
-export function AllSet({ app }: { app: App }) {
-  const { user, address } = app.state;
-  return (
-    <Screen
-      footer={
-        <>
-          <Btn label="Book your first Manong" onPress={() => app.startBooking('plumbing')} />
-          <Btn kind="link" label="Go to home" onPress={app.home} />
-        </>
-      }
-    >
-      <View style={{ paddingTop: 110, gap: 12 }}>
-        <View style={s.mark}>
-          <Image source={require('../assets/mark.png')} style={{ width: 46, height: 42 }} />
-        </View>
-        <H>Ayos, {user.first}! You're all set.</H>
-        <Sub>
-          {address
-            ? `Your home at ${address.unit}, ${address.bldg} is saved. Booking a Manong now takes a few taps.`
-            : 'You can add your home address any time from Profile.'}
-        </Sub>
-        <View style={s.sum}>
-          <Rows
-            big
-            rows={[
-              ['Name', `${user.first} ${user.last}`.trim()],
-              ['Mobile', `+63 ${fmtPhone(user.phone)}`],
-              ['Home', address?.unit],
-            ]}
+    <InterScope>
+      <SafeAreaView style={s.auth}>
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <Image
+            source={IMG.wordmark}
+            style={{ width: 223, height: 52 }}
+            accessibilityLabel="mang juan"
           />
         </View>
-      </View>
-    </Screen>
+        <View style={{ gap: 14 }}>
+          <Btn
+            label="Continue with mobile number"
+            icon={<Icon name="phone" size={18} color={C.mango} />}
+            onPress={() => setSheet('phone')}
+          />
+          <Or />
+          <Social app={app} />
+          <T style={s.center}>
+            Have an account? <Link label="Log in with email" onPress={() => app.go('login')} />
+          </T>
+        </View>
+        <AuthSheets app={app} open={sheet} close={() => setSheet(null)} />
+      </SafeAreaView>
+    </InterScope>
+  );
+}
+
+export function Login({ app }: { app: App }) {
+  const [id, setId] = useState('');
+  const [pw, setPw] = useState('');
+  const [show, setShow] = useState(false);
+  const [sheet, setSheet] = useState<SheetKind>(null);
+  const task = useTask();
+  return (
+    <InterScope>
+      <SafeAreaView style={s.auth}>
+        <View style={{ alignItems: 'center', marginTop: 70, gap: 10 }}>
+          <Image
+            source={IMG.wordmark}
+            style={{ width: 189, height: 44 }}
+            accessibilityLabel="mang juan"
+          />
+          <T style={{ color: C.goldText }}>Log in to book your next repair.</T>
+        </View>
+        <View style={{ marginTop: 22, gap: 6 }}>
+          <T w={600} style={s.lab}>
+            Email or mobile number
+          </T>
+          <TextInput
+            accessibilityLabel="Email or mobile number"
+            value={id}
+            onChangeText={setId}
+            placeholder="name@email.com"
+            placeholderTextColor={C.muted}
+            autoCapitalize="none"
+            autoComplete="username"
+            style={s.in}
+          />
+          <T w={600} style={[s.lab, { marginTop: 10 }]}>
+            Password
+          </T>
+          <View style={[s.in, { flexDirection: 'row', alignItems: 'center', paddingRight: 0 }]}>
+            <TextInput
+              accessibilityLabel="Password"
+              value={pw}
+              onChangeText={setPw}
+              secureTextEntry={!show}
+              placeholder="Password"
+              placeholderTextColor={C.muted}
+              autoComplete="current-password"
+              style={{ flex: 1, fontFamily: FI[400], fontSize: 15, color: C.ink, height: 52 }}
+            />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={show ? 'Hide password' : 'Show password'}
+              onPress={() => setShow(!show)}
+              style={{ padding: 14 }}
+            >
+              <Icon name={show ? 'eye' : 'eye-off'} size={20} color={C.ink} />
+            </Pressable>
+          </View>
+        </View>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setSheet('forgot')}
+          style={{ alignSelf: 'flex-end', paddingVertical: 10 }}
+        >
+          <T w={700} style={{ textDecorationLine: 'underline', fontSize: 14 }}>
+            Forgot password?
+          </T>
+        </Pressable>
+        <ErrorText text={task.error} />
+        <View style={{ gap: 14 }}>
+          <Btn
+            label="Log in"
+            loading={task.busy}
+            onPress={() => task.run(async () => app.signIn(await logIn(id, pw)))}
+          />
+          <Or />
+          <Social app={app} />
+          <Btn
+            kind="white"
+            label="Use mobile number instead"
+            onPress={() => setSheet('phone')}
+            style={s.ghost}
+          />
+        </View>
+        <T style={[s.center, { marginTop: 'auto' }]}>
+          New to Mang Juan? <Link label="Sign up" onPress={() => setSheet('signup')} />
+        </T>
+        <AuthSheets app={app} open={sheet} close={() => setSheet(null)} />
+      </SafeAreaView>
+    </InterScope>
   );
 }
 
 const s = StyleSheet.create({
-  why: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  disc: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: C.mangoSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  signin: {
-    backgroundColor: C.mango,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    padding: 20,
-    gap: 8,
-  },
-  phoneRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  input: {
-    backgroundColor: C.cloud,
-    borderRadius: 12,
+  auth: { flex: 1, backgroundColor: C.mangoAuth, paddingHorizontal: 24, paddingBottom: 28 },
+  center: { textAlign: 'center', fontSize: 14 },
+  or: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  orLine: { flex: 1, height: 1, backgroundColor: 'rgba(90,67,0,0.3)' },
+  lab: { fontSize: 13, color: C.goldText },
+  in: {
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: R.control,
     paddingHorizontal: 14,
     height: 52,
-    fontFamily: F[400],
-    fontSize: 16,
+    fontFamily: FI[400],
+    fontSize: 15,
     color: C.ink,
   },
-  otp: { fontSize: 24, letterSpacing: 12, textAlign: 'center', fontFamily: F[700] },
-  mark: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: C.mango,
-    alignItems: 'center',
-    justifyContent: 'center',
+  ghost: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: 'rgba(90,67,0,0.55)' },
+  sheetIn: {
+    backgroundColor: C.cloud,
+    borderRadius: R.control,
+    paddingHorizontal: 14,
+    height: 52,
+    fontSize: 15,
+    color: C.ink,
   },
-  sum: { backgroundColor: C.white, borderRadius: 16, padding: 16, marginTop: 10 },
 });

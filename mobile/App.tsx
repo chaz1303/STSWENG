@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BackHandler, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -10,48 +10,90 @@ import {
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
-import { BOOKING_TYPES } from '../src/utils/contract.js';
-import { createBooking, getCatalog } from './api';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from '@expo-google-fonts/inter';
+import { getCatalog } from './services/bookings';
 import { C } from './theme';
-import type { App as AppApi, AppState, Draft, ScreenName, ServiceType } from './types';
-import { AllSet, Address, Code, Name, Phone, Welcome } from './screens/Onboarding';
-import { Home } from './screens/Home';
-import { Finding, Problem, Review, Schedule, Size } from './screens/Book';
-import { Charges, Rate, Status, Thanks } from './screens/After';
+import { Btn, ErrorText, Loader, Toast } from './ui';
+import type { Account, App as AppApi, AppState, Draft, ScreenName, Stage } from './types';
+import { Login, Welcome } from './screens/Onboarding';
+import { Account as AccountTab, Bookings, Home, Messages, Notifications } from './screens/Home';
+import { Details, Pick, Service } from './screens/Book';
+import { Declined, Finding, Found, Pending, Summary, Thanks } from './screens/After';
 
-// Flow 3 "Full overhaul" happy path from prototype/full.js.
+// Flow 4 "Final" from prototype/full.js.
 export const SCREENS = {
   welcome: Welcome,
-  phone: Phone,
-  code: Code,
-  name: Name,
-  address: Address,
-  allset: AllSet,
+  login: Login,
   home: Home,
-  size: Size,
-  problem: Problem,
-  schedule: Schedule,
+  bookings: Bookings,
+  messages: Messages,
+  account: AccountTab,
+  notifications: Notifications,
+  service: Service,
+  details: Details,
+  pick: Pick,
   finding: Finding,
-  review: Review,
-  status: Status,
-  charges: Charges,
-  rate: Rate,
+  found: Found,
+  pending: Pending,
+  declined: Declined,
+  summary: Summary,
   thanks: Thanks,
 };
 
-const newDraft = (category: string, serviceType: ServiceType = 'STANDARD'): Draft => ({
-  category,
-  serviceType,
-  desc: '',
-  symptoms: [],
-  bookingType: BOOKING_TYPES.SCHEDULED,
-  day: null,
-  time: null,
+/** Where each status of the active booking lives (prototype ROUTE_F). */
+const ROUTE: Record<Stage, ScreenName> = {
+  finding: 'finding',
+  pending: 'pending',
+  confirmed: 'pending',
+  declined: 'declined',
+  onway: 'found',
+  arrived: 'found',
+  done: 'summary',
+};
+
+const emptyAccount = (): Account => ({
+  user: { name: '', initials: '', phone: '', email: '' },
+  addresses: [],
   payment: 'gcash',
-  manong: null,
+  voucher: true,
+  past: [],
+  notifications: [],
+  chat: [],
+  alerts: { bookings: true, promos: false },
 });
 
-// shortcut: a plain screen stack instead of a navigator; move to Expo Router when deep links or tabs land.
+const newDraft = (category: string): Draft => ({
+  category,
+  serviceType: 'CHECKUP',
+  desc: '',
+  symptoms: [],
+  photos: 0,
+  notes: '',
+  bookingType: 'on-demand',
+  day: 1,
+  time: '10:30 AM',
+  manongKey: null,
+  avoidKey: null,
+});
+
+const startState = (): AppState => ({
+  ...emptyAccount(),
+  catalog: {},
+  addressIdx: 0,
+  draft: newDraft('plumbing'),
+  booking: null,
+  eta: 10,
+  partAsk: false,
+  thanks: null,
+});
+
+// shortcut: a plain screen stack instead of a navigator; move to Expo Router when deep links land.
 export default function App() {
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_400Regular,
@@ -59,29 +101,27 @@ export default function App() {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
   });
   const [stack, setStack] = useState<ScreenName[]>(['welcome']);
-  // Nullable here; screens only see it once the catalog (and, for booking steps, the draft) exists.
-  const [state, setState] = useState<
-    Omit<AppState, 'catalog' | 'draft'> & Partial<Pick<AppState, 'catalog' | 'draft'>>
-  >({
-    catalog: undefined,
-    user: { first: '', last: '', phone: '' },
-    address: null,
-    draft: undefined,
-    booking: null,
-  });
+  const [state, setState] = useState<AppState>(startState);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  useEffect(() => {
-    getCatalog().then((catalog) => setState((s) => ({ ...s, catalog })));
-  }, []);
+  const loadCatalog = () => {
+    setLoadError(null);
+    getCatalog()
+      .then((catalog) => setState((s) => ({ ...s, catalog })))
+      .catch((e: Error) => setLoadError(e.message));
+  };
+  useEffect(loadCatalog, []);
 
-  const setUser = (patch: Partial<AppState['user']>) =>
-    setState((s) => ({ ...s, user: { ...s.user, ...patch } }));
-  const setDraft = (patch: Partial<Draft>) =>
-    setState((s) => ({ ...s, draft: s.draft && { ...s.draft, ...patch } }));
   const back = () => setStack((st) => (st.length > 1 ? st.slice(0, -1) : st));
-
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (stack.length === 1) return false;
@@ -92,32 +132,66 @@ export default function App() {
   }, [stack.length]);
 
   const app: AppApi = {
-    state: state as AppState,
+    state,
     back,
-    go: (screen, { replace } = {}) =>
-      setStack((st) => [...(replace ? st.slice(0, -1) : st), screen]),
+    go: (screen, { replace, reset } = {}) =>
+      setStack((st) => (reset ? ['home', screen] : [...(replace ? st.slice(0, -1) : st), screen])),
     home: () => setStack(['home']),
-    setUser,
-    setAddress: (address) => setState((s) => ({ ...s, address })),
-    setDraft,
-    setBooking: (booking) => setState((s) => ({ ...s, booking })),
-    startBooking: (category) => {
-      setState((s) => ({ ...s, draft: newDraft(category, s.catalog?.[category].defaultTier) }));
-      setStack(['home', 'size']);
+    update: (patch) =>
+      setState((s) => ({ ...s, ...(typeof patch === 'function' ? patch(s) : patch) })),
+    setDraft: (patch) => setState((s) => ({ ...s, draft: { ...s.draft, ...patch } })),
+    toast: (message) => {
+      clearTimeout(toastTimer.current);
+      setToast(message);
+      toastTimer.current = setTimeout(() => setToast(null), 2600);
     },
-    confirmBooking: async () => {
-      if (!state.draft) return;
-      const booking = await createBooking(state.draft);
-      setState((s) => ({ ...s, booking }));
-      setStack(['home', 'status']);
+    startBooking: (category, again) => {
+      // One booking at a time, like the prototype.
+      if (state.booking) return app.toast('You have an active booking. Open it from Bookings.');
+      setState((s) => ({ ...s, draft: { ...newDraft(category), ...(again ?? {}) } }));
+      setStack(again ? ['home', 'service', 'details'] : ['home', 'service']);
+    },
+    openBooking: (stage = state.booking?.stage) => {
+      if (stage) setStack(['home', ROUTE[stage]]);
+    },
+    signIn: (account, message) => {
+      setState((s) => ({ ...s, ...account, addressIdx: 0, booking: null }));
+      setStack(['home']);
+      if (message) app.toast(message);
+    },
+    logOut: () => {
+      setState((s) => ({ ...startState(), catalog: s.catalog }));
+      setStack(['welcome']);
+      app.toast('Logged out');
     },
   };
 
-  if (!fontsLoaded || !state.catalog) return <View style={{ flex: 1, backgroundColor: C.mango }} />;
+  if (loadError)
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          padding: 24,
+          gap: 12,
+          backgroundColor: C.paper,
+        }}
+      >
+        <ErrorText text={`Couldn't load Mang Juan: ${loadError}`} />
+        <Btn label="Try again" onPress={loadCatalog} />
+      </View>
+    );
+  if (!fontsLoaded || !Object.keys(state.catalog).length)
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: C.mango }}>
+        <Loader />
+      </View>
+    );
   const Current = SCREENS[stack[stack.length - 1]];
   return (
     <SafeAreaProvider>
       <Current app={app} />
+      <Toast message={toast} />
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );
