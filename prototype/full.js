@@ -12,13 +12,57 @@ const JOHN3 = { ...JOHN, ini: 'J', key: 'john3', skills: 'Plumbing', rating: '4.
 const GORDON = { name: 'James Gordon', first: 'James', ini: 'J', key: 'gordon' };
 const JONES = { name: 'John Jones', first: 'John', ini: 'J', key: 'jones' };
 Object.assign(MANONGS, { alfred3: ALF3, john3: JOHN3 });
-Object.assign(STAMP, { late: 'Running late', mcancelled: 'Cancelled' });
+Object.assign(STAMP, { late: 'Running late', mcancelled: 'Cancelled', pending: 'Pending confirmation', declined: 'Declined' });
 
 const GOOD_AT = { alfred3: ['Leak repair', 'Water heaters', 'Outlets', 'Toilets'], john3: ['Clogged drains', 'Faucets', 'Pipes'] };
 const REVIEW = {
   alfred3: ['Maria L., Tower 2', 'Explained what was wrong before fixing it, and cleaned up after. Would book again.'],
   john3: ['Ken T., Tower 1', 'Fast and careful. Came on time even in the rain.'],
 };
+
+// ---------- who can take the job (U09, U10) ----------
+// Aides are listed per service, nearest first. now: true if free right now, else the reason. busy: times already booked.
+const aide3 = (key, name, ini, skills, rating, jobs, years, area, vehicle) => ({ name, first: name.split(' ')[0], ini, key, skills, rating, jobs, years, area, vehicle });
+Object.assign(GORDON, aide3('gordon', 'James Gordon', 'J', 'Cleaning', '4.9', 210, '4 yrs', 'Taft and Malate', 'Arrives by jeep'));
+Object.assign(JONES, aide3('jones', 'John Jones', 'J', 'Repairs and carpentry', '4.7', 164, '5 yrs', 'Malate and Ermita', 'Silver scooter, MCD 640'));
+const RAMON = aide3('ramon', 'Ramon Cruz', 'R', 'Plumbing', '4.7', 86, '2 yrs', 'Pasay and Taft', 'Blue motorcycle, TXV 902');
+const DANTE = aide3('dante', 'Dante Reyes', 'D', 'Electrical', '4.8', 154, '5 yrs', 'Malate and Ermita', 'Black motorcycle, MNB 331');
+const LIZA = aide3('liza', 'Liza Santos', 'L', 'Cleaning', '4.8', 176, '3 yrs', 'Pasay', 'Arrives by jeep');
+const MARIO = aide3('mario', 'Mario Tan', 'M', 'Locks and security', '4.9', 301, '7 yrs', 'Malate and Ermita', 'Grey scooter, ZAB 118');
+const EDGAR = aide3('edgar', 'Edgar Lim', 'E', 'Locks', '4.6', 92, '2 yrs', 'Taft', 'Red scooter, QRT 220');
+const PAOLO = aide3('paolo', 'Paolo Ramos', 'P', 'Repairs and carpentry', '4.8', 118, '4 yrs', 'Pasay', 'White van, NDA 7740');
+const REY = aide3('rey', 'Rey Santos', 'R', 'Moving crew lead', '4.8', 240, '6 yrs', 'Pasay and Taft', 'White L300 van, NDA 4412');
+const BENNY = aide3('benny', 'Benny Ocampo', 'B', 'Moving crew lead', '4.7', 133, '3 yrs', 'Malate', 'Silver van, NCV 3305');
+const roster3 = (rows) => rows.map(([m, km, now, busy]) => ({ m, km, now, busy })).sort((x, y) => x.km - y.km);
+const ROSTER3 = {
+  plumbing: roster3([[ALF3, 0.4, 'On a job until 11:30 AM', []], [JOHN3, 1.1, true, ['3:00 PM']], [RAMON, 2.3, true, ['10:30 AM']]]),
+  electrical: roster3([[ALF3, 0.4, 'On a job until 11:30 AM', []], [DANTE, 0.9, true, []]]),
+  cleaning: roster3([[GORDON, 0.7, true, ['9:00 AM']], [LIZA, 1.6, true, ['3:00 PM']]]),
+  locks: roster3([[MARIO, 1.2, true, []], [EDGAR, 2.0, true, ['10:30 AM']]]),
+  repairs: roster3([[JONES, 0.9, true, []], [PAOLO, 1.8, true, ['1:00 PM']]]),
+  moving: roster3([[REY, 1.5, true, []], [BENNY, 2.4, true, ['9:00 AM']]]),
+};
+Object.values(ROSTER3).flat().forEach((a) => {
+  MANONGS[a.m.key] = a.m;
+});
+const catOf3 = (m) => Object.keys(ROSTER3).find((c) => ROSTER3[c].some((a) => a.m.key === m.key)) || 'plumbing';
+const isFree3 = (a) => (st.when === 'now' ? a.now === true : !a.busy.includes(st.time));
+const pool3 = () => ROSTER3[st.cat].filter(isFree3);
+const picked3 = () => !!st.pickManong && pool3().some((a) => a.m.key === st.pickManong);
+const CAT_GOOD3 = {
+  plumbing: ['Leak repair', 'Clogged drains', 'Toilets'], electrical: ['Outlets', 'Breakers', 'Lighting'], cleaning: ['Deep cleaning', 'Kitchens', 'Bathrooms'],
+  locks: ['Lockouts', 'Lock changes', 'Smart locks'], repairs: ['Doors and hinges', 'Cabinets', 'Wall patching'], moving: ['Packing', 'Studio moves', 'Elevator moves'],
+};
+const CAT_REVIEW3 = {
+  plumbing: ['Ken T., Tower 1', 'Fixed the leak fast and told me what to watch for.'], electrical: ['Anna P., Tower 3', 'Found the tripped circuit in minutes and labelled the breaker for me.'],
+  cleaning: ['Joy M., Tower 2', 'Spotless kitchen and bathroom. On time, and brought supplies.'], locks: ['Paul S., Tower 1', 'Got me back in within the hour. Asked for my ID first.'],
+  repairs: ['Nina R., Tower 2', 'Fixed the cabinet hinges and cleaned up the dust.'], moving: ['Marco D., Tower 1', 'Careful with the furniture. Everything arrived in one piece.'],
+};
+// Estimated time. Repairs follow the shared service types (Checkup 15 min, Standard 30 to 60 min, Major 1+ hr).
+// Cleaning and moving are sized by place, so they get their own estimates. Confirm these with Team 2.
+const DUR3 = { q: 'About 15 min', s: '30 to 60 min', m: '1 hour or more' };
+const DUR3_CAT = { cleaning: { q: 'About 1 hour', s: '1 to 2 hours', m: '2 to 4 hours' }, moving: { q: 'About 1 hour', s: '2 to 4 hours', m: '4 hours or more' } };
+const dur3 = (cat, k) => (DUR3_CAT[cat] || DUR3)[k];
 
 // Per-service first step, prices and notes, straight from the "<Service> 1" frames.
 const T = (name, desc, price, meta, gold, tk) => ({ name, desc, price, meta, gold, tk: tk || name.toLowerCase() });
@@ -115,7 +159,7 @@ function full3State() {
     ],
     bkTab: 'up', calMonth: 0, calDay: 21, receiptIdx: 0, viewManong: 'alfred3',
     regMode: 'new', resendIn: 24, otpWrong: false, regFirst: '', regLast: '', regBldg: '', regUnit: '', regNote: '', regSaved: false,
-    dropoff: '', failNext: false, altManong: false, pendingReview: false, bgFinding: false, soonTime: '4:30 PM',
+    dropoff: '', failNext: false, altManong: false, pickManong: null, manongSel: 'auto', pendingReview: false, bgFinding: false, soonTime: '4:30 PM',
     cancelled: null, mcPick: 0, repReason: null, repText: '', reportFrom: 'b-charges',
     addrEdit: -1, afLabel: '', afBldg: '', afUnit: '', afNote: '', payPick: 'gcash',
   };
@@ -139,11 +183,17 @@ const mats3 = (b) => [...(b.parts || []), ...c3(b.cat).extra];
 const base3 = (b) => t3(b).price;
 const total3 = (b) => base3(b) + mats3(b).reduce((s, [, p]) => s + p, 0);
 const svcName = (b) => `${CATS[b.cat].name}, ${t3(b).tk}`;
-const nextManong = () => (st.when === 'now' || st.altManong ? JOHN3 : ALF3);
+const nextManong = () => {
+  const pool = pool3();
+  const want = pool.find((a) => a.m.key === st.pickManong) || pool.find((a) => a.m.first === st.preferred);
+  if (want) return want.m;
+  return (st.altManong && pool.length > 1 ? pool[1] : pool[0] || ROSTER3[st.cat][0]).m;
+};
 const ini = (m, size = 44) => `<span class="av ini" style="width:${size}px;height:${size}px;font-size:${Math.round(size * 0.4)}px">${m.ini}</span>`;
 // Status ring (Design Kit "Status / Ring"): [label, filled fifths, colour, icon]. Replaces the tilted stamps in Flow 3.
 const RING = {
   booked: ['Booked', 1, '#5F5E5E', 'calendar'],
+  pending: ['Pending confirmation', 1, '#5F5E5E', 'hourglass'],
   confirmed: ['Confirmed', 2, '#1F7A4D', 'check'],
   onway: ['On the way', 3, '#005BC0', 'nav'],
   late: ['Running late', 3, '#B26A00', 'clock'],
@@ -169,6 +219,7 @@ const ringFor = (s) =>
     accepted: ring3('confirmed', { label: 'Accepted' }),
     paid: ring3('completed', { label: 'Paid', caption: 'Booking closed' }),
     mcancelled: ring3('cancelled', { label: 'Manong cancelled', caption: 'Choose what to do next' }),
+    declined: ring3('cancelled', { label: 'Declined', caption: 'Choose what to do next' }),
   })[s] || ring3(RING[s] ? s : 'booked');
 const fmtPhone = (d) => d.replace(/\D/g, '').replace(/^(\d{3})(\d{3})(\d{0,4}).*/, '$1 $2 $3').trim();
 
@@ -176,7 +227,7 @@ function ticket3Inner({ manong } = {}) {
   const c = c3();
   return `<div class="sec head"><span class="t">${CATS[st.cat].name}, ${t3().tk}</span><span class="p">${peso(t3().price)}</span></div>
   <div class="tear"></div>
-  <div class="sec rows"><div><span>${c.issue}</span>${val(issue3())}</div><div><span>When</span>${val(['b-size', 'b-problem', 'b-route'].includes(st.screen) ? '' : whenB3())}</div><div><span>${c.crew}</span>${manong ? `<span class="${manong === 'Looking now' ? 'na' : 'v'}">${manong}</span>` : val(st.preferred ? st.preferred + ' (requested)' : '')}</div></div>`;
+  <div class="sec rows"><div><span>${c.issue}</span>${val(issue3())}</div><div><span>When</span>${val(['b-size', 'b-problem', 'b-route'].includes(st.screen) ? '' : whenB3())}</div><div><span>${c.crew}</span>${manong ? `<span class="${manong === 'Looking now' ? 'na' : 'v'}">${manong}</span>` : val(picked3() ? `${MANONGS[st.pickManong].first} (your pick)` : st.preferred ? st.preferred + ' (requested)' : '')}</div></div>`;
 }
 const baseTicket = ticketBInner;
 ticketBInner = (o) => (st.variant === 'full' ? ticket3Inner(o) : baseTicket(o));
@@ -186,7 +237,7 @@ function makeBooking3(mode) {
   return {
     id: now ? 'MJ-8830' : 'MJ-8821', cat: st.cat, tier: st.tier, problem: issue3() || 'General checkup',
     day: now ? 20 : st.day, time: now ? '2:03 PM' : st.time, addr: st.addr3, manong: nextManong(),
-    status: now ? 'accepted' : 'confirmed', mode, pay: st.pay, parts: [],
+    status: now ? 'accepted' : 'pending', mode, pay: st.pay, parts: [],
   };
 }
 const baseMake = makeBooking;
@@ -284,6 +335,7 @@ const whoLine3 = (b) => {
     onway: [`${m} is on the way`, 'On his way, 6 km away'], late: [`${m} is running late`, "We'll tell you when he's close"],
     inprogress: [`${m} is working on it`, 'Started 10:32 AM'], completed: [`${m} finished the job`, 'Check the charges and pay'],
     mcancelled: [`${m} had to cancel`, 'Choose what to do next'],
+    pending: [`Waiting for ${m} to confirm`, bkWhen(b)], declined: [`${m} can't take the job`, 'Choose what to do next'],
   }[b.status] || [`${m} is booked`, bkWhen(b)];
 };
 S3['b-home'] = () => {
@@ -326,7 +378,7 @@ S3['b-size'] = () => {
   const c = c3();
   return `${statusBar()}${head3(bookTitle(), 1)}<div class="scroll pad"><h2 class="q" style="margin-top:26px;margin-bottom:16px">${c.q}</h2>
   ${Object.entries(c.tiers).map(([k, t]) => `<button class="optrow ${st.tier === k ? 'on' : ''}" data-act="tierB" data-arg="${k}" role="radio" aria-checked="${st.tier === k}">
-    <span class="radio"></span><span class="grow"><b>${t.name}</b><small>${t.desc}</small></span><span class="price"><b>${peso(t.price)}</b><small class="${t.gold ? 'gold' : ''}">${t.meta}</small></span></button>`).join('')}
+    <span class="radio"></span><span class="grow"><b>${t.name}</b><small>${t.desc}</small><small class="dur3">${ic('clock')}${dur3(st.cat, k)}</small></span><span class="price"><b>${peso(t.price)}</b><small class="${t.gold ? 'gold' : ''}">${t.meta}</small></span></button>`).join('')}
   ${c.note ? note3(c.note) : ''}<div style="height:12px"></div></div>
   <div class="pad">${ticketB()}</div><div class="footer"><button class="btn primary" data-act="go" data-arg="${st.cat === 'moving' ? 'b-route' : 'b-problem'}">Continue</button></div>`;
 };
@@ -359,7 +411,7 @@ S3['b-schedule'] = () => `${statusBar()}${head3(bookTitle(), 3)}<div class="scro
       const off = t === FULL_TIME;
       return `<button class="slot ${st.time === t ? 'on' : ''} ${off ? 'off' : ''}" data-act="${off ? 'fullSlot' : 'time'}" data-arg="${t}" ${off ? 'aria-disabled="true"' : ''}>${t}</button>`;
     }).join('')}</div>`
-    : `<div style="height:18px"></div>${note3(st.cat === 'locks' && st.tier === 'q' ? 'A locksmith heads over now. Have your ID ready at the door.' : `We'll send the nearest free ${CATS[st.cat].who}. Free to cancel until Manong starts the job.`, 'zap')}`}
+    : `<div style="height:18px"></div>${note3(st.cat === 'locks' && st.tier === 'q' ? 'A locksmith heads over now. Have your ID ready at the door.' : `We'll send the nearest free ${CATS[st.cat].who}. You can choose someone else before you confirm. Free to cancel until Manong starts the job.`, 'zap')}`}
   <div style="height:14px"></div></div>
   <div class="pad">${ticketB()}</div><div class="footer"><button class="btn primary" data-act="findB">Find my Manong</button></div>`;
 
@@ -392,14 +444,18 @@ S3['b-review'] = () => {
   const m = nextManong();
   const a = where3();
   const c = c3();
+  const chosen = picked3() || (st.preferred && m.first === st.preferred);
+  const whenTxt = st.when === 'now' ? 'right now' : `at ${st.time}`;
+  const swap = pool3().length > 1 ? `<button class="link" style="justify-self:start" data-act="openManongs">${chosen ? `${picked3() ? 'You picked' : 'You asked for'} ${m.first}. Change` : `Nearest free ${CATS[st.cat].who}. Choose someone else`}</button>` : '';
+  const want = st.preferred && !picked3() && m.first !== st.preferred ? note3(`${esc(st.preferred)} isn't free ${whenTxt}. ${m.first} can come instead.`) : '';
   return `${statusBar()}${head3(bookTitle(), 4)}<div class="scroll pad" style="display:grid;gap:12px;align-content:start;padding-bottom:12px">
     <h2 class="q" style="margin-top:20px">Review and confirm</h2>
     <button class="card who" style="padding:14px 16px;text-align:left" data-act="viewManong" data-arg="${m.key}">${ini(m, 56)}
       <div class="grow"><b style="display:flex;gap:6px;align-items:center">${m.name} <span style="color:var(--gcash)">${ic('shieldCheck').replace('class="i ', 'class="i " style="width:18px;height:18px" ')}</span></b><small>${m.skills}</small>
       <div style="font-size:13px;display:flex;gap:4px;align-items:center"><span style="color:#fdbb16">${icFill('star').replace('class="i fill"', 'class="i fill" style="width:16px;height:16px"')}</span><b style="display:inline;font-size:13px">${m.rating}</b> <span style="color:var(--slate)">from ${m.jobs} jobs</span></div></div>${ic('chevR')}</button>
-    <div class="ticket"><div class="sec rows big">
+    ${swap}${want}<div class="ticket"><div class="sec rows big">
       <div><span>Service</span><span class="v">${CATS[st.cat].name}, ${t3().tk}</span></div>
-      <div><span>${c.issue === 'Issue' ? 'Problem' : c.issue}</span>${val(issue3())}</div><div><span>When</span>${val(whenB3())}</div>
+      <div><span>${c.issue === 'Issue' ? 'Problem' : c.issue}</span>${val(issue3())}</div><div><span>When</span>${val(whenB3())}</div><div><span>Duration</span><span class="v">${dur3(st.cat, st.tier)}</span></div>
       <button class="f3-rowbtn" data-act="pickWhere"><span>Where</span>${a ? `<span class="v f3-ell">${esc(addrShort(a))}</span>` : '<span class="na">Add address</span>'}</button></div>
       <div class="tear"></div>
       <div class="sec rows big"><div><span>Base charge</span><span class="v">${peso(t3().price)}</span></div>
@@ -411,6 +467,24 @@ S3['b-review'] = () => {
   <div class="footer"><button class="btn primary" data-act="confirmB">Confirm booking</button></div>`;
 };
 
+// ---------- choose a Manong (U09, U10) ----------
+S3['b-manongs'] = () => {
+  const now = st.when === 'now';
+  const roster = ROSTER3[st.cat];
+  const free = roster.filter(isFree3);
+  const off = roster.filter((a) => !isFree3(a));
+  const sel = st.manongSel || 'auto';
+  const rating = (m) => `<small class="f3-rate"><span style="color:#fdbb16">${icFill('star').replace('class="i fill"', 'class="i fill" style="width:14px;height:14px"')}</span>${m.rating} from ${m.jobs} jobs</small>`;
+  const row = (a, on) => `<div class="f3-pick"><button class="optrow ${sel === a.m.key ? 'on' : ''}" data-act="manongSel" data-arg="${a.m.key}" role="radio" aria-checked="${sel === a.m.key}" ${on ? '' : 'disabled'}><span class="radio"></span>${ini(a.m, 40)}<span class="grow"><b>${a.m.name}</b>${rating(a.m)}<small class="dur3">${ic('clock')}${on ? (now ? `Free now, ${a.km} km away` : `Free at ${st.time}, ${a.m.area}`) : now ? a.now : `Already booked at ${st.time}`}</small></span></button>\
+<button class="chatbtn" data-act="viewManong" data-arg="${a.m.key}" aria-label="View ${a.m.first}'s profile">${ic('user')}</button></div>`;
+  return `${statusBar()}${head3('Choose a Manong')}<div class="scroll pad"><h2 class="q" style="margin-top:26px">Who should come?</h2>
+  <p class="qs">Every Manong here is accredited in ${esc(where3()?.bldg || 'your building')}.</p><div style="height:18px"></div>
+  <div class="f3-pick"><button class="optrow ${sel === 'auto' ? 'on' : ''}" data-act="manongSel" data-arg="auto" role="radio" aria-checked="${sel === 'auto'}"><span class="radio"></span><span class="f3-disc sq y">${ic('nav')}</span><span class="grow"><b>Nearest available</b><small>The closest free ${CATS[st.cat].who}. Fastest option.</small></span></button></div>
+  ${free.map((a) => row(a, true)).join('')}
+  ${off.length ? `<div class="f3-glabel">${now ? 'Not free right now' : `Not free at ${st.time}`}</div>${off.map((a) => row(a, false)).join('')}` : ''}</div>
+  <div class="footer"><button class="btn primary" data-act="manongDone">${sel === 'auto' ? 'Use nearest available' : `Choose ${MANONGS[sel].first}`}</button></div>`;
+};
+
 // ---------- after booking ----------
 const manongRow = (m, chat = true) => `<div class="sec who"><button class="f3-who" data-act="viewManong" data-arg="${m.key}">${ini(m)}<div class="grow"><b>${m.name}</b><small>Your Manong</small></div></button>
   ${chat ? `<button class="chatbtn" data-act="go" data-arg="b-chat" aria-label="Message ${m.first}">${ic('chat')}</button>` : ''}<button class="callbtn" data-act="call" data-arg="${m.key}" aria-label="Call ${m.first}">${ic('phone')}</button></div>`;
@@ -420,15 +494,18 @@ function status3(onDemand) {
   if (!b) return `${statusBar()}${head3('Booking', 0, 'home')}<div class="empty">This booking is closed.<br /><button class="link" data-act="home">Back to home</button></div>`;
   if (b.status === 'inprogress') return inprog3(b);
   if (b.status === 'mcancelled') return mcancel3(b);
+  if (b.status === 'declined') return mcancel3(b, true);
   if (b.status === 'onway') return onway3(b);
   const m = b.manong;
   // Flow 2's shared timeline promises an arrival time for on-demand; Flow 3 never does.
-  const tl = timeline(b).replace(', arriving in about 25 min', ", we'll tell you when he heads out");
+  const tl = b.status === 'pending'
+    ? tl3([['Pending confirmation', 'Sent Oct 20, 4:12 PM', 'cur3'], ['Confirmed', `Waiting for ${m.first} to confirm`, ''], ['In progress', `Starts ${DAY_LONG[b.day]} at ${b.time}`, ''], ['Completed', 'You review charges and pay', '']])
+    : timeline(b).replace(', arriving in about 25 min', ", we'll tell you when he heads out");
   return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}<div class="scroll pad" style="padding-top:20px">
     <div class="ticket"><div class="sec head f3-headcol" style="padding-top:18px"><div style="min-width:0"><div style="font-size:18px;font-weight:700">${svcName(b)}</div>
       <div style="font-size:15px;font-weight:600;margin-top:2px">${onDemand ? 'Requested now' : `${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}`}</div><div class="f3-ell">${esc(addrShort(st.addrs[b.addr]))}</div></div>${ringFor(b.status)}</div>
       <div class="tear"></div><div class="sec">${tl}</div><div class="tear"></div>${manongRow(m)}</div>
-    <div style="height:12px"></div>${b.status === 'late' ? note3(`${m.first} is running late. We'll tell you when he's close.`, 'clock') : note3(guardTip(b))}</div>
+    <div style="height:12px"></div>${b.status === 'late' ? note3(`${m.first} is running late. We'll tell you when he's close.`, 'clock') : b.status === 'pending' ? note3(`We'll text you when ${m.first} confirms. If he can't make it, we'll help you find another Manong.`, 'clock') : note3(guardTip(b))}</div>
   <div class="footer">${b.status === 'late' ? `<button class="btn secondary" data-act="go" data-arg="b-chat">Message ${m.first}</button>`
     : '<p class="f3-small" style="margin:0 0 4px;text-align:center">You can cancel for free until Manong starts the job.</p><button class="btn danger" data-act="cancelStart">Cancel booking</button>'}</div>`;
 }
@@ -502,10 +579,10 @@ phone.addEventListener('pointerdown', (e) => {
   window.addEventListener('pointermove', move);
   window.addEventListener('pointerup', up);
 });
-function mcancel3(b) {
+function mcancel3(b, declined = false) {
   const m = b.manong;
-  return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}<div class="scroll pad"><h2 class="q" style="margin-top:32px">${m.first} had to cancel</h2>
-  <p class="qs">Something came up on his side. Your booking is safe and you won't be charged.</p>
+  return `${statusBar()}${head3(`Booking ${b.id}`, 0, 'home')}<div class="scroll pad"><h2 class="q" style="margin-top:32px">${declined ? `${m.first} can't take this job` : `${m.first} had to cancel`}</h2>
+  <p class="qs">${declined ? "He couldn't make that time. Your request is closed and you won't be charged." : "Something came up on his side. Your booking is safe and you won't be charged."}</p>
   <div class="label" style="margin-top:22px">What would you like to do?</div>
   ${[['Find another Manong', 'Same day and time'], ['Pick a new time', 'Choose another day']].map(([t, s], i) => `<button class="optrow ${st.mcPick === i ? 'on' : ''}" data-act="mcPick" data-arg="${i}" role="radio" aria-checked="${st.mcPick === i}"><span class="radio"></span><span class="grow"><b>${t}</b><small>${s}</small></span></button>`).join('')}</div>
   <div class="footer"><button class="btn primary" data-act="mcContinue">Continue</button></div>`;
@@ -718,21 +795,25 @@ S3['b-notifs'] = () => {
 
 S3['b-manong'] = () => {
   const m = MANONGS[st.viewManong] || ALF3;
-  const [who, quote] = REVIEW[m.key] || REVIEW.alfred3;
+  const cat = catOf3(m);
+  const [who, quote] = REVIEW[m.key] || CAT_REVIEW3[cat] || REVIEW.alfred3;
+  const mid = st.stack.includes('b-review');
+  const bldg = where3()?.bldg;
+  const used = st.past3.some((p) => p.manong && p.manong.key === m.key);
   return `${statusBar()}${head3('Manong profile', 0, 'back', 'tall')}<div class="scroll pad"><div class="f3-bigav">${m.ini}</div>
-  <div style="text-align:center"><h2 class="q" style="margin-top:12px;font-size:24px">${m.name}</h2><p class="qs" style="margin:4px 0 10px">${m.skills}, ${m.area}</p><span class="f3-verified">${ic('shieldCheck')}ID-verified Manong</span></div>
+  <div style="text-align:center"><h2 class="q" style="margin-top:12px;font-size:24px">${m.name}</h2><p class="qs" style="margin:4px 0 10px">${m.skills}, ${m.area}</p><div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center"><span class="f3-verified">${ic('shieldCheck')}ID-verified Manong</span>${bldg ? `<span class="f3-verified">${ic('building')}Accredited in ${esc(bldg)}</span>` : ''}</div></div>
   <div class="f3-stats"><div><b>${m.rating}</b><small>Rating</small></div><div><b>${m.jobs}</b><small>Jobs done</small></div><div><b>${m.years}</b><small>On Mang Juan</small></div></div>
-  <div class="label">Good at</div><div class="f3-hscroll">${(GOOD_AT[m.key] || []).map((s) => `<span class="chip" style="display:inline-flex;align-items:center">${s}</span>`).join('')}</div>
+  <div class="label">Good at</div><div class="f3-hscroll">${(GOOD_AT[m.key] || CAT_GOOD3[cat] || []).map((s) => `<span class="chip" style="display:inline-flex;align-items:center">${s}</span>`).join('')}</div>
   <div class="label" style="margin-top:18px">What residents say</div>
   <div class="card" style="padding:16px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="f3-mini">${[1, 2, 3, 4, 5].map(() => `<span class="on">${icFill('star')}</span>`).join('')}</span><small style="color:var(--slate)">${who}</small></div><p style="margin:10px 0 0;line-height:1.5">${quote}</p></div></div>
-  <div class="footer"><button class="btn primary" data-act="bookAgainM">Book ${m.first} again</button></div>`;
+  <div class="footer">${mid ? `<button class="btn primary" data-act="pickFromProfile" data-arg="${m.key}">Choose ${m.first}</button>` : `<button class="btn primary" data-act="bookAgainM">Book ${m.first}${used ? ' again' : ''}</button>`}</div>`;
 };
 
 S3['b-chat'] = () => {
   const b = bk();
   const m = b ? b.manong : ALF3;
   return `${statusBar()}${head3(m.name)}<div class="scroll pad" id="chatLog" style="padding-top:16px">
-  <div class="f3-chatcard"><span>${b ? `${CATS[b.cat].name}, ${b.mode === 'now' ? 'today' : `${DAY_LONG[b.day]}, Oct ${b.day}, ${b.time}`}` : 'No active booking'}</span>${b ? `<span style="color:var(--success)">${STAMP[b.status]}</span>` : ''}</div>
+  <div class="f3-chatcard"><span>${b ? `${CATS[b.cat].name}, ${b.mode === 'now' ? 'today' : `${DAY_LONG[b.day]}, Oct ${b.day}, ${b.time}`}` : 'No active booking'}</span>${b ? `<span style="color:var(${['pending', 'declined', 'mcancelled'].includes(b.status) ? '--slate' : '--success'})">${STAMP[b.status]}</span>` : ''}</div>
   <div class="f3-msgs"><span class="f3-day">Today</span>${st.chat3.map((c) => (c.sys ? `<button class="f3-sys" data-act="${b ? 'trackLive' : 'noop'}">${ic('pin')}${esc(c.sys.replace('Alfred', m.first))}</button>`
     : `<div class="f3-bub ${c.me ? 'me' : 'them'}">${esc(c.t)}<small>${c.time}</small></div>`)).join('')}</div></div>
   <div class="f3-quick">${["I'm coming down", 'Door is open'].map((q) => `<button class="chip" data-act="sendChat" data-arg="${q}">${q}</button>`).join('')}</div>
@@ -751,7 +832,7 @@ const SHEETS3 = {
 };
 
 // ---------- actions ----------
-const draftFrom = (b) => Object.assign(st, { cat: b.cat, tier: b.tier, desc: '', symptoms: [], photos: [], when: 'schedule', day: b.day > 20 ? b.day : 21, time: b.time.includes('AM') || b.time.includes('PM') ? b.time : '10:30 AM', retried: false });
+const draftFrom = (b) => Object.assign(st, { cat: b.cat, tier: b.tier, desc: '', symptoms: [], photos: [], when: 'schedule', day: b.day > 20 ? b.day : 21, time: b.time.includes('AM') || b.time.includes('PM') ? b.time : '10:30 AM', pickManong: null, retried: false });
 const ACT3 = {
   // registration
   regStart(mode) {
@@ -820,7 +901,7 @@ const ACT3 = {
   },
   // booking
   startB(k) {
-    Object.assign(st, { cat: k, tier: CAT3[k].def, desc: '', symptoms: [], photos: [], dropoff: '', when: CAT3[k].def === 'q' && k === 'locks' ? 'now' : 'schedule', day: 21, time: '10:30 AM', preferred: null, retried: false, altManong: false });
+    Object.assign(st, { cat: k, tier: CAT3[k].def, desc: '', symptoms: [], photos: [], dropoff: '', when: CAT3[k].def === 'q' && k === 'locks' ? 'now' : 'schedule', day: 21, time: '10:30 AM', preferred: null, pickManong: null, retried: false, altManong: false });
     go('b-size', { reset: true });
     st.stack = ['b-home'];
   },
@@ -882,7 +963,7 @@ const ACT3 = {
     st.booking = makeBooking3(now ? 'now' : 'schedule');
     Object.assign(st, { liveEta: now ? 8 : 18, pendingReview: false, bgFinding: false, stack: ['b-home'], screen: now ? 'b-ondemand' : 'b-status' });
     render(true);
-    toast(now ? `${st.booking.manong.first} accepted your request` : `Booked! ${st.booking.id} confirmed`);
+    toast(now ? `${st.booking.manong.first} accepted your request` : `Request sent. We'll text you when ${st.booking.manong.first} confirms.`);
   },
   openBooking() {
     const b = bk();
@@ -898,6 +979,7 @@ const ACT3 = {
   trackLive() {
     const b = bk();
     if (!b) return;
+    if (b.status === 'pending') return toast(`${b.manong.first} hasn't confirmed yet`);
     if (['confirmed', 'accepted', 'late'].includes(b.status)) {
       b.status = 'onway';
       st.liveEta = b.mode === 'now' ? 8 : 18;
@@ -1002,6 +1084,33 @@ const ACT3 = {
     go(bk() ? st.reportFrom : 'b-home', { reset: true, replace: true });
     st.stack = ['b-home'];
   },
+  // choosing a Manong
+  openManongs() {
+    st.manongSel = picked3() ? st.pickManong : 'auto';
+    go('b-manongs');
+  },
+  manongSel(k) {
+    st.manongSel = k;
+    render();
+  },
+  manongDone() {
+    const k = st.manongSel;
+    st.pickManong = k === 'auto' ? null : k;
+    if (k === 'auto') st.preferred = null;
+    back();
+    toast(k === 'auto' ? `Sending the nearest free ${CATS[st.cat].who}` : `${MANONGS[k].first} is your pick`);
+  },
+  pickFromProfile(k) {
+    if (!pool3().some((a) => a.m.key === k)) return toast(`${MANONGS[k].first} isn't free ${st.when === 'now' ? 'right now' : `at ${st.time}`}`);
+    st.pickManong = k;
+    const i = st.stack.lastIndexOf('b-review');
+    if (i < 0) return back();
+    st.stack = st.stack.slice(0, i);
+    st.screen = 'b-review';
+    st.sheet = null;
+    render(true);
+    toast(`${MANONGS[k].first} is your pick`);
+  },
   // home, bookings, profile
   bkTab(t) {
     st.bkTab = t;
@@ -1034,7 +1143,7 @@ const ACT3 = {
   },
   bookAgainM() {
     const m = MANONGS[st.viewManong] || ALF3;
-    ACT3.startB('plumbing');
+    ACT3.startB(catOf3(m));
     st.preferred = m.first;
     render();
     toast(`Requesting ${m.first} again`);
@@ -1181,7 +1290,22 @@ const SIM3 = {
     if (!b) return [];
     const m = b.manong.first;
     if (b.status === 'inprogress') return [[`${m} needs a part → approve it`, () => go('b-part')], ['Job done → charges', () => ACT.jobDoneB()]];
-    if (b.status === 'mcancelled') return [];
+    if (b.status === 'declined' || b.status === 'mcancelled') return [];
+    if (b.status === 'pending') {
+      return [
+        [`${m} confirms the booking`, () => {
+          b.status = 'confirmed';
+          st.notifs3.unshift({ g: 'Today', icon: 'check', t: `${m} confirmed your booking for ${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}.`, time: 'Now', unread: true, act: 'status' });
+          render();
+          toast(`${m} confirmed`);
+        }],
+        [`${m} can't take it (declined)`, () => {
+          b.status = 'declined';
+          st.mcPick = 0;
+          render(true);
+        }],
+      ];
+    }
     return [
       [`${m} is on the way (Book 5b)`, () => {
         b.status = 'onway';
@@ -1240,8 +1364,8 @@ const FRAMES3 = {
   'b-size': 'V3 · Book 1: Service size', 'b-size@electrical': 'V3 · Electrical 1: Job size', 'b-size@cleaning': 'V3 · Cleaning 1: Place size',
   'b-size@locks': 'V3 · Locks 1: What you need', 'b-size@moving': 'V3 · Moving 1: Move size', 'b-size@repairs': 'V3 · Repairs 1: Job type',
   'b-problem': 'V3 · Book 2: Problem', 'b-route': 'V3 · Moving 2: Route', 'b-schedule': 'V3 · Book 3: Schedule', 'b-finding': 'V3 · State: Finding your Manong',
-  'b-none': 'V3 · State: No Manong free', 'b-nonearby': 'V3 · State: No Manong nearby now', 'b-review': 'V3 · Book 4: Review and confirm',
-  'b-status': 'V3 · Book 5: Booking status', 'b-onway': 'V3 · Book 5b: Manong on the way', 'b-ondemand': 'V3 · State: On-demand accepted', 'b-live': 'V3 · State: Manong on the way (live map)',
+  'b-none': 'V3 · State: No Manong free', 'b-nonearby': 'V3 · State: No Manong nearby now', 'b-review': 'V3 · Book 4: Review and confirm', 'b-manongs': 'V3 · Book 4b: Choose a Manong',
+  'b-status': 'V3 · Book 5: Booking status', 'b-pending': 'V3 · State: Waiting for Manong to confirm', 'b-declined': 'V3 · State: Manong declined', 'b-onway': 'V3 · Book 5b: Manong on the way', 'b-ondemand': 'V3 · State: On-demand accepted', 'b-live': 'V3 · State: Manong on the way (live map)',
   'b-late': 'V3 · State: Manong running late', 'b-inprog': 'V3 · Booking status: in progress', 'b-part': 'V3 · Approve extra part',
   'b-mcancel': 'V3 · State: Manong cancelled', 'b-sheet-cancel': 'V3 · Cancel booking: reason', 'b-sheet-late': 'V3 · Cancel booking: late fee',
   'b-cancelled': 'V3 · Booking cancelled', 'b-charges': 'V3 · Book 6: Charges and payment', 'b-payfail': 'V3 · State: Payment failed',
@@ -1285,6 +1409,9 @@ function jump3(s) {
     case 'b-nonearby': seedDraft(); st.when = 'now'; break;
     case 'b-route': Object.assign(st, { cat: 'moving', tier: 's', symptoms: ['Elevator at pick-up'], dropoff: '' }); break;
     case 'b-status': seedBk('confirmed'); break;
+    case 'b-pending': seedBk('pending'); screen = 'b-status'; break;
+    case 'b-declined': seedBk('declined'); screen = 'b-status'; break;
+    case 'b-manongs': seedDraft(); st.retried = false; st.manongSel = 'auto'; break;
     case 'b-onway': seedBk('onway'); st.sheetTop = SHEET_PEEK; break;
     case 'b-ondemand': seedBk('accepted', 'now'); break;
     case 'b-live': seedBk('onway'); st.liveEta = 18; break;
@@ -1330,3 +1457,515 @@ layer(ACT, ACT3);
 layer(AFTER, AFTER3);
 layer(FRAMES, FRAMES3);
 layer(SIM, SIM3, true);
+
+/* ==========================================================
+   Flow 4 "Final": Flow 1 (the client's design) completed and tidied.
+   Same screens, photos and components as Flow 1. Adds what the user stories need and Flow 1 lacks:
+   contract durations, Now or Schedule, choosing a Manong, Pending confirmation and Declined,
+   approving extra parts, and the extra charges on the bill.
+
+   Navigation model (Grab / foodpanda style):
+   - Bookings tab is the home of every booking, active or past.
+   - While a booking is active, a strip above the tab bar follows the resident on every tab.
+   - Account holds settings only. Home is address, search and services.
+   ========================================================== */
+VARIANTS.final = { flow: 'A', label: 'Final', group: 'Flow 4', start: 'a-welcome' };
+GROUP_DESC['Flow 4'] = "The best of both (2.0).";
+CLARISO.key = 'clariso';
+CLARISO.ini = 'CP';
+P.chevD = '<path d="m6 9 6 6 6-6"/>';
+const fFresh = fresh;
+fresh = (v = 'main') => (v === 'final' ? Object.assign(fFresh(v), {
+  when: 'now', pickManong: null, altManong: false, fb: null, partOk: false, bkTabF: 'up', sw: { book: true, promo: false },
+  nF: [{ g: 'Today', t: 'MANONG50 applied: ₱50 off your next booking', time: '8:00 AM', unread: true, act: 'a-home' }, { g: 'Earlier', t: 'Your receipt for MJ-8790 is ready', time: 'Oct 2', unread: false, act: 'a-history' }],
+}) : fFresh(v));
+const isF = () => st.variant === 'final';
+const FD = { quick: '~15 mins', standard: '30–60 mins', major: '1 hr +' };
+const rosterF = () => (st.cat === 'plumbing' ? [{ m: CLARISO, km: 0.4, now: true, busy: [] }, ...ROSTER3.plumbing.filter((a) => a.m.key !== 'alfred3')] : ROSTER3[st.cat] || ROSTER3.plumbing);
+const poolF = () => rosterF().filter(isFree3);
+const aideF = () => {
+  const p = poolF();
+  const w = p.find((a) => a.m.key === st.pickManong);
+  return (w || (st.altManong && p.length > 1 ? p[1] : p[0]) || rosterF()[0]).m;
+};
+const avF = (m, s = 50, x = '') => (m.img ? `<img src="${m.img}" alt="" style="width:${s}px;height:${s}px;border-radius:50%;object-fit:cover;${x}" />` : `<span class="f4ini" style="width:${s}px;height:${s}px;font-size:${Math.round(s * 0.36)}px;${x}">${m.ini}</span>`);
+// Flow 1 screens are written for Clariso; swap in whoever was assigned.
+const asAide = (h) => {
+  const m = aideF();
+  if (m === CLARISO) return h;
+  return h
+    .replace(/<img[^>]*clariso\.png[^>]*>/g, (x) => avF(m, x.includes('avbig') ? 80 : 50, x.includes('avbig') ? 'margin:0 auto;display:grid' : ''))
+    .replace(/Clariso Perez/g, m.name).replace(/Clariso/g, m.first)
+    .replace(/4\.9★ \(342 jobs\)/g, `${m.rating}★ (${m.jobs} jobs)`).replace(/<b>4\.9<\/b> \(342 jobs\)/g, `<b>${m.rating}</b> (${m.jobs} jobs)`)
+    .replace(/data-arg="clariso"/g, `data-arg="${m.key}"`);
+};
+const baseToast = toast;
+toast = (msg) => baseToast(isF() ? msg.replace(/Clariso/g, aideF().first) : msg);
+
+// ---------- the active booking (st.fb) ----------
+// status: finding | pending | confirmed | declined | onway | done. "arrived" is onway once st.arrived is set.
+const CHIP = { finding: 'Finding Manong', pending: 'Pending confirmation', confirmed: 'Confirmed', onway: 'On the way', arrived: 'Arrived', done: 'Job done', declined: 'Declined', paid: 'Paid' };
+const chipF = (k) => `<span class="f4chip ${k}">${CHIP[k]}</span>`;
+const keyF = (b) => (b.status === 'onway' && st.arrived ? 'arrived' : b.status);
+const whenF = (b) => (b.time === 'Now' ? 'Now' : `${DAY_LONG[b.day]}, Oct ${b.day}, ${b.time}`);
+const stF = (b) => {
+  const k = keyF(b), f = b.m.first;
+  const t = {
+    finding: ['Finding your Manong', `${TIERS_A[b.tier].name} • Now`],
+    pending: [`Waiting for ${f} to confirm`, whenF(b)],
+    confirmed: [`${f} confirmed`, whenF(b)],
+    declined: [`${f} can't take it`, 'Tap to choose another Manong'],
+    onway: [`${f} is on the way`, `About ${st.eta} mins away`],
+    arrived: [`${f} has arrived`, 'Meet at the lobby'],
+    done: ['Job done', 'Review and pay'],
+  }[k];
+  return { key: k, title: t[0], sub: t[1] };
+};
+const ROUTE_F = { finding: 'a-finding', pending: 'a-pending', confirmed: 'a-pending', declined: 'a-declined', onway: 'a-found', arrived: 'a-found', done: 'a-summary' };
+const stripF = () => {
+  const b = st.fb;
+  if (!b) return '';
+  const s = stF(b);
+  return `<button class="f4strip" data-act="openActiveF" aria-label="Open your active booking: ${esc(s.title)}">${avF(b.m, 40)}<span class="grow"><b>${esc(s.title)}</b><small>${esc(s.sub)}</small></span>${ic('chevR')}</button>`;
+};
+const TABS_F = [['a-home', 'home', 'Home'], ['a-history', 'calendar', 'Bookings'], ['a-messages', 'msg', 'Messages'], ['a-account', 'user', 'Account']];
+const navF = (on) => `<nav class="otabs f4nav">${TABS_F.map(([s, i, l]) => `<button class="${on === s ? 'on' : ''}" data-act="tab" data-arg="${s}" ${on === s ? 'aria-current="page"' : ''}>${on === s ? icFill(i) : ic(i)}<span>${l}</span>${s === 'a-history' && st.fb ? '<i class="f4tdot"></i>' : ''}</button>`).join('')}</nav>`;
+const tabsF = (h) => {
+  const on = (h.match(/<nav class="otabs">[\s\S]*?<button class="on" data-act="tab" data-arg="([\w-]+)"/) || [])[1];
+  return h.replace(/<nav class="otabs">[\s\S]*?<\/nav>/, `${stripF()}${navF(on)}`);
+};
+// One header for tab pages and sub pages: left aligned title, same gutter as the content.
+const topF = (title, { back = '', right = '' } = {}) => `<header class="f4top"><div class="f4row">${back ? `<button class="f4back" data-act="${back}" aria-label="Back">${ic('arrowL')}</button>` : ''}<h1>${title}</h1>${right}</div></header>`;
+
+// ---------- booking flow ----------
+// Flow 1's tier cards cut long text mid-word and stack a footnote under every price. Flow 4 uses
+// shorter copy and one note under the list. Flow 1 itself is left untouched.
+const TIER_F = {
+  quick: { desc: 'Inspection, meter test, minor fuse check', dur: FD.quick, foot: '' },
+  standard: { desc: 'Aircon clean, plumbing clogs, socket rewire', dur: FD.standard, foot: '' },
+  major: { desc: 'Drain overhaul, toilet reinstall, pump or heater install', dur: FD.major, foot: '' },
+};
+const withTierF = (fn) => {
+  const old = {};
+  for (const k in TIERS_A) { old[k] = TIERS_A[k]; TIERS_A[k] = { ...TIERS_A[k], ...TIER_F[k] }; }
+  try { return fn(); } finally { for (const k in old) TIERS_A[k] = old[k]; }
+};
+const baseSvc = S['a-service'];
+S['a-service'] = () => {
+  if (!isF()) return baseSvc();
+  return withTierF(baseSvc).replace(/<\/div><\/div>\s*<div class="afoot">/, '<p class="small center">Parts, if needed, are quoted first and billed on an official receipt.</p></div></div>\n  <div class="afoot">');
+};
+
+const DAYS_F = [['Today', 20], ['Wed', 21], ['Thu', 22], ['Fri', 23], ['Sat', 24], ['Sun', 25], ['Mon', 26], ['Tue', 27], ['Wed', 28], ['Thu', 29], ['Fri', 30], ['Sat', 31]];
+Object.assign(DAY_LONG, { 25: 'Sun', 26: 'Mon', 27: 'Tue', 28: 'Wed', 29: 'Thu', 30: 'Fri', 31: 'Sat' });
+// Today only offers slots at least ~30 mins after the current time (2:03 PM in this prototype).
+const slotsF = (day) => TIMES.filter((t) => day !== 20 || ['3:00 PM', '4:30 PM', '6:00 PM'].includes(t));
+const baseDet = S['a-details'];
+S['a-details'] = () => {
+  if (!isF()) return baseDet();
+  const now = st.when === 'now';
+  const sl = slotsF(st.day), am = sl.filter((t) => t.endsWith('AM')), pm = sl.filter((t) => t.endsWith('PM'));
+  const slot = (t) => `<button class="f4time ${st.time === t ? 'on' : ''}" ${t === FULL_TIME ? 'disabled' : `data-act="time" data-arg="${t}" aria-pressed="${st.time === t}"`}>${t}</button>`;
+  const when = `<section class="card"><div class="sectitle"><span class="num">3</span>When do you need Manong?</div>
+    <div class="tips" style="margin-bottom:0"><button class="${now ? 'on' : ''}" data-act="when" data-arg="now">Now</button><button class="${now ? '' : 'on'}" data-act="when" data-arg="schedule">Schedule</button></div>
+    ${now ? '<p class="small">Fastest option. The closest free Manong heads over once he accepts.</p>'
+      : `<div class="f4mon">October 2026</div><div class="f4dates">${DAYS_F.map(([d, n]) => `<button class="f4date ${st.day === n ? 'on' : ''}" data-act="dayF" data-arg="${n}" aria-pressed="${st.day === n}"><small>${d.toUpperCase()}</small><b>${n}</b></button>`).join('')}</div>
+      ${am.length ? `<div class="f4lab">Morning</div><div class="f4times">${am.map(slot).join('')}</div>` : ''}${pm.length ? `<div class="f4lab">Afternoon</div><div class="f4times">${pm.map(slot).join('')}</div>` : ''}
+      <p class="f4sum">${DAY_LONG[st.day]}, Oct ${st.day} at <b>${st.time}</b></p>`}</section>`;
+  return baseDet()
+    .replace(/the aide/g, 'Manong')
+    .replace('<span class="num">3</span>Notes for Manong', '<span class="num">4</span>Notes for Manong')
+    .replace('<section class="card"><div class="sectitle"><span class="num">4</span>', `${when}<section class="card"><div class="sectitle"><span class="num">4</span>`)
+    .replace(/<button class="abtn" data-act="confirmA">[\s\S]*?<\/button>/, `<button class="abtn" data-act="findF"><span>Choose your Manong</span><span class="amt">${peso(priceA())}</span></button>`);
+};
+
+const picked3F = () => (st.pickManong && poolF().some((a) => a.m.key === st.pickManong) ? st.pickManong : 'auto');
+S['a-pick'] = () => {
+  const now = st.when === 'now', sel = picked3F(), m = aideF(), best = poolF()[0];
+  const off = rosterF().filter((a) => !isFree3(a));
+  const row = (a, on) => `<button class="lvl ${sel === a.m.key ? 'on' : ''}" ${on ? `data-act="pickF" data-arg="${a.m.key}"` : 'disabled'} role="radio" aria-checked="${sel === a.m.key}">${avF(a.m, 44)}
+    <span class="grow"><b>${a.m.name}</b><small>${a.m.skills} • ${a.m.rating}★ (${a.m.jobs} jobs)</small></span>
+    <span class="pr">${on ? (now ? `<b>${a.km} km</b><small>~${Math.round(a.km * 5 + 4)} mins away</small>` : `<b>${st.time.replace(' ', '')}</b><small>Free</small>`) : `<small>${now ? a.now : `Booked at ${st.time}`}</small>`}</span></button>`;
+  return `${statusBar()}${canopy('Choose Your Manong', 'Review your booking, then book or pick someone.')}${mapPins('found')}
+  <div class="bsheet" style="max-height:560px"><div class="grab"></div>
+    <div class="f4rev" style="margin-top:0;border:0;padding:0"><div class="kv"><div><span>Service</span><span>${tA().name}, ${FD[st.tierA]}</span></div><div><span>When</span><span>${now ? 'Now' : `${DAY_LONG[st.day]}, Oct ${st.day}, ${st.time}`}</span></div><div><span>Where</span><button data-act="sheet" data-arg="addressA">${addrA().short}${ic('pencil')}</button></div><div><span>Estimate</span><b>${peso(priceA())}</b></div></div></div>
+    <button class="f4quick" data-act="confirmAuto"><span><small>Recommended</small><b>Book nearest Manong</b>${best ? '' : '<em>Nobody is free then. Try another time.</em>'}</span><span class="f4go">${peso(priceA())}${ic('arrowR')}</span></button>
+    <div class="f4or">or choose a Manong</div>
+    <div class="levels">${poolF().map((a) => row(a, true)).join('')}${off.map((a) => row(a, false)).join('')}</div>
+    ${sel !== 'auto' ? `<div class="f4stick"><button class="abtn" data-act="confirmF"><span>Confirm ${m.first}</span><span class="amt">${peso(priceA())}</span></button></div>` : ''}</div>${homeBar}`;
+};
+
+// Finding: the back arrow leaves the screen and the search carries on (strip + notification). Cancel stays explicit.
+const baseFinding = S['a-finding'];
+S['a-finding'] = () => (isF() ? baseFinding().replace('data-act="cancelFindA"', 'data-act="leaveFindF"').replace(/<span class="smallbtn" style="padding:2px 8px;font-size:11px">([^<]*)<\/span>/, '<span class="f4pill">$1</span>') : baseFinding());
+// Tracking: back goes home, never back into the booking form.
+const baseFound = S['a-found'];
+S['a-found'] = () => (isF() ? asAide(baseFound()).replace('data-act="back"', 'data-act="home"') : baseFound());
+const baseAF = AFTER['a-found'];
+AFTER['a-found'] = () => {
+  if (isF() && st.fb && st.fb.status === 'finding') st.fb.status = 'onway';
+  if (baseAF) baseAF();
+};
+
+const f4Steps = (b) => {
+  const m = b.m, conf = b.status === 'confirmed';
+  return [['Pending confirmation', 'Request sent Oct 20, 4:12 PM'], ['Confirmed', conf ? `${m.first} confirmed at 4:15 PM` : `Waiting for ${m.first}`], ['In progress', `Starts ${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}`], ['Completed', 'You review charges and pay']];
+};
+const f4Rows = (b) => `<div class="lrow">${avF(b.m, 50)}<div style="flex:1"><div style="display:flex;gap:8px;align-items:center"><b style="font-size:17px">${b.m.name}</b><span class="verified">${ic('badge')}Verified</span></div><div style="font-size:12px;color:#555">${b.m.skills} • ${b.m.rating}★ (${b.m.jobs} jobs)</div></div></div>
+  <div class="kv" style="margin-top:14px"><div><span>Service</span><span>${TIERS_A[b.tier].name}</span></div><div><span>Duration</span><span>${FD[b.tier]}</span></div><div><span>When</span><span>${whenF(b)}</span></div><div><span>Location</span><span>${addrA().short}</span></div><div><span>Estimate</span><span>${peso(TIERS_A[b.tier].price - voucherOff())}</span></div></div>`;
+S['a-pending'] = () => {
+  const b = st.fb;
+  if (!b) return S['a-home']();
+  const conf = b.status === 'confirmed', i = conf ? 1 : 0;
+  return `${statusBar()}${canopy(conf ? 'Booking Confirmed' : 'Request Sent', conf ? `${b.m.first} will arrive ${DAY_LONG[b.day]} at ${b.time}.` : `Waiting for ${b.m.first} to confirm.`, { backAct: 'home' })}
+  <div class="scroll" style="margin-top:-12px;padding-top:12px"><div class="body">
+    <section class="card"><ol class="f4tl">${f4Steps(b).map(([t, s], k) => `<li class="${k < i ? 'done' : k === i ? 'cur' : ''}"><b>${t}</b><small>${s}</small></li>`).join('')}</ol></section>
+    <section class="card">${f4Rows(b)}</section></div></div>
+  <div class="afoot">${conf ? `<button class="abtn center" data-act="call" data-arg="${b.m.key}">${ic('phone')}Call ${b.m.first}</button>` : ''}<button class="agrey" data-act="sheet" data-arg="cancelF">${ic('x')}Cancel Request</button></div>${homeBar}`;
+};
+S['a-declined'] = () => {
+  const b = st.fb;
+  if (!b) return S['a-home']();
+  return `${statusBar()}${canopy(`${b.m.first} Can't Take It`, "Your request is closed and you won't be charged.", { backAct: 'home' })}
+  <div class="scroll" style="margin-top:-12px;padding-top:12px"><div class="body"><section class="card"><p style="margin:0 0 12px;font-size:15px;line-height:1.45">${b.m.first} couldn't make ${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}. Pick another Manong for the same time, or choose a different time.</p>${f4Rows(b)}</section></div></div>
+  <div class="afoot"><button class="abtn center" data-act="retryF" data-arg="manong">Find another Manong</button><button class="agrey" data-act="retryF" data-arg="time">Pick a new time</button><button class="f4txt" data-act="dismissF">Cancel request</button></div>${homeBar}`;
+};
+
+// Order summary: the bill comes first (U14, U15), then rating and tip.
+const baseSum = S['a-summary'];
+S['a-summary'] = () => {
+  if (!isF()) return baseSum();
+  const [pn, pp] = CATS[st.cat].materials[0];
+  let h = asAide(baseSum()).replace(`<div><span>Base price</span><span>${peso(tA().price)}</span></div>`, `<div><span>Base price</span><span>${peso(tA().price)}</span></div>${st.partOk ? `<div><span>${pn}</span><span>${peso(pp)}</span></div>` : ''}`).replace('#MN-82049', '#MJ-8821');
+  const pay = h.match(/<section class="card">\s*<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px">[\s\S]*?<\/section>/);
+  if (pay) {
+    h = h.replace(pay[0], '');
+    h = h.replace(/(<div class="status-pill">[\s\S]*?<\/div>)/, `$1${pay[0]}`);
+  }
+  return h;
+};
+const baseThanks = S['a-thanks'];
+S['a-thanks'] = () => {
+  if (!isF()) return baseThanks();
+  const m = aideF(), part = st.partOk ? CATS[st.cat].materials[0][1] : 0;
+  return `${statusBar()}<div class="f4thx"><div class="f4thxtop"><img src="${A}illo-manong.png" alt="" /></div>
+    <div class="f4thxsheet"><small class="f4kick">Job complete</small><h1>Salamat, Enzo</h1><p>${m.first} finished your ${tA().name.toLowerCase()} job. We sent the receipt to enzo@email.com.</p>
+      <div class="kv"><div><span>Manong</span><span>${m.name}</span></div><div><span>Your rating</span><span>${'★'.repeat(st.stars || 5)}</span></div>${st.tip ? `<div><span>Tip</span><span>${peso(st.tip)}</span></div>` : ''}<div><span>Total paid</span><b>${peso(totalA() + part)}</b></div></div>
+      <button class="abtn center" data-act="home">Back to home</button><button class="f4txt" data-act="receipt">${ic('download')}Download e-receipt</button></div></div>${homeBar}`;
+};
+
+// ---------- tab pages ----------
+const baseJobSheet = SHEETS.job;
+SHEETS.job = (...a) => { const h = baseJobSheet(...a); return isF() ? h.replace('job1.png', 'pipe.png') : h; };
+const baseHist = S['a-history'], baseAcct = S['a-account'], baseMsgs = S['a-messages'];
+const dateOf = (p) => (p.title.match(/on (.*)$/) || [, ''])[1];
+const baseHome4 = S['a-home'];
+const pushN = (t, act = 'a-home') => st.nF.unshift({ g: 'Today', t, time: 'Now', unread: true, act });
+const SVC4 = { cleaning: 'Home and deep cleaning', plumbing: 'Leaks, clogs, fixtures and electrical', locks: 'Lockouts, rekeying, new locks', moving: 'Studio to 2BR, crew and van included' };
+S['a-home'] = () => {
+  if (!isF()) return baseHome4();
+  const q = st.search.trim().toLowerCase(), p = st.past[0], a = addrA();
+  const list = OLD_TILES.filter(([, l]) => !q || l.toLowerCase().includes(q));
+  const unread = st.nF.some((n) => n.unread);
+  const ICO4 = { cleaning: 'sparkle', plumbing: 'wrench', locks: 'lock', moving: 'truck' };
+  const svc = ([k, l]) => `<button class="f4svc" data-act="startA" data-arg="${k}">${ic(ICO4[k] || 'wrench', 'f4sico')}<span class="grow"><b>${l}</b><small>${SVC4[k]}</small></span><span class="f4from"><small>from</small><b>${peso(CAT3[k] ? CAT3[k].tiers.q.price : 250)}</b></span>${ic('chevR')}</button>`;
+  const again = p && !q ? `<h2 class="f4h">Book again</h2><div class="f4svcs"><button class="f4svc" data-act="rebookF" data-arg="0">${avF(p.manong, 44)}<span class="grow"><b>${p.manong.name}</b><small>${CATS[p.cat].name} • ${dateOf(p)}</small></span><span class="smallbtn">Book</span></button></div>` : '';
+  const jobs = q ? '' : `<h2 class="f4h">Recent jobs in your building</h2><div class="f4jobs"><button class="f4job" data-act="sheet" data-arg="job" data-arg2="0"><img src="${A}pipe.png" alt="" /><b>Sink trap seal</b><small>Plumbing • ₱450</small></button><button class="f4job" data-act="sheet" data-arg="job" data-arg2="1"><img src="${A}job2.png" alt="" /><b>Faucet and bidet line</b><small>Plumbing • ₱650</small></button></div>`;
+  return tabsF(`${statusBar()}<div class="ohome f4home">
+    <header class="f4hh"><div class="f4row"><button class="f4loc2" data-act="sheet" data-arg="addressA" aria-label="Service address: ${esc(a.short)}, ${esc(a.t.split(',')[0])}. Tap to change">${ic('pin')}<span class="f4locT"><small>Service address</small><b>${esc(a.short)}, ${esc(a.t.split(',')[0])}</b></span>${ic('chevD')}</button>
+      <button class="f4bell" data-act="go" data-arg="a-notifs" aria-label="Notifications${unread ? ', unread' : ''}">${ic('bell')}${unread ? '<i></i>' : ''}</button></div></header>
+    <label class="f4search">${ic('search')}<input data-model="search" data-rerender value="${esc(st.search)}" placeholder="What needs fixing?" aria-label="Search services" /></label>
+    <div class="scroll f4body"><h2 class="f4h" style="margin-top:12px">Services</h2>
+      ${list.length ? `<div class="f4svcs">${list.map(svc).join('')}</div>` : `<p class="empty">No service matches "${esc(st.search)}"</p>`}${again}${jobs}</div>${oldTabs('a-home')}</div>${homeBar}`);
+};
+S['a-notifs'] = () => {
+  const grp = (t) => st.nF.filter((n) => n.g === t);
+  const sec = (t) => (grp(t).length ? `<div class="f4group"><h3>${t}</h3><div class="list">${grp(t).map((n) => `<button class="listrow" data-act="notifF" data-arg="${st.nF.indexOf(n)}"><i class="f4dot ${n.unread ? '' : 'off'}"></i><div class="grow"><b>${n.t}</b><small>${n.time}</small></div>${ic('chevR')}</button>`).join('')}</div></div>` : '');
+  return `${statusBar()}<div class="ohome">${topF('Notifications', { back: 'back', right: unreadN() ? '<button class="f4hdrlink" data-act="readAllF">Mark all read</button>' : '' })}
+  <div class="scroll" style="padding:4px 16px 24px">${sec('Today')}${sec('Earlier')}</div></div>${homeBar}`;
+};
+const unreadN = () => st.nF.some((n) => n.unread);
+S['a-history'] = () => {
+  if (!isF()) return baseHist();
+  const up = st.bkTabF === 'up', b = st.fb;
+  const past = st.past.map((p, i) => `<button class="listrow" data-act="sheet" data-arg="receiptF" data-arg2="${i}">${avF(p.manong, 44)}<div class="grow"><b>${CATS[p.cat].name}, ${TIERS_A[p.tier].name.toLowerCase()}</b><small>${dateOf(p)} • ${p.manong.name}</small></div><span class="f4amt"><b>${peso(p.total)}</b><small>Paid</small></span></button>`).join('');
+  const active = b ? `<div class="list"><button class="listrow" data-act="openActiveF">${avF(b.m, 44)}<div class="grow"><b>${CATS[b.cat].name}, ${TIERS_A[b.tier].name.toLowerCase()}</b><small>${whenF(b)}</small><span style="display:block;margin-top:6px">${chipF(keyF(b))}</span></div>${ic('chevR')}</button></div>`
+    : `<div class="f4empty"><img src="${A}illo-manong.png" alt="" /><b>Nothing booked yet</b><p>Your active Manong jobs will show up here.</p><button class="abtn center" data-act="tab" data-arg="a-home">Book a Manong</button></div>`;
+  return tabsF(`${statusBar()}<div class="ohome">${topF('Bookings')}
+    <div class="f4seg"><button class="${up ? 'on' : ''}" data-act="bkTabF" data-arg="up">Active</button><button class="${up ? '' : 'on'}" data-act="bkTabF" data-arg="past">Past</button></div>
+    <div class="scroll" style="padding:8px 16px 20px">${up ? active : `<div class="list">${past}</div>`}</div>${oldTabs('a-history')}</div>${homeBar}`);
+};
+S['a-account'] = () => {
+  if (!isF()) return baseAcct();
+  const tile = (act, arg, icon, label, val) => `<button class="f4tile" data-act="${act}" data-arg="${arg}">${ic(icon)}<b>${label}</b><small>${val}</small></button>`;
+  const line = (act, arg, label, val = '') => `<button class="f4line" data-act="${act}" data-arg="${arg}"><span>${label}</span>${val ? `<small>${val}</small>` : ''}${ic('chevR')}</button>`;
+  const jobs = st.past.length + (st.fb ? 1 : 0);
+  return tabsF(`${statusBar()}<div class="ohome"><div class="scroll f4acc2">
+    <header class="f4me"><span class="f4av">ES</span><div class="grow"><h1>Enzo Santos</h1><p>0917 555 0142 · enzo@email.com</p></div><button class="f4edit" data-act="toast" data-arg="Profile editing is not in this prototype">Edit</button></header>
+    <div class="f4tiles">
+      ${tile('sheet', 'addressA', 'pin', 'Addresses', `${ADDRESSES.length} saved`)}
+      ${tile('sheet', 'payA', 'card', 'Payment', st.pay === 'gcash' ? 'GCash' : 'Cash')}
+      ${tile('sheet', 'voucher', 'tag', 'Vouchers', st.voucher ? '1 available' : 'None yet')}
+      ${tile('tab', 'a-history', 'receipt', 'Bookings', `${jobs} job${jobs === 1 ? '' : 's'}`)}
+    </div>
+    <button class="f4promo" data-act="toast" data-arg="Invite a neighbor: share your code MANONG50"><span><small>Invite a neighbor</small><b>Both get ₱50 off</b></span><em>MANONG50</em></button>
+    <h3 class="f4cap">Settings</h3>
+    <div class="f4lines">${line('sheet', 'notifSettings', 'Notifications')}${line('toast', 'Language is English only in this prototype', 'Language', 'English')}</div>
+    <h3 class="f4cap">Support</h3>
+    <div class="f4lines">${line('toast', 'Mang Juan support replies within 5 minutes', 'Help and support')}${line('toast', 'Terms and privacy open in your browser', 'Terms and privacy')}</div>
+    <button class="f3-logout" data-act="logout">Log out</button><p class="f3-ver">Mang Juan v0.5</p></div>${oldTabs('a-account')}</div>${homeBar}`);
+};
+S['a-messages'] = () => {
+  if (!isF()) return baseMsgs();
+  const m = st.fb ? st.fb.m : st.past[0] ? st.past[0].manong : CLARISO;
+  return tabsF(`${statusBar()}<div class="ohome">${topF('Messages')}
+  <div class="scroll" style="padding:16px"><div class="list">
+    <button class="listrow" data-act="sheet" data-arg="chat">${avF(m, 48)}<div class="grow"><b>${m.name}</b><small>${esc(st.chat[st.chat.length - 1].t)}</small></div></button>
+    <button class="listrow" data-act="toast" data-arg="Mang Juan support replies within 5 minutes"><img src="${A}svg/mang-juan-badge.svg" alt="" style="width:48px;height:48px;border-radius:50%" /><div class="grow"><b>Mang Juan Support</b><small>How can we help you today?</small></div></button></div></div>${oldTabs('a-messages')}</div>${homeBar}`);
+};
+
+// ---------- sign in (palette and dividers follow Flow 2) ----------
+const baseWelcome = S['a-welcome'], baseLogin = S['a-login'];
+const f4bold = '<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="f4bold"><feMorphology operator="dilate" radius="0.6"/></filter></svg>';
+const f4mark = (h, x = '') => `<img class="f4wm" src="${A}svg/mang-juan-wordmark.svg" alt="mang juan" style="height:${h}px;${x}" />`;
+const f4social = () => `<div class="f4soc"><button data-act="social" data-arg="Google">${gLogo(20)}Google</button><button data-act="social" data-arg="Facebook"><svg width="20" height="20" viewBox="0 0 24 24"><path fill="#1877f2" d="M14 22v-8h2.7l.4-3.2H14V8.8c0-.9.3-1.6 1.6-1.6h1.7V4.4c-.3 0-1.3-.1-2.4-.1-2.4 0-4 1.5-4 4.1v2.4H8.2V14H11v8z"/></svg>Facebook</button></div>`;
+S['a-welcome'] = () => (!isF() ? baseWelcome() : `<div class="oldauth">${statusBar()}
+  <div class="f4center">${f4mark(52)}</div>
+  <div><button class="f4cta" data-act="sheet" data-arg="phoneLogin">${icFill('phone')}Continue with mobile number</button>
+    <div class="f4or2">or continue with</div>${f4social()}
+    <p class="f4alt">Have an account? <button class="link" data-act="go" data-arg="a-login">Log in with email</button></p></div></div>${homeBar}`);
+S['a-login'] = () => (!isF() ? baseLogin() : `<div class="oldauth">${statusBar()}${f4bold}
+  <div style="margin-top:96px;text-align:center">${f4mark(44, 'margin:0 auto;')}<p class="f4tag">Log in to book your next repair.</p></div>
+  <div style="margin-top:22px" id="loginForm">
+    <label class="f4lab2" for="f4lid">Email or mobile number</label>
+    <div class="oinput"><input id="f4lid" data-model="loginId" value="${esc(st.loginId)}" placeholder="name@email.com" autocomplete="username" /></div>
+    <label class="f4lab2" for="f4lpw">Password</label>
+    <div class="oinput"><input id="f4lpw" data-model="loginPw" type="${st.showPw ? 'text' : 'password'}" value="${esc(st.loginPw)}" placeholder="Password" autocomplete="current-password" /><button data-act="togglePw" aria-label="${st.showPw ? 'Hide' : 'Show'} password">${ic(st.showPw ? 'eye' : 'eyeOff')}</button></div></div>
+  <div style="text-align:right;margin:2px 0 14px"><button class="link" data-act="sheet" data-arg="forgot">Forgot password?</button></div>
+  <button class="f4cta" data-act="loginA">Log in</button><div class="f4or2">or continue with</div>${f4social()}
+  <button class="f4cta ghost" style="margin-top:12px" data-act="sheet" data-arg="phoneLogin">Use mobile number instead</button>
+  <p class="f4alt" style="margin-top:auto">New to Mang Juan? <button class="link" data-act="sheet" data-arg="signup">Sign up</button></p></div>${homeBar}`);
+
+// ---------- sheets ----------
+SHEETS.receiptF = () => {
+  const p = st.past[+st.sheet.arg2 || 0], t = TIERS_A[p.tier];
+  return `<h3>${CATS[p.cat].name}, ${t.name.toLowerCase()}</h3><p class="sub">${p.id} • ${dateOf(p)} • ${p.manong.name}</p>
+  <div class="greybox kv" style="margin-bottom:16px"><div><span>Base price</span><span>${peso(t.price)}</span></div><div><span>Paid</span><span>${peso(p.total)}</span></div><div><span>Payment</span><span>${st.pay === 'gcash' ? 'GCash' : 'Cash'}</span></div></div>
+  <div class="stack"><button class="btn primary" data-act="rebookF" data-arg="${+st.sheet.arg2 || 0}">Book ${p.manong.first} again</button><button class="btn secondary" data-act="closeSheet">Close</button></div>`;
+};
+SHEETS.cancelF = () => `<h3>Cancel this booking?</h3><p class="sub">It's free until your Manong starts the job. Tell us why (optional).</p>
+  <div class="opts">${['Plans changed', 'Fixed it myself', 'Booked the wrong time', 'Other'].map((r, i) => `<button class="opt ${st.sheet.reason === i ? 'on' : ''}" data-act="cancelReason" data-arg="${i}"><span class="grow"><b>${r}</b></span>${st.sheet.reason === i ? ic('check') : ''}</button>`).join('')}</div>
+  <div class="stack" style="margin-top:12px"><button class="btn danger" data-act="cancelF">Cancel booking</button><button class="btn secondary" data-act="closeSheet">Keep booking</button></div>`;
+SHEETS.notifSettings = () => {
+  const sw = (k, l, sub) => `<div class="opt" style="cursor:default"><span class="grow"><b>${l}</b><small>${sub}</small></span><button class="f4sw ${st.sw[k] ? 'on' : ''}" role="switch" aria-checked="${!!st.sw[k]}" aria-label="${l}" data-act="swF" data-arg="${k}"><i></i></button></div>`;
+  return `<h3>Notifications</h3><p class="sub">Choose what we send you.</p><div class="opts">${sw('book', 'Booking updates', 'Accepted, on the way, completed')}${sw('promo', 'Promos and vouchers', 'Occasional offers')}</div><button class="btn primary" data-act="closeSheet">Done</button>`;
+};
+SHEETS.partA = () => {
+  const [pn, pp] = CATS[st.cat].materials[0];
+  return `<h3>${aideF().first} needs a part</h3><p class="sub">Approve it before it's added to your bill. Nothing changes unless you say yes.</p>
+  <div class="greybox kv" style="margin-bottom:16px"><div><span>${pn}</span><span>${peso(pp)}</span></div><div><span>Total with this part</span><span>${peso(priceA() + pp)}</span></div></div>
+  <div class="stack"><button class="btn primary" data-act="partF" data-arg="1">Approve ${peso(pp)}</button><button class="btn secondary" data-act="partF" data-arg="0">Decline</button></div>`;
+};
+const baseChat = SHEETS.chat;
+SHEETS.chat = () => {
+  const h = baseChat();
+  const m = aideF();
+  if (!isF() || m === CLARISO) return h;
+  return h.replace(/<img src="assets\/clariso\.png"[^>]*>/, avF(m, 36)).replace(/Clariso Perez/g, m.name).replace(/Clariso/g, m.first);
+};
+const baseCF = SHEETS.cancelFindA;
+SHEETS.cancelFindA = () => (isF() ? baseCF().replace("You'll go back to choosing a service.", "You'll go back to the home screen.") : baseCF());
+
+// ---------- actions ----------
+const baseStartA = ACT.startA;
+const baseJD = ACT.jobDoneA;
+const baseReceipt = ACT.receipt;
+Object.assign(ACT, {
+  dayF(n) {
+    st.day = +n;
+    const ok = slotsF(st.day).filter((t) => t !== FULL_TIME);
+    if (!ok.includes(st.time)) st.time = ok[0] || st.time;
+    render();
+  },
+  bkTabF(t) { st.bkTabF = t; render(); },
+  openActiveF() {
+    const b = st.fb;
+    if (!b) return;
+    b.bg = false;
+    go(ROUTE_F[keyF(b)], { reset: true });
+  },
+  dismissF() {
+    st.fb = null;
+    ACT.home();
+    toast('Request cancelled. No charge.');
+  },
+  notifF(i) {
+    const n = st.nF[+i];
+    n.unread = false;
+    go(n.act, { reset: true, replace: true });
+  },
+  rebookF(i) {
+    if (st.fb) return toast('You have an active booking. Open it from Bookings.');
+    const p = st.past[+i];
+    st.sheet = null;
+    ACT.startA(p.cat);
+    if (TIERS_A[p.tier]) st.tierA = p.tier;
+    const a = rosterF().find((x) => x.m.first === p.manong.first);
+    st.pickManong = a ? a.m.key : null;
+    go('a-details');
+    toast(`Requesting ${p.manong.first} again`);
+  },
+  cancelF() {
+    st.fb = null;
+    st.sheet = null;
+    st.stack = ['a-home'];
+    st.screen = 'a-home';
+    render(true);
+    toast('Booking cancelled. No charge.');
+  },
+  startA(k) {
+    if (isF() && st.fb) return toast('You have an active booking. Open it from Bookings.');
+    baseStartA(k);
+    if (isF()) Object.assign(st, { when: 'now', pickManong: null, altManong: false, partOk: false });
+  },
+  findF() {
+    if (!st.descA.trim() && !st.symptomsA.length) {
+      toast('Add a description or tap a symptom');
+      return shake('#descCard');
+    }
+    go('a-pick');
+  },
+  pickF(k) {
+    st.pickManong = k === 'auto' ? null : k;
+    render();
+  },
+  confirmAuto() {
+    st.pickManong = null;
+    ACT.confirmF();
+  },
+  swF(k) {
+    st.sw[k] = !st.sw[k];
+    render();
+  },
+  readAllF() {
+    st.nF.forEach((n) => (n.unread = false));
+    render();
+  },
+  confirmF() {
+    const m = aideF();
+    if (st.when === 'now') {
+      Object.assign(st, { arrived: false, eta: 10, km: 1.4 });
+      st.fb = { status: 'finding', mode: 'now', cat: st.cat, m, day: 20, time: 'Now', tier: st.tierA };
+      return go('a-finding');
+    }
+    st.fb = { status: 'pending', mode: 'schedule', cat: st.cat, m, day: st.day, time: st.time, tier: st.tierA };
+    pushN(`Request sent to ${m.first}. We'll tell you when he confirms.`, 'a-history');
+    go('a-pending', { reset: true });
+    st.stack = ['a-home'];
+  },
+  leaveFindF() {
+    clearTimers();
+    if (st.fb) st.fb.bg = true;
+    go('a-home', { reset: true, replace: true });
+    toast("We'll let you know when a Manong accepts");
+    setTimeout(() => {
+      const b = st.fb;
+      if (!isF() || !b || b.status !== 'finding' || !b.bg) return;
+      Object.assign(st, { eta: 10, km: 1.4, arrived: false });
+      b.status = 'onway';
+      b.bg = false;
+      pushN(`${b.m.first} accepted your request`, 'a-home');
+      if (['a-home', 'a-history', 'a-account', 'a-messages'].includes(st.screen)) render();
+      toast(`${b.m.first} accepted your request`);
+    }, 3500);
+  },
+  retryF(w) {
+    const b = st.fb;
+    st.fb = null;
+    st.altManong = true;
+    st.pickManong = null;
+    if (b && b.cat) st.cat = b.cat;
+    if (w === 'manong') go('a-pick', { reset: true });
+    else go('a-details', { reset: true });
+    st.stack = ['a-home'];
+  },
+  partF(y) {
+    st.partOk = !!+y;
+    st.sheet = null;
+    render();
+    toast(+y ? 'Part approved and added to your bill' : 'Declined. Manong finishes the base repair only.');
+  },
+  confirmCancelA() {
+    clearTimers();
+    st.fb = null;
+    st.sheet = null;
+    go('a-home', { reset: true, replace: true });
+    toast(st.pay === 'gcash' ? 'Request cancelled. GCash hold released.' : 'Request cancelled.');
+  },
+  jobDoneA() {
+    if (isF() && st.fb) st.fb.status = 'done';
+    return baseJD.call(ACT);
+  },
+  submitA() {
+    const part = st.partOk ? CATS[st.cat].materials[0][1] : 0;
+    st.past.unshift({ id: 'MJ-8821', cat: st.cat, tier: st.tierA, title: `${CATS[st.cat].name} on Oct 20`, manong: aideF(), total: totalA() + part });
+    st.fb = null;
+    go('a-thanks', { replace: true });
+  },
+  receipt() {
+    if (!isF()) return baseReceipt.call(ACT);
+    const m = aideF(), [pn, pp] = CATS[st.cat].materials[0], part = st.partOk ? pp : 0;
+    const t = ['MANG JUAN E-RECEIPT', 'Booking #MJ-8821', `${tA().name}: ${peso(tA().price)}`, st.partOk ? `${pn}: ${peso(pp)}` : '', st.voucher ? 'Voucher MANONG50: -₱50' : '', `Tip: ${peso(st.tip)}`, `Total: ${peso(totalA() + part)}`, `Paid via ${st.pay === 'gcash' ? 'GCash' : 'Cash'}`, `Manong: ${m.name}`].filter(Boolean).join('\n') + '\n';
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([t], { type: 'text/plain' }));
+    a.download = 'mang-juan-receipt-MJ-8821.txt';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('E-receipt downloaded');
+  },
+});
+const baseLT = LIVE.totalA;
+LIVE.totalA = () => (isF() && st.partOk ? peso(totalA() + CATS[st.cat].materials[0][1]) + '.00' : baseLT());
+
+// ---------- simulate panel ----------
+const f4sim = (key, fn) => Object.defineProperty(SIM, key, { configurable: true, enumerable: true, get: () => (isF() ? fn() : base4[key] || []) });
+const base4 = { 'a-found': SIM['a-found'] };
+f4sim('a-found', () => [...base4['a-found'], ['Manong asks to add a part', () => sheet('partA')]]);
+f4sim('a-pending', () => {
+  const b = st.fb;
+  if (!b) return [];
+  if (b.status === 'pending') return [[`${b.m.first} confirms`, () => { b.status = 'confirmed'; pushN(`${b.m.first} confirmed ${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}`, 'a-history'); render(true); }], [`${b.m.first} can't take it (declined)`, () => { b.status = 'declined'; pushN(`${b.m.first} can't take your booking. Pick another Manong.`, 'a-history'); go('a-declined', { replace: true }); }]];
+  return [[`${b.m.first} is on the way`, () => { b.status = 'onway'; Object.assign(st, { eta: 10, km: 1.4, arrived: false }); go('a-found', { replace: true }); }]];
+});
+for (const [k, label] of [
+  ['a-welcome', 'Welcome'],
+  ['a-login', 'Log in'],
+  ['a-home', 'Home'],
+  ['a-service', '1 Choose service'],
+  ['a-details', '2 Service details and schedule'],
+  ['a-pick', '3 Choose Manong and confirm'],
+  ['a-finding', '4 Finding Manong'],
+  ['a-found', '5 Live Manong tracking'],
+  ['a-pending', 'Scheduled: pending, then confirmed'],
+  ['a-declined', 'Scheduled: Manong declined'],
+  ['a-summary', '6 Order summary and extra charges'],
+  ['a-thanks', '7 Thank you'],
+  ['a-history', 'Bookings'],
+  ['a-account', 'Account'],
+  ['a-messages', 'Messages'],
+  ['a-notifs', 'Notifications'],
+]) {
+  FRAMES[k] = typeof FRAMES[k] === 'object' ? { ...FRAMES[k], final: label } : FRAMES[k] ? { main: FRAMES[k], final: label } : label;
+}
+JUMP.final = ['a-welcome', 'a-login', 'a-home', 'a-service', 'a-details', 'a-pick', 'a-finding', 'a-found', 'a-pending', 'a-declined', 'a-summary', 'a-thanks', 'a-history', 'a-account', 'a-messages', 'a-notifs'];
+const baseJump4 = jumpTo;
+jumpTo = (s) => {
+  if (isF()) {
+    // Screens that only make sense mid-booking get a booking to show.
+    const sch = { day: 21, time: '10:30 AM', mode: 'schedule' }, now = { day: 20, time: 'Now', mode: 'now' };
+    const seeds = { 'a-pending': ['pending', sch], 'a-declined': ['declined', sch], 'a-finding': ['finding', now], 'a-found': ['onway', now], 'a-summary': ['done', now] };
+    if (seeds[s]) st.fb = { status: seeds[s][0], cat: st.cat, m: aideF(), tier: st.tierA, ...seeds[s][1] };
+    if (['a-pick', 'a-details'].includes(s)) Object.assign(st, { when: s === 'a-pick' ? 'schedule' : st.when });
+  }
+  return baseJump4(s);
+};
