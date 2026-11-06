@@ -1,59 +1,59 @@
 import { BOOKING_STATES, INITIAL_STATE } from '../../src/utils/contract.js';
 import { CATALOG } from '../mocks/catalog';
-import { mockFlags, wait } from '../mocks/flags';
-import { pickManong } from './manongs';
+import { wait } from '../mocks/flags';
+import { pickFor } from './manongs';
 import type {
   Address,
   Booking,
   BookingStatus,
   BookingType,
   Catalog,
-  Charge,
   Draft,
-  Manong,
   PastBooking,
   PaymentMethod,
+  RosterEntry,
   Stage,
 } from '../types';
 
-/** Thrown when no Manong is free; `nowJob` says which "none" screen to show. */
-export class NoManongError extends Error {
-  constructor(public nowJob: boolean) {
-    super('No Manong is free');
-  }
-}
+const VOUCHER_OFF = 50;
 
 /** The contract state behind each screen status (proposed mapping, ICM open item 20). */
 export function contractStatus(stage: Stage, type: BookingType): BookingStatus {
   const s = BOOKING_STATES;
   const accepted = type === 'on-demand' ? s.ACCEPTED : s.CONFIRMED;
   const map: Record<Stage, BookingStatus> = {
-    booked: INITIAL_STATE[type],
+    finding: INITIAL_STATE[type],
+    pending: INITIAL_STATE[type],
     confirmed: accepted,
+    declined: s.DECLINED,
     onway: accepted,
-    late: accepted,
-    inprogress: s.IN_PROGRESS,
-    completed: s.COMPLETED,
-    paid: s.COMPLETED,
-    cancelled: s.CANCELLED,
-    mcancelled: s.CANCELLED,
+    arrived: s.IN_PROGRESS,
+    done: s.COMPLETED,
   };
   return map[stage];
 }
 
-export const tierOf = (b: Pick<Booking, 'category' | 'serviceType'>, catalog: Catalog) =>
-  catalog[b.category].tiers[b.serviceType];
-export const serviceName = (b: Pick<Booking, 'category' | 'serviceType'>, catalog: Catalog) =>
-  `${catalog[b.category].name}, ${tierOf(b, catalog).short}`;
-/** Approved parts plus the materials every job of that service uses. */
-export const materialsOf = (b: Booking, catalog: Catalog): Charge[] => [
-  ...b.parts,
-  ...catalog[b.category].extra,
-];
-export const totalOf = (b: Booking, catalog: Catalog) =>
-  tierOf(b, catalog).price + materialsOf(b, catalog).reduce((sum, [, p]) => sum + p, 0);
-export const dayLabel = (d: Date) =>
-  d.toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' });
+/** A date `day` days from today. */
+export const dateIn = (day: number) => new Date(Date.now() + day * 86400000);
+export const weekday = (day: number) =>
+  dateIn(day).toLocaleDateString('en-PH', { weekday: 'short' });
+/** "Wed, Oct 21" */
+export const dayLabel = (day: number) =>
+  dateIn(day).toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' });
+export const whenText = (b: Pick<Booking, 'bookingType' | 'day' | 'time'>) =>
+  b.bookingType === 'on-demand' ? 'Now' : `${dayLabel(b.day)}, ${b.time}`;
+
+export const priceOf = (
+  category: string,
+  serviceType: Booking['serviceType'],
+  voucher: boolean,
+  catalog: Catalog,
+) => catalog[category].tiers[serviceType].price - (voucher ? VOUCHER_OFF : 0);
+/** What the resident pays at the end: price after voucher, the approved part, and the tip. */
+export const totalOf = (b: Booking, voucher: boolean, tip: number, catalog: Catalog) =>
+  priceOf(b.category, b.serviceType, voucher, catalog) +
+  (b.partApproved ? catalog[b.category].part[1] : 0) +
+  tip;
 
 // TODO(backend): GET /api/services (final categories and prices are ICM open items 6 and 8).
 export async function getCatalog(): Promise<Catalog> {
@@ -61,114 +61,71 @@ export async function getCatalog(): Promise<Catalog> {
   return CATALOG;
 }
 
-// TODO(backend): matching request; the Manong's acceptance should arrive by push or websocket.
-export async function findManong(draft: Draft): Promise<Manong> {
-  await wait(2500);
-  if (mockFlags.noManongFree && !draft.retried) {
-    mockFlags.noManongFree = false;
-    throw new NoManongError(draft.bookingType === 'on-demand');
-  }
-  return pickManong(draft.bookingType, draft.preferred);
-}
-
 let nextId = 8821;
 
-// TODO(backend): POST /api/bookings; the server assigns the id and the contract's initial state.
-export async function createBooking(
+// TODO(backend): POST /api/bookings. "Now" bookings start a search; the Manong's acceptance (and every
+// later status) should arrive by push or websocket. Scheduled bookings wait for the Manong to confirm.
+export async function requestBooking(
   draft: Draft,
   address: Address | undefined,
-  payment: PaymentMethod,
-  problem: string,
+  roster: RosterEntry[],
 ): Promise<Booking> {
-  if (!address) throw new Error('Add an address first');
-  if (!draft.manong) throw new Error('Pick a Manong before confirming.');
-  await wait(600);
+  if (!address) throw new Error('Add a service address first');
+  if (!draft.desc.trim() && !draft.symptoms.length)
+    throw new Error('Add a description or tap a symptom');
+  const pick = pickFor(roster, draft);
+  if (!pick) throw new Error('Nobody is free then. Try another time.');
+  await wait(500);
   return {
     id: `MJ-${nextId++}`,
     category: draft.category,
     serviceType: draft.serviceType,
     bookingType: draft.bookingType,
-    problem: problem || 'General checkup',
-    day: draft.bookingType === 'on-demand' ? new Date() : draft.day,
-    time: draft.bookingType === 'on-demand' ? null : draft.time,
+    day: draft.bookingType === 'on-demand' ? 0 : draft.day,
+    time: draft.bookingType === 'on-demand' ? 'Now' : draft.time,
     address,
-    manong: draft.manong,
-    stage: 'confirmed',
-    payment,
-    parts: [],
+    manong: pick.manong,
+    stage: draft.bookingType === 'on-demand' ? 'finding' : 'pending',
+    partApproved: false,
   };
 }
 
-// shortcut: the Dev menu sets the status directly. TODO(backend): status changes arrive from the aide
-// side by websocket or push; the app should only render them.
-export function setMockStage(b: Booking, stage: Stage, catalog: Catalog): Booking {
-  // A finished job in the prototype always used the extra part, so the bill shows materials.
-  const part = catalog[b.category].part;
-  const parts =
-    ['completed', 'paid'].includes(stage) && !b.parts.length
-      ? [[part[0], part[1]] as Charge]
-      : b.parts;
-  return { ...b, stage, parts };
+// TODO(backend): POST /api/bookings/:id/cancel. Free until the job starts (U13).
+export async function cancelBooking(b: Booking, _reason: string | null) {
+  if (['arrived', 'done'].includes(b.stage))
+    throw new Error('The job has started, so it can no longer be cancelled.');
+  await wait(400);
 }
 
 // TODO(backend): PATCH /api/bookings/:id/parts.
-export async function approvePart(b: Booking, catalog: Catalog): Promise<Booking> {
-  const [name, price] = catalog[b.category].part;
+export async function answerPart(b: Booking, approve: boolean): Promise<Booking> {
   await wait(300);
-  return b.parts.some(([n]) => n === name) ? b : { ...b, parts: [...b.parts, [name, price]] };
+  return { ...b, partApproved: approve };
 }
 
-const toPast = (
-  b: Booking,
-  catalog: Catalog,
-  lines: Charge[],
-  status: PastBooking['status'],
-  stars = 0,
-): PastBooking => ({
-  id: b.id,
-  category: b.category,
-  title: serviceName(b, catalog),
-  date: b.day ? dayLabel(b.day) : 'Today',
-  time: b.time ?? 'Now',
-  manong: status === 'paid' ? b.manong : null,
-  lines,
-  status,
-  stars,
-  payment: b.payment,
-});
-
-// TODO(backend): POST /api/bookings/:id/cancel. Free until In Progress (U13); a ₱100 trip fee once on the way.
-export async function cancelBooking(
-  b: Booking,
-  fee: number,
-  catalog: Catalog,
-): Promise<PastBooking> {
-  if (contractStatus(b.stage, b.bookingType) === BOOKING_STATES.IN_PROGRESS)
-    throw new Error('The job has started, so it can no longer be cancelled.');
-  await wait(500);
-  return toPast(b, catalog, [[fee ? 'Trip fee' : 'Cancelled before the job', fee]], 'cancelled');
-}
-
-// TODO(backend): POST /api/bookings/:id/rating (stars 0 means skipped).
+// TODO(backend): POST /api/bookings/:id/rating with stars, praise, review and tip.
 export async function rateBooking(
   b: Booking,
-  stars: number,
-  _praise: string[],
-  _note: string,
+  rating: { stars: number; praise: string[]; review: string; tip: number },
+  payment: PaymentMethod,
+  voucher: boolean,
   catalog: Catalog,
 ): Promise<PastBooking> {
+  if (rating.stars < 1 || rating.stars > 5) throw new Error('Pick 1 to 5 stars');
   await wait(400);
-  return toPast(
-    b,
-    catalog,
-    [['Base charge', tierOf(b, catalog).price], ...materialsOf(b, catalog)],
-    'paid',
-    stars,
-  );
+  return {
+    id: b.id,
+    category: b.category,
+    serviceType: b.serviceType,
+    date: dateIn(b.day).toLocaleDateString('en-PH', { month: 'short', day: 'numeric' }),
+    manong: b.manong,
+    total: totalOf(b, voucher, rating.tip, catalog),
+    payment,
+  };
 }
 
 // TODO(backend): POST /api/bookings/:id/reports.
-export async function reportProblem(_bookingId: string, reason: string | null, text: string) {
+export async function reportIssue(_bookingId: string, reason: string | null, text: string) {
   if (!reason && !text.trim()) throw new Error('Pick what went wrong or describe it');
-  await wait(500);
+  await wait(400);
 }

@@ -19,24 +19,36 @@ export async function logIn(id: string, password: string): Promise<Account> {
   return seedAccount();
 }
 
-// TODO(backend): OTP endpoint (SMS provider is still undecided).
-export async function sendCode(phone: string) {
-  const n = phone.replace(/\D/g, '');
+// TODO(backend): OTP endpoint (SMS provider is still undecided). Flow 4 sends the code and signs in from
+// one sheet; the mock skips the code step.
+export async function logInWithPhone(phone: string): Promise<Account> {
+  const n = phone.replace(/\D/g, '').replace(/^(63|0)/, '');
   if (n.length !== 10 || n[0] !== '9')
-    throw new Error('Enter a 10-digit number that starts with 9.');
-  await wait(400);
-}
-
-// shortcut: any 6 digits pass except 000000, which shows the wrong-code state. Real check is server-side.
-export async function verifyCode(_phone: string, code: string): Promise<Account> {
-  await wait(400);
-  if (code === '000000')
-    throw new Error("That code didn't match. Check the latest text from Mang Juan and try again.");
+    throw new Error('Enter a 10-digit PH mobile number starting with 9.');
+  await wait(600);
   return seedAccount();
 }
 
+// TODO(backend): POST /api/auth/register (U01 spec).
+export async function signUp(name: string, id: string, password: string): Promise<Account> {
+  if (!name.trim()) throw new Error('Enter your full name.');
+  if (!id.trim()) throw new Error('Enter your email or mobile number.');
+  if (password.length < 8) throw new Error('Use at least 8 characters for your password.');
+  await wait(600);
+  // A new resident keeps their own name; the rest is the mock account.
+  const seed = seedAccount();
+  const initials = name
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0].toUpperCase())
+    .slice(0, 2)
+    .join('');
+  return { ...seed, user: { ...seed.user, name: name.trim(), initials }, past: [] };
+}
+
 // TODO(backend): password reset email (email provider is ICM open item 15).
-export async function sendPasswordReset(_email: string) {
+export async function sendPasswordReset(email: string) {
+  if (!email.includes('@')) throw new Error('Enter the email you signed up with.');
   await wait(400);
 }
 

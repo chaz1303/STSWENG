@@ -10,127 +10,87 @@ import {
   PlusJakartaSans_700Bold,
   PlusJakartaSans_800ExtraBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from '@expo-google-fonts/inter';
 import { getCatalog } from './services/bookings';
 import { C } from './theme';
 import { Btn, ErrorText, Loader, Toast } from './ui';
-import type { Account, App as AppApi, AppState, Draft, Manong, ScreenName } from './types';
-import { AllSet, Address, Code, Login, Name, Phone, Welcome } from './screens/Onboarding';
-import { Home, Notifications } from './screens/Home';
-import {
-  AddressPick,
-  Finding,
-  NoneFree,
-  NoneNearby,
-  Problem,
-  Review,
-  Route,
-  Schedule,
-  Size,
-} from './screens/Book';
-import {
-  Cancelled,
-  Charges,
-  Part,
-  Rate,
-  Report,
-  ReportSent,
-  Status,
-  Thanks,
-} from './screens/After';
-import {
-  AddressForm,
-  Addresses,
-  Bookings,
-  Payments,
-  Personal,
-  Profile,
-  Receipt,
-} from './screens/Account';
-import { Chat, ManongProfile } from './screens/Manong';
+import type { Account, App as AppApi, AppState, Draft, ScreenName, Stage } from './types';
+import { Login, Welcome } from './screens/Onboarding';
+import { Account as AccountTab, Bookings, Home, Messages, Notifications } from './screens/Home';
+import { Details, Pick, Service } from './screens/Book';
+import { Declined, Finding, Found, Pending, Summary, Thanks } from './screens/After';
 
-// Flow 3 "Full overhaul" from prototype/full.js.
+// Flow 4 "Final" from prototype/full.js.
 export const SCREENS = {
   welcome: Welcome,
   login: Login,
-  phone: Phone,
-  code: Code,
-  name: Name,
-  address: Address,
-  allset: AllSet,
   home: Home,
-  notifications: Notifications,
-  addrpick: AddressPick,
-  addrform: AddressForm,
-  size: Size,
-  problem: Problem,
-  route: Route,
-  schedule: Schedule,
-  finding: Finding,
-  none: NoneFree,
-  nonearby: NoneNearby,
-  review: Review,
-  manong: ManongProfile,
-  status: Status,
-  part: Part,
-  charges: Charges,
-  rate: Rate,
-  thanks: Thanks,
-  cancelled: Cancelled,
-  report: Report,
-  reportsent: ReportSent,
-  chat: Chat,
   bookings: Bookings,
-  receipt: Receipt,
-  profile: Profile,
-  personal: Personal,
-  addresses: Addresses,
-  payments: Payments,
+  messages: Messages,
+  account: AccountTab,
+  notifications: Notifications,
+  service: Service,
+  details: Details,
+  pick: Pick,
+  finding: Finding,
+  found: Found,
+  pending: Pending,
+  declined: Declined,
+  summary: Summary,
+  thanks: Thanks,
+};
+
+/** Where each status of the active booking lives (prototype ROUTE_F). */
+const ROUTE: Record<Stage, ScreenName> = {
+  finding: 'finding',
+  pending: 'pending',
+  confirmed: 'pending',
+  declined: 'declined',
+  onway: 'found',
+  arrived: 'found',
+  done: 'summary',
 };
 
 const emptyAccount = (): Account => ({
-  user: { first: '', last: '', phone: '' },
+  user: { name: '', initials: '', phone: '', email: '' },
   addresses: [],
   payment: 'gcash',
+  voucher: true,
   past: [],
-  upcoming: [],
   notifications: [],
   chat: [],
+  alerts: { bookings: true, promos: false },
 });
 
-const newDraft = (
-  category: string,
-  catalog: AppState['catalog'],
-  preferred: Manong | null = null,
-): Draft => ({
+const newDraft = (category: string): Draft => ({
   category,
-  serviceType: catalog[category]?.defaultTier ?? 'STANDARD',
+  serviceType: 'CHECKUP',
   desc: '',
   symptoms: [],
   photos: 0,
-  dropoff: '',
-  // Locked out means someone should come now.
-  bookingType: category === 'locks' ? 'on-demand' : 'scheduled',
-  day: null,
-  time: null,
-  manong: null,
-  preferred: preferred?.first ?? null,
-  retried: false,
+  notes: '',
+  bookingType: 'on-demand',
+  day: 1,
+  time: '10:30 AM',
+  manongKey: null,
+  avoidKey: null,
 });
 
 const startState = (): AppState => ({
   ...emptyAccount(),
   catalog: {},
   addressIdx: 0,
-  draft: newDraft('plumbing', {}),
+  draft: newDraft('plumbing'),
   booking: null,
-  pendingReview: false,
-  cancelled: null,
-  receiptIdx: 0,
-  viewManong: null,
-  addrEdit: -1,
-  reportFrom: 'charges',
-  noneFrom: '',
-  regMode: 'new',
+  eta: 10,
+  partAsk: false,
+  thanks: null,
 });
 
 // shortcut: a plain screen stack instead of a navigator; move to Expo Router when deep links land.
@@ -141,6 +101,11 @@ export default function App() {
     PlusJakartaSans_600SemiBold,
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
   });
   const [stack, setStack] = useState<ScreenName[]>(['welcome']);
   const [state, setState] = useState<AppState>(startState);
@@ -180,10 +145,14 @@ export default function App() {
       setToast(message);
       toastTimer.current = setTimeout(() => setToast(null), 2600);
     },
-    startBooking: (category, preferred = null) => {
-      setState((s) => ({ ...s, draft: newDraft(category, s.catalog, preferred) }));
-      setStack(['home', 'size']);
-      if (preferred) app.toast(`Requesting ${preferred.first} again`);
+    startBooking: (category, again) => {
+      // One booking at a time, like the prototype.
+      if (state.booking) return app.toast('You have an active booking. Open it from Bookings.');
+      setState((s) => ({ ...s, draft: { ...newDraft(category), ...(again ?? {}) } }));
+      setStack(again ? ['home', 'service', 'details'] : ['home', 'service']);
+    },
+    openBooking: (stage = state.booking?.stage) => {
+      if (stage) setStack(['home', ROUTE[stage]]);
     },
     signIn: (account, message) => {
       setState((s) => ({ ...s, ...account, addressIdx: 0, booking: null }));

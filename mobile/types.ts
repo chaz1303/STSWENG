@@ -8,19 +8,10 @@ export type BookingType = (typeof BOOKING_TYPES)[keyof typeof BOOKING_TYPES];
 /** A state from the contract shared with Team 2. */
 export type BookingStatus = (typeof BOOKING_STATES)[keyof typeof BOOKING_STATES];
 /**
- * What the resident sees (the status ring). The contract has no "booked", "on the way" or
- * "running late" yet (ICM open item 20), so `contractStatus()` in services/bookings maps these onto it.
+ * What the resident sees for the active booking (Flow 4). The contract has no "finding", "on the way"
+ * or "arrived", so `contractStatus()` in services/bookings maps these onto it (ICM open item 20).
  */
-export type Stage =
-  | 'booked'
-  | 'confirmed'
-  | 'onway'
-  | 'late'
-  | 'inprogress'
-  | 'completed'
-  | 'paid'
-  | 'cancelled'
-  | 'mcancelled';
+export type Stage = 'finding' | 'pending' | 'confirmed' | 'declined' | 'onway' | 'arrived' | 'done';
 export type PaymentMethod = 'gcash' | 'cash';
 /** [item name, price in pesos] */
 export type Charge = [string, number];
@@ -29,31 +20,27 @@ export type Tier = {
   name: string;
   desc: string;
   price: number;
-  meta: string;
-  gold: boolean;
-  short: string;
+  /** "Fixed base" or "Starting price". */
+  unit: string;
+  /** Shows a "+" after the price. */
+  plus?: boolean;
+  badge?: string;
 };
 
 export type Category = {
+  /** "Plumbing": the pill on booking screens. */
   name: string;
-  /** "plumber", "cleaner"… for copy like "Every plumber near you is booked". */
-  who: string;
+  /** "House Repairs": the label on Home. */
+  label: string;
+  /** "Leaks, clogs, fixtures and electrical" on Home. */
+  blurb: string;
+  /** "Plumbing Specialist" under the Manong's name. */
+  pro: string;
   icon: IconName;
-  q: string;
-  /** Step 1 tip; empty means no tip. */
-  note: string;
-  issueLabel: string;
-  crew: string;
-  defaultTier: ServiceType;
   tiers: Record<ServiceType, Tier>;
-  chips: string;
   symptoms: string[];
-  ph: string;
-  /** Materials always added to the bill. */
-  extra: Charge[];
-  /** The extra part a Manong may ask to add: [name, price, why]. */
-  part: [string, number, string];
-  guardJob: string;
+  /** The part a Manong may ask to add: [name, price]. */
+  part: Charge;
 };
 export type Catalog = Record<string, Category>;
 
@@ -61,20 +48,24 @@ export type Manong = {
   key: string;
   name: string;
   first: string;
-  initial: string;
+  initials: string;
   skills: string;
   rating: string;
   jobs: number;
-  years: string;
-  area: string;
-  vehicle: string;
-  goodAt: string[];
-  /** [who, what they said] */
-  review: [string, string];
 };
 
-export type User = { first: string; last: string; phone: string };
-export type Address = { label: string; bldg: string; unit: string; city: string; note: string };
+/** A Manong in the "Choose your Manong" list. */
+export type RosterEntry = {
+  manong: Manong;
+  km: number;
+  /** Free right now, or the reason he isn't. */
+  now: true | string;
+  /** Times already booked. */
+  busy: string[];
+};
+
+export type User = { name: string; initials: string; phone: string; email: string };
+export type Address = { title: string; detail: string; short: string };
 
 /** A booking still being filled in. */
 export type Draft = {
@@ -83,15 +74,15 @@ export type Draft = {
   desc: string;
   symptoms: string[];
   photos: number;
-  dropoff: string;
+  notes: string;
   bookingType: BookingType;
-  day: Date | null;
-  time: string | null;
-  manong: Manong | null;
-  /** A Manong the resident asked for again, by first name. */
-  preferred: string | null;
-  /** Set once a search has been retried, so the mock doesn't report "none free" twice. */
-  retried: boolean;
+  /** Days from today; 0 is today. */
+  day: number;
+  time: string;
+  /** A Manong picked from the list; null books the nearest. */
+  manongKey: string | null;
+  /** After a decline, skip the Manong who declined. */
+  avoidKey: string | null;
 };
 
 export type Booking = {
@@ -99,72 +90,60 @@ export type Booking = {
   category: string;
   serviceType: ServiceType;
   bookingType: BookingType;
-  problem: string;
-  day: Date | null;
-  time: string | null;
+  day: number;
+  time: string;
   address: Address;
   manong: Manong;
   stage: Stage;
-  payment: PaymentMethod;
-  /** Parts the resident approved during the job. */
-  parts: Charge[];
+  /** True when the resident approved the extra part. */
+  partApproved: boolean;
 };
 
 export type PastBooking = {
   id: string;
   category: string;
-  title: string;
+  serviceType: ServiceType;
   date: string;
-  time: string;
-  manong: Manong | null;
-  lines: Charge[];
-  status: 'paid' | 'cancelled';
-  stars: number;
+  manong: Manong;
+  total: number;
   payment: PaymentMethod;
 };
 
-export type Upcoming = { day: Date; time: string; title: string; with: string };
-
 export type Notice = {
-  group: string;
-  icon: IconName;
+  group: 'Today' | 'Earlier';
   text: string;
   time: string;
   unread: boolean;
-  /** What tapping it opens. */
-  act: 'status' | 'receipt' | 'review' | 'cleaning' | '';
+  /** Screen it opens. */
+  act: 'home' | 'bookings';
 };
 
-export type ChatMessage = { me?: boolean; text?: string; time?: string; sys?: string };
+export type ChatMessage = { me: boolean; text: string };
 
 export type Account = {
   user: User;
   addresses: Address[];
   payment: PaymentMethod;
+  voucher: boolean;
   past: PastBooking[];
-  upcoming: Upcoming[];
   notifications: Notice[];
   chat: ChatMessage[];
+  /** Notification settings. */
+  alerts: { bookings: boolean; promos: boolean };
 };
 
 export type AppState = Account & {
   catalog: Catalog;
-  /** Which saved address bookings go to. */
   addressIdx: number;
   draft: Draft;
+  /** The one active booking (Grab-style: one at a time). */
   booking: Booking | null;
-  /** A Manong was found while the resident left the Finding screen. */
-  pendingReview: boolean;
-  cancelled: { booking: Booking; reason: string; fee: number } | null;
-  receiptIdx: number;
-  viewManong: Manong | null;
-  /** Index of the address being edited; -1 adds a new one. */
-  addrEdit: number;
-  reportFrom: ScreenName;
-  /** The time that had no Manong free, for the "No Manong free" screen. */
-  noneFrom: string;
-  /** Whether the mobile-number flow signs up a new resident or logs in an existing one. */
-  regMode: 'new' | 'login';
+  /** Minutes until the Manong arrives, for live tracking. */
+  eta: number;
+  /** The Manong asked to add a part; live tracking shows the approval sheet. */
+  partAsk: boolean;
+  /** What the thank-you screen shows after the booking closes. */
+  thanks: { manong: Manong; tierName: string; stars: number; tip: number; total: number } | null;
 };
 
 /** The navigation and state helpers App passes to every screen. */
@@ -177,8 +156,10 @@ export type App = {
   update: (patch: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void;
   setDraft: (patch: Partial<Draft>) => void;
   toast: (message: string) => void;
-  startBooking: (category: string, preferred?: Manong | null) => void;
-  /** Swaps in the signed-in resident's account and opens Home. */
+  /** Starts a booking; with `again`, books that Manong and service again and skips to the details step. */
+  startBooking: (category: string, again?: { manongKey: string; serviceType: ServiceType }) => void;
+  /** Opens the active booking at the screen that fits its status (or `stage`, right after changing it). */
+  openBooking: (stage?: Stage) => void;
   signIn: (account: Account, toast?: string) => void;
   logOut: () => void;
 };

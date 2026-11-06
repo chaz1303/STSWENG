@@ -1,7 +1,16 @@
-import { Feather } from '@expo/vector-icons';
-import type { ComponentProps, ReactNode } from 'react';
+import { FontAwesome, Feather } from '@expo/vector-icons';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  type ComponentProps,
+  type ReactNode,
+} from 'react';
 import {
   ActivityIndicator,
+  Animated,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -9,27 +18,44 @@ import {
   Text,
   TextInput,
   View,
+  type StyleProp,
   type TextInputProps,
   type TextProps,
   type ViewProps,
+  type ViewStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Circle } from 'react-native-svg';
-import { C, F, R, SHADOW, type Weight } from './theme';
-import type { Stage } from './types';
+import { C, F, FI, R, SHADOW, type Weight } from './theme';
+import type { Manong, Stage } from './types';
 
-export { Feather as Icon };
+export { Feather as Icon, FontAwesome };
 export type IconName = ComponentProps<typeof Feather>['name'];
 
+/** Images by key, so mock data can name a photo without require()ing it. */
+export const IMG = {
+  clariso: require('./assets/clariso.png'),
+  pipe: require('./assets/pipe.png'),
+  job2: require('./assets/job2.png'),
+  map: require('./assets/map.png'),
+  illo: require('./assets/illo-manong.png'),
+  badge: require('./assets/badge.png'),
+  wordmark: require('./assets/wordmark.png'),
+};
+
+// Inter on Flow 4 tab pages and sign-in, Plus Jakarta Sans elsewhere.
+const FontCtx = createContext<Record<Weight, string>>(F);
+export const InterScope = ({ children }: { children: ReactNode }) => (
+  <FontCtx.Provider value={FI}>{children}</FontCtx.Provider>
+);
+
 type TProps = TextProps & { w?: Weight };
-
 export function T({ w = 400, style, ...props }: TProps) {
-  return <Text style={[{ fontFamily: F[w], color: C.ink }, style]} {...props} />;
+  const fonts = useContext(FontCtx);
+  return <Text style={[{ fontFamily: fonts[w], color: C.ink, fontSize: 15 }, style]} {...props} />;
 }
-
-export const H = ({ style, ...p }: TProps) => <T w={700} style={[s.h, style]} {...p} />;
-export const Sub = ({ style, ...p }: TProps) => <T style={[s.sub, style]} {...p} />;
-export const Label = ({ style, ...p }: TProps) => <T w={600} style={[s.label, style]} {...p} />;
+export const Sub = ({ style, ...p }: TProps) => (
+  <T style={[{ fontSize: 13, color: C.slate, lineHeight: 18 }, style]} {...p} />
+);
 export const ErrorText = ({ text }: { text?: string | null }) =>
   text ? (
     <T accessibilityRole="alert" style={{ color: C.destructive, fontSize: 13 }}>
@@ -37,360 +63,309 @@ export const ErrorText = ({ text }: { text?: string | null }) =>
     </T>
   ) : null;
 
-// Scrolling body with an optional pinned footer, like the prototype's .scroll + .footer.
-export function Screen({
-  header,
-  footer,
-  children,
-  bg = C.paper,
-  pad = true,
-  top = true,
-}: {
-  header?: ReactNode;
-  footer?: ReactNode;
-  children?: ReactNode;
-  bg?: string;
-  pad?: boolean;
-  /** false when the content draws its own band under the status bar. */
-  top?: boolean;
-}) {
-  return (
-    <SafeAreaView
-      edges={header || !top ? ['bottom'] : ['top', 'bottom']}
-      style={{ flex: 1, backgroundColor: bg }}
-    >
-      {header}
-      <ScrollView contentContainerStyle={[pad && s.pad, { gap: 12, paddingBottom: 24 }]}>
-        {children}
-      </ScrollView>
-      {footer && <View style={s.footer}>{footer}</View>}
-    </SafeAreaView>
-  );
-}
-
-export function Header({
-  title,
-  step,
-  onBack,
-  right,
-}: {
-  title: string;
-  step?: number;
-  onBack: () => void;
-  right?: ReactNode;
-}) {
-  return (
-    <SafeAreaView edges={['top']} style={s.head}>
-      <View style={s.headRow}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Back"
-          onPress={onBack}
-          style={s.round}
-        >
-          <Feather name="chevron-left" size={22} color={C.ink} />
-        </Pressable>
-        <T w={700} numberOfLines={1} style={{ fontSize: 17, flex: 1 }}>
-          {title}
-        </T>
-        {!!step && <T style={{ fontSize: 13, color: C.gold }}>Step {step} of 4</T>}
-        {right}
-      </View>
-      {!!step && (
-        <View style={s.progress}>
-          {[1, 2, 3, 4].map((i) => (
-            <View key={i} style={[s.bar, i <= step && { backgroundColor: C.ink }]} />
-          ))}
-        </View>
-      )}
-    </SafeAreaView>
-  );
-}
-
 export function Btn({
   kind = 'primary',
   label,
+  amount,
   onPress,
   disabled,
   loading,
   icon,
+  style,
 }: {
-  kind?: 'primary' | 'secondary' | 'danger' | 'link' | 'white';
+  /** primary: dark pill; grey: light pill; white: white pill; text: plain grey text; link: underlined. */
+  kind?: 'primary' | 'grey' | 'white' | 'text' | 'link';
   label: string;
+  /** Price shown at the right of a primary button, in mango. */
+  amount?: string;
   onPress: () => void;
   disabled?: boolean;
-  /** Shows a spinner and blocks taps while a request runs. */
   loading?: boolean;
   icon?: ReactNode;
+  style?: StyleProp<ViewStyle>;
 }) {
-  if (kind === 'link')
+  const off = disabled || loading;
+  if (kind === 'text' || kind === 'link')
     return (
       <Pressable
         accessibilityRole="button"
         onPress={onPress}
-        style={{ alignSelf: 'center', padding: 8 }}
+        disabled={off}
+        style={[
+          {
+            alignSelf: 'center',
+            padding: 8,
+            flexDirection: 'row',
+            gap: 6,
+            alignItems: 'center',
+            minHeight: 44,
+          },
+          style,
+        ]}
       >
-        <T w={600} style={{ textDecorationLine: 'underline', fontSize: 14 }}>
+        {icon}
+        <T
+          w={kind === 'link' ? 700 : 500}
+          style={{
+            fontSize: 14,
+            color: kind === 'link' ? C.ink : C.slate,
+            textDecorationLine: kind === 'link' ? 'underline' : 'none',
+          }}
+        >
           {label}
         </T>
       </Pressable>
     );
-  const primary = kind === 'primary';
-  const off = disabled || loading;
+  const dark = kind === 'primary';
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={amount ? `${label}, ${amount}` : label}
       accessibilityState={{ disabled: !!off, busy: !!loading }}
       disabled={off}
       onPress={onPress}
       style={[
         s.btn,
-        primary ? s.btnPrimary : s.btnSecondary,
-        kind === 'white' && { borderColor: C.white },
-        disabled && { backgroundColor: '#9a9a9a', borderColor: '#9a9a9a' },
+        { backgroundColor: dark ? C.ink : kind === 'grey' ? C.grey : C.white },
+        amount ? { justifyContent: 'space-between' } : null,
+        disabled && { opacity: 0.45 },
+        style,
       ]}
     >
-      {loading ? <ActivityIndicator color={primary ? C.white : C.ink} /> : icon}
-      <T
-        w={600}
-        style={{
-          fontSize: 16,
-          color: primary ? C.white : kind === 'danger' ? C.destructive : C.ink,
-        }}
-      >
-        {label}
-      </T>
-    </Pressable>
-  );
-}
-
-export function Option({
-  title,
-  desc,
-  right,
-  rightSub,
-  gold,
-  selected,
-  onPress,
-}: {
-  title: string;
-  desc?: string;
-  right?: string;
-  rightSub?: string;
-  gold?: boolean;
-  selected: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="radio"
-      accessibilityState={{ checked: selected }}
-      onPress={onPress}
-      style={[s.card, s.row, selected && { borderColor: C.ink, borderWidth: 2 }]}
-    >
-      <View style={[s.radio, selected && { borderColor: C.ink }]}>
-        {selected && <View style={s.radioDot} />}
-      </View>
-      <View style={{ flex: 1 }}>
-        <T w={600} style={{ fontSize: 16 }}>
-          {title}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+        {loading ? <ActivityIndicator color={dark ? C.white : C.ink} /> : icon}
+        <T w={700} style={{ fontSize: 16, color: dark ? C.white : C.ink }}>
+          {label}
         </T>
-        {!!desc && <Sub style={{ marginTop: 2 }}>{desc}</Sub>}
       </View>
-      {!!(right || rightSub) && (
-        <View style={{ alignItems: 'flex-end' }}>
-          {!!right && (
-            <T w={700} style={{ fontSize: 16 }}>
-              {right}
-            </T>
-          )}
-          <T w={gold ? 700 : 400} style={{ fontSize: 13, color: gold ? C.gold : C.slate }}>
-            {rightSub}
-          </T>
-        </View>
+      {!!amount && (
+        <T w={800} style={{ fontSize: 17, color: C.mango }}>
+          {amount}
+        </T>
       )}
     </Pressable>
   );
 }
 
-export function Chip({ label, on, onPress }: { label: string; on: boolean; onPress: () => void }) {
+/** Flow 1/4 yellow header: back arrow, category pill, title and subtitle. */
+export function Canopy({
+  title,
+  sub,
+  onBack,
+  pill,
+  right,
+}: {
+  title: string;
+  sub: string;
+  onBack: () => void;
+  pill?: string;
+  right?: ReactNode;
+}) {
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected: on }}
-      onPress={onPress}
-      style={[s.chip, on && { backgroundColor: C.mango, borderColor: C.mango }]}
-    >
-      <T w={500} style={{ fontSize: 14 }}>
-        {label}
+    <SafeAreaView edges={['top']} style={s.canopy}>
+      <View style={s.canopyRow}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={onBack}
+          style={s.back}
+        >
+          <Feather name="arrow-left" size={24} color={C.ink} />
+        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+          {right}
+          {!!pill && (
+            <View style={s.catpill}>
+              <Feather name="tool" size={13} color={C.ink} />
+              <T w={800} style={{ fontSize: 12, letterSpacing: 0.5 }}>
+                {pill.toUpperCase()}
+              </T>
+            </View>
+          )}
+        </View>
+      </View>
+      <T w={800} style={{ fontSize: 20, marginTop: 10 }}>
+        {title}
       </T>
-    </Pressable>
+      <Sub style={{ color: C.goldText }}>{sub}</Sub>
+    </SafeAreaView>
   );
 }
 
-export const Chips = ({ children }: { children: ReactNode }) => (
-  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{children}</View>
-);
-
-export function Note({
-  text,
-  icon = 'info',
-  bad,
+/** Tab page header: big left title, optional back arrow and right-hand link. */
+export function Top({
+  title,
+  onBack,
+  right,
 }: {
-  text: string;
-  icon?: IconName;
-  bad?: boolean;
+  title: string;
+  onBack?: () => void;
+  right?: ReactNode;
 }) {
   return (
-    <View style={[s.note, bad && { backgroundColor: '#fde3e1' }]}>
-      <Feather name={icon} size={18} color={bad ? C.destructive : C.ink} />
-      <T style={{ flex: 1, fontSize: 13, lineHeight: 18 }}>{text}</T>
-    </View>
+    <SafeAreaView edges={['top']} style={s.top}>
+      {onBack && (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Back"
+          onPress={onBack}
+          style={s.back}
+        >
+          <Feather name="arrow-left" size={24} color={C.ink} />
+        </Pressable>
+      )}
+      <T w={800} style={{ fontSize: 26, flex: 1 }}>
+        {title}
+      </T>
+      {right}
+    </SafeAreaView>
   );
 }
 
 export const Card = ({ style, ...p }: ViewProps) => <View style={[s.card, style]} {...p} />;
-export const Tear = () => <View style={s.tear} />;
+export const Grey = ({ style, ...p }: ViewProps) => <View style={[s.grey, style]} {...p} />;
 
-/** [label, value]; a falsy value shows as "Not set yet", like the prototype's val(). */
-export function Rows({
-  rows,
-  big,
-}: {
-  rows: [string, string | null | undefined | false][];
-  big?: boolean;
-}) {
+/** A numbered card section title: (1) Problem Description. */
+export function SectionTitle({ n, title, tag }: { n: number; title: string; tag?: string }) {
   return (
-    <View style={{ gap: big ? 10 : 6 }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+      <View style={s.num}>
+        <T w={800} style={{ fontSize: 13 }}>
+          {n}
+        </T>
+      </View>
+      <T w={700} style={{ fontSize: 17, flex: 1 }}>
+        {title}
+      </T>
+      {!!tag && <Pill text={tag} />}
+    </View>
+  );
+}
+
+export const Pill = ({
+  text,
+  bg = C.cloud,
+  color = C.ink,
+}: {
+  text: string;
+  bg?: string;
+  color?: string;
+}) => (
+  <View
+    style={{ backgroundColor: bg, borderRadius: R.full, paddingHorizontal: 10, paddingVertical: 4 }}
+  >
+    <T w={700} style={{ fontSize: 11, color }}>
+      {text}
+    </T>
+  </View>
+);
+
+/** Label/value rows (the prototype's .kv). */
+export function Kv({ rows }: { rows: [string, ReactNode][] }) {
+  return (
+    <View style={{ gap: 10 }}>
       {rows.map(([k, v]) => (
         <View key={k} style={s.kv}>
-          <T style={{ fontSize: big ? 14 : 13, color: C.slate }}>{k}</T>
-          <T
-            w={v ? 600 : 400}
-            numberOfLines={1}
-            style={{
-              fontSize: big ? 14 : 13,
-              color: v ? C.ink : C.slate,
-              flexShrink: 1,
-              textAlign: 'right',
-            }}
-          >
-            {v || 'Not set yet'}
-          </T>
+          <T style={{ fontSize: 14, color: C.slate }}>{k}</T>
+          {typeof v === 'string' ? (
+            <T
+              w={600}
+              numberOfLines={1}
+              style={{ fontSize: 14, flexShrink: 1, textAlign: 'right' }}
+            >
+              {v}
+            </T>
+          ) : (
+            v
+          )}
         </View>
       ))}
     </View>
   );
 }
 
-export function Avatar({ initial, size = 44 }: { initial: string; size?: number }) {
+/** Symptom and praise chips. `tone="mango"` fills yellow when on; otherwise dark. */
+export function Chip({
+  label,
+  on,
+  onPress,
+  tone,
+}: {
+  label: string;
+  on: boolean;
+  onPress: () => void;
+  tone?: 'mango';
+}) {
+  const onBg = tone === 'mango' ? C.mango : C.ink;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: on }}
+      onPress={onPress}
+      style={[s.chip, on && { backgroundColor: onBg }]}
+    >
+      <T w={500} style={{ fontSize: 14, color: on && tone !== 'mango' ? C.white : C.ink }}>
+        {label}
+      </T>
+      {on && tone !== 'mango' && <Feather name="check" size={14} color={C.white} />}
+    </Pressable>
+  );
+}
+export const Chips = ({ children }: { children: ReactNode }) => (
+  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>{children}</View>
+);
+
+export function Avatar({ manong, size = 44 }: { manong: Manong; size?: number }) {
+  const photo = IMG[manong.key as keyof typeof IMG];
+  if (photo)
+    return (
+      <Image
+        source={photo}
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+        accessibilityIgnoresInvertColors
+      />
+    );
   return (
     <View style={[s.av, { width: size, height: size, borderRadius: size / 2 }]}>
-      <T w={700} style={{ fontSize: Math.round(size * 0.4) }}>
-        {initial}
+      <T w={800} style={{ fontSize: Math.round(size * 0.36), color: '#251a00' }}>
+        {manong.initials}
       </T>
     </View>
   );
 }
 
-// Design Kit "Status / Ring": [label, filled fifths, colour, icon].
-const RING: Record<
-  'booked' | 'confirmed' | 'onway' | 'late' | 'inprogress' | 'completed' | 'cancelled',
-  [string, number, string, IconName]
-> = {
-  booked: ['Booked', 1, '#5F5E5E', 'calendar'],
-  confirmed: ['Confirmed', 2, '#1F7A4D', 'check'],
-  onway: ['On the way', 3, '#005BC0', 'navigation'],
-  late: ['Running late', 3, '#B26A00', 'clock'],
-  inprogress: ['In progress', 4, '#FFC72C', 'tool'],
-  completed: ['Completed', 5, '#1F7A4D', 'check'],
-  cancelled: ['Cancelled', 5, '#C62828', 'x'],
+export const Verified = ({ label = 'Verified' }: { label?: string }) => (
+  <View style={s.verified}>
+    <Feather name="award" size={12} color={C.goldText} />
+    <T w={700} style={{ fontSize: 11, color: C.goldText }}>
+      {label}
+    </T>
+  </View>
+);
+
+// Status chips on Bookings (prototype .f4chip).
+const CHIP: Record<Stage, [string, string, string]> = {
+  finding: ['Finding Manong', '#fff3cf', '#7a5a00'],
+  pending: ['Pending confirmation', '#fff3cf', '#7a5a00'],
+  confirmed: ['Confirmed', C.successSoft, '#1f6f43'],
+  declined: ['Declined', C.destructiveSoft, '#a12323'],
+  onway: ['On the way', '#fff3cf', '#7a5a00'],
+  arrived: ['Arrived', '#fff3cf', '#7a5a00'],
+  done: ['Job done', C.grey, '#444'],
 };
-const RING_C = 2 * Math.PI * 20;
+export const StatusChip = ({ stage }: { stage: Stage }) => (
+  <Pill text={CHIP[stage][0]} bg={CHIP[stage][1]} color={CHIP[stage][2]} />
+);
 
-/** Status ring with label and caption. `accepted` shows the Confirmed ring labelled "Accepted". */
-export function Ring({
-  stage,
-  accepted,
-  label,
-  caption,
-}: {
-  stage: Stage;
-  accepted?: boolean;
-  label?: string;
-  caption?: string;
-}) {
-  const key = stage === 'paid' ? 'completed' : stage === 'mcancelled' ? 'cancelled' : stage;
-  const [name, n, color, icon] = RING[key];
-  const done = key === 'completed';
-  const defaults: Partial<Record<Stage, [string, string]>> = {
-    paid: ['Paid', 'Booking closed'],
-    mcancelled: ['Manong cancelled', 'Choose what to do next'],
-  };
-  const text =
-    label ?? defaults[stage]?.[0] ?? (accepted && key === 'confirmed' ? 'Accepted' : name);
-  const sub =
-    caption ?? defaults[stage]?.[1] ?? (key === 'cancelled' ? 'Booking closed' : `Step ${n} of 5`);
-  return (
-    <View style={s.ringRow} accessibilityLabel={`${text}, ${sub}`}>
-      <View style={{ width: 44, height: 44 }}>
-        <Svg width={44} height={44} viewBox="0 0 44 44">
-          <Circle
-            cx={22}
-            cy={22}
-            r={20}
-            fill="none"
-            stroke={color}
-            strokeOpacity={0.18}
-            strokeWidth={4}
-          />
-          <Circle
-            cx={22}
-            cy={22}
-            r={20}
-            fill="none"
-            stroke={color}
-            strokeWidth={4}
-            strokeDasharray={`${(RING_C * n) / 5} ${RING_C}`}
-            transform="rotate(-90 22 22)"
-          />
-          {done && <Circle cx={22} cy={22} r={16} fill={color} />}
-        </Svg>
-        <View style={s.ringIcon}>
-          <Feather
-            name={icon}
-            size={18}
-            color={done ? C.white : key === 'inprogress' ? C.goldText : color}
-          />
-        </View>
-      </View>
-      <View style={{ gap: 1 }}>
-        <T w={600} style={{ fontSize: 14 }}>
-          {text}
-        </T>
-        <T w={500} style={{ fontSize: 11, color: C.slate }}>
-          {sub}
-        </T>
-      </View>
-    </View>
-  );
-}
-
-export function Field({
-  label,
-  optional,
-  ...input
-}: TextInputProps & { label: string; optional?: boolean }) {
+export function Field({ label, ...input }: TextInputProps & { label: string }) {
   return (
     <View style={{ gap: 6 }}>
-      <View style={s.kv}>
-        <Label style={{ marginTop: 0 }}>{label}</Label>
-        {optional && <Sub>Optional</Sub>}
-      </View>
+      <T w={600} style={{ fontSize: 13 }}>
+        {label}
+      </T>
       <TextInput
         accessibilityLabel={label}
-        placeholderTextColor={C.slate}
+        placeholderTextColor={C.muted}
         style={s.input}
         {...input}
       />
@@ -398,7 +373,28 @@ export function Field({
   );
 }
 
-/** Bottom sheet over a scrim, like the prototype's .sheet. Tapping the scrim closes it. */
+export function Box(props: TextInputProps & { label: string; count?: boolean }) {
+  const { label, count, value, ...rest } = props;
+  return (
+    <View style={{ gap: 4 }}>
+      <TextInput
+        accessibilityLabel={label}
+        multiline
+        placeholderTextColor={C.muted}
+        value={value}
+        style={s.box}
+        {...rest}
+      />
+      {count && (
+        <Sub style={{ alignSelf: 'flex-end', fontSize: 12 }}>
+          {(value ?? '').length} / 300 characters
+        </Sub>
+      )}
+    </View>
+  );
+}
+
+/** Bottom sheet over a scrim. Tapping the scrim closes it. */
 export function Sheet({
   open,
   onClose,
@@ -418,9 +414,54 @@ export function Sheet({
       />
       <SafeAreaView edges={['bottom']} style={s.sheet}>
         <View style={s.grab} />
-        {children}
+        <ScrollView
+          style={{ maxHeight: 620 }}
+          contentContainerStyle={{ gap: 12 }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
       </SafeAreaView>
     </Modal>
+  );
+}
+export const SheetTitle = ({ title, sub }: { title: string; sub?: string }) => (
+  <View style={{ gap: 4 }}>
+    <T w={800} style={{ fontSize: 20 }}>
+      {title}
+    </T>
+    {!!sub && <Sub style={{ fontSize: 14 }}>{sub}</Sub>}
+  </View>
+);
+
+/** A tappable option row in a sheet, with a check when selected. */
+export function Opt({
+  title,
+  sub,
+  on,
+  onPress,
+  icon,
+}: {
+  title: string;
+  sub?: string;
+  on?: boolean;
+  onPress: () => void;
+  icon?: ReactNode;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ selected: !!on }}
+      onPress={onPress}
+      style={[s.opt, on && { borderColor: C.ink }]}
+    >
+      {icon}
+      <View style={{ flex: 1 }}>
+        <T w={700}>{title}</T>
+        {!!sub && <Sub>{sub}</Sub>}
+      </View>
+      {on && <Feather name="check" size={18} color={C.ink} />}
+    </Pressable>
   );
 }
 
@@ -446,12 +487,79 @@ export function Toast({ message }: { message: string | null }) {
   );
 }
 
-export type Tab = 'home' | 'bookings' | 'profile';
-export function TabBar({ on, go }: { on: Tab; go: (tab: Tab) => void }) {
+/** A progress bar that eases to `value` (0 to 1). */
+export function Progress({ value }: { value: number }) {
+  const w = useRef(new Animated.Value(value)).current;
+  useEffect(() => {
+    Animated.timing(w, { toValue: value, duration: 350, useNativeDriver: false }).start();
+  }, [value]);
+  return (
+    <View
+      style={s.bar}
+      accessibilityRole="progressbar"
+      accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}
+    >
+      <Animated.View
+        style={[
+          s.barFill,
+          { width: w.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }) },
+        ]}
+      />
+    </View>
+  );
+}
+
+/** The static map with the Manong's pins and the building. TODO(backend): a live location feed. */
+export function MapView({
+  building,
+  finding,
+  height = 330,
+}: {
+  building: string;
+  finding?: boolean;
+  height?: number;
+}) {
+  const pins: [IconName, number, number][] = finding
+    ? [
+        ['navigation', 17, 26],
+        ['briefcase', 68, 34],
+        ['tool', 25, 72],
+      ]
+    : [
+        ['navigation', 19, 30],
+        ['briefcase', 68, 38],
+      ];
+  return (
+    <View
+      style={{ height, overflow: 'hidden' }}
+      accessible
+      accessibilityLabel={`Map around ${building}`}
+    >
+      <Image source={IMG.map} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <View style={[s.pulse, { top: height * 0.58 - 70 }]} />
+      {pins.map(([icon, x, y]) => (
+        <View key={icon} style={[s.pin, { left: `${x}%`, top: `${y}%` }]}>
+          <Feather name={icon} size={16} color={C.ink} />
+        </View>
+      ))}
+      <View style={[s.mapLabel, { top: height * 0.58 - 46 }]}>
+        <Feather name="home" size={13} color={C.mango} />
+        <T w={700} style={{ fontSize: 13, color: C.white }}>
+          {building}
+        </T>
+      </View>
+      <View style={[s.homePin, { top: height * 0.58 - 12 }]} />
+    </View>
+  );
+}
+
+export type Tab = 'home' | 'bookings' | 'messages' | 'account';
+export function TabBar({ on, go, dot }: { on: Tab; go: (tab: Tab) => void; dot?: boolean }) {
   const tabs: [Tab, IconName, string][] = [
     ['home', 'home', 'Home'],
     ['bookings', 'calendar', 'Bookings'],
-    ['profile', 'user', 'Profile'],
+    ['messages', 'message-circle', 'Messages'],
+    ['account', 'user', 'Account'],
   ];
   return (
     <SafeAreaView edges={['bottom']} style={s.tabbar}>
@@ -459,12 +567,17 @@ export function TabBar({ on, go }: { on: Tab; go: (tab: Tab) => void }) {
         <Pressable
           key={k}
           accessibilityRole="tab"
+          accessibilityLabel={label}
           accessibilityState={{ selected: on === k }}
           onPress={() => go(k)}
           style={s.tab}
         >
-          <Feather name={icon} size={22} color={on === k ? C.ink : C.slate} />
-          <T w={on === k ? 700 : 500} style={{ fontSize: 12, color: on === k ? C.ink : C.slate }}>
+          {on === k && <View style={s.tabMark} />}
+          <View>
+            <Feather name={icon} size={22} color={on === k ? C.ink : '#8a8a8a'} />
+            {dot && k === 'bookings' && <View style={s.tabDot} />}
+          </View>
+          <T w={on === k ? 700 : 500} style={{ fontSize: 12, color: on === k ? C.ink : '#8a8a8a' }}>
             {label}
           </T>
         </Pressable>
@@ -473,30 +586,40 @@ export function TabBar({ on, go }: { on: Tab; go: (tab: Tab) => void }) {
   );
 }
 
+/** The dark strip above the tab bar that follows the resident while a booking is active. */
+export function Strip({
+  manong,
+  title,
+  sub,
+  onPress,
+}: {
+  manong: Manong;
+  title: string;
+  sub: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Open your active booking: ${title}`}
+      onPress={onPress}
+      style={s.strip}
+    >
+      <Avatar manong={manong} size={40} />
+      <View style={{ flex: 1 }}>
+        <T w={700} numberOfLines={1} style={{ color: C.white, fontSize: 14 }}>
+          {title}
+        </T>
+        <T numberOfLines={1} style={{ color: 'rgba(255,255,255,0.75)', fontSize: 12 }}>
+          {sub}
+        </T>
+      </View>
+      <Feather name="chevron-right" size={20} color={C.mango} />
+    </Pressable>
+  );
+}
+
 const s = StyleSheet.create({
-  pad: { paddingHorizontal: 20, paddingTop: 20 },
-  h: { fontSize: 26, lineHeight: 32, letterSpacing: -0.3 },
-  sub: { fontSize: 14, color: C.slate, lineHeight: 20 },
-  label: { fontSize: 14, marginTop: 8 },
-  footer: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 8, gap: 4 },
-  head: {
-    backgroundColor: C.mango,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingBottom: 14,
-  },
-  headRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 8 },
-  round: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: C.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  progress: { flexDirection: 'row', gap: 6, marginTop: 14 },
-  bar: { flex: 1, height: 4, borderRadius: 2, backgroundColor: C.white },
   btn: {
     height: 56,
     borderRadius: R.full,
@@ -504,57 +627,73 @@ const s = StyleSheet.create({
     gap: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 22,
   },
-  btnPrimary: { backgroundColor: C.ink },
-  btnSecondary: { backgroundColor: C.white, borderWidth: 1, borderColor: C.line },
-  card: {
-    backgroundColor: C.white,
-    borderRadius: R.card,
-    borderWidth: 1,
-    borderColor: C.cloud,
-    padding: 16,
-    ...SHADOW.ticket,
+  canopy: {
+    backgroundColor: C.mango,
+    borderBottomLeftRadius: R.canopy,
+    borderBottomRightRadius: R.canopy,
+    paddingHorizontal: 22,
+    paddingBottom: 18,
+    zIndex: 3,
+    ...SHADOW.card,
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: C.slate,
+  canopyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginLeft: -10,
+    paddingTop: 6,
+  },
+  back: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  catpill: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    backgroundColor: C.mangoPale,
+    borderRadius: R.full,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  top: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 8,
+    backgroundColor: C.paper,
+  },
+  card: { backgroundColor: C.white, borderRadius: R.card, padding: 16, ...SHADOW.card },
+  grey: { backgroundColor: C.cloud, borderRadius: R.card, padding: 14, gap: 12 },
+  num: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: C.mango,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  radioDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: C.mango },
+  kv: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
   chip: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: R.full,
-    borderWidth: 1,
-    borderColor: C.line,
-    backgroundColor: C.white,
+    backgroundColor: C.grey,
+    minHeight: 40,
   },
-  note: {
-    flexDirection: 'row',
-    gap: 10,
-    padding: 14,
-    borderRadius: R.control,
-    backgroundColor: C.mangoSoft,
-    alignItems: 'center',
-  },
-  tear: { height: 1, backgroundColor: C.cloud, marginVertical: 14 },
-  kv: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   av: { backgroundColor: C.mangoSoft, alignItems: 'center', justifyContent: 'center' },
-  ringRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  ringIcon: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+  verified: {
+    flexDirection: 'row',
+    gap: 4,
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#fff3cf',
+    borderRadius: R.full,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
   },
   input: {
     backgroundColor: C.cloud,
@@ -565,13 +704,22 @@ const s = StyleSheet.create({
     fontSize: 15,
     color: C.ink,
   },
+  box: {
+    backgroundColor: C.cloud,
+    borderRadius: R.control,
+    padding: 14,
+    minHeight: 76,
+    fontFamily: F[400],
+    fontSize: 15,
+    color: C.ink,
+    textAlignVertical: 'top',
+  },
   sheet: {
     backgroundColor: C.white,
     borderTopLeftRadius: R.sheet,
     borderTopRightRadius: R.sheet,
-    padding: 24,
+    padding: 22,
     paddingTop: 10,
-    gap: 12,
     ...SHADOW.sheet,
   },
   grab: {
@@ -580,13 +728,23 @@ const s = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: 'rgba(0,0,0,0.15)',
     alignSelf: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
+  },
+  opt: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: C.line,
+    borderRadius: R.card,
+    padding: 14,
+    minHeight: 56,
   },
   toastWrap: {
     position: 'absolute',
     left: 0,
     right: 0,
-    bottom: 110,
+    bottom: 150,
     alignItems: 'center',
     paddingHorizontal: 24,
   },
@@ -597,12 +755,85 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     maxWidth: 360,
   },
+  bar: { height: 6, borderRadius: 3, backgroundColor: C.grey, overflow: 'hidden' },
+  barFill: { height: 6, backgroundColor: C.mango },
+  pulse: {
+    position: 'absolute',
+    alignSelf: 'center',
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+    backgroundColor: 'rgba(255,199,44,0.28)',
+  },
+  pin: {
+    position: 'absolute',
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: C.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOW.card,
+  },
+  mapLabel: {
+    position: 'absolute',
+    alignSelf: 'center',
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    backgroundColor: '#111',
+    borderRadius: R.control,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  homePin: {
+    position: 'absolute',
+    alignSelf: 'center',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: C.mango,
+    borderWidth: 4,
+    borderColor: C.white,
+  },
   tabbar: {
     flexDirection: 'row',
     backgroundColor: C.white,
     borderTopWidth: 1,
-    borderTopColor: C.cloud,
-    paddingTop: 8,
+    borderTopColor: C.grey,
   },
-  tab: { flex: 1, alignItems: 'center', gap: 2, paddingBottom: 8, minHeight: 44 },
+  tab: { flex: 1, alignItems: 'center', gap: 2, paddingTop: 8, paddingBottom: 6, minHeight: 52 },
+  tabMark: {
+    position: 'absolute',
+    top: 0,
+    width: 28,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: C.ink,
+  },
+  tabDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: C.unread,
+  },
+  strip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    backgroundColor: C.ink,
+    borderRadius: R.card,
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 6,
+  },
 });

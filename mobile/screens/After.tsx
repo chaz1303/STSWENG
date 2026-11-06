@@ -1,210 +1,111 @@
-import { FontAwesome } from '@expo/vector-icons';
-import { useRef, useState } from 'react';
-import {
-  Animated,
-  Image,
-  PanResponder,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+// Flow 4 after booking: finding, live tracking, pending/confirmed, declined, summary and thank-you.
+import { useEffect, useRef, useState } from 'react';
+import { Image, Pressable, ScrollView, Share, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import { config } from '../config';
-import { mockFlags } from '../mocks/flags';
+import { DURATION } from '../mocks/catalog';
 import {
-  approvePart,
+  answerPart,
   cancelBooking,
   dayLabel,
-  materialsOf,
+  priceOf,
   rateBooking,
-  reportProblem,
-  serviceName,
-  setMockStage,
-  tierOf,
+  reportIssue,
   totalOf,
+  weekday,
+  whenText,
 } from '../services/bookings';
-import { pay } from '../services/payments';
+import { chargeTip } from '../services/payments';
 import { C, R, SHADOW, peso } from '../theme';
 import {
   Avatar,
   Btn,
+  Canopy,
   Card,
   Chip,
   Chips,
   ErrorText,
-  H,
-  Header,
+  FontAwesome,
+  Grey,
   Icon,
-  Label,
-  Loader,
-  Note,
-  Option,
-  Ring,
-  Rows,
-  Screen,
+  IMG,
+  Kv,
+  MapView,
+  Opt,
+  Pill,
+  Progress,
   Sheet,
+  SheetTitle,
   Sub,
   T,
-  Tear,
+  Verified,
 } from '../ui';
 import { useTask } from '../useTask';
 import type { App, Booking, Stage } from '../types';
-import { CallButton } from './Manong';
-import { GcashMark, bookedWhen } from './Book';
-import { addressLine } from './Home';
+import { CallScreen, ChatSheet, QrSheet } from './Manong';
 
 const STARS = [
-  'Tap a star',
-  'Not good',
-  'Could be better',
-  'Okay lang',
-  'Ayos! Great job',
-  'Sobrang ayos!',
+  '',
+  'Hindi maganda (1 Star)',
+  'Medyo kulang (2 Stars)',
+  'Okay lang (3 Stars)',
+  'Ayos! (4 Stars)',
+  'Sobrang Ayos! (5 Stars)',
 ];
 const PRAISE = [
-  'On time',
-  'Clean work',
-  'Explained the fix',
-  'Fair price',
-  'Friendly',
-  'Tidied up',
+  ['⏰', 'Arrived on time'],
+  ['🔧', 'Clean & thorough work'],
+  ['💬', 'Courteous & polite'],
+  ['💡', 'Helpful tips'],
+  ['🛡️', 'Followed safety rules'],
+  ['🏷️', 'Fair & honest pricing'],
 ];
-const CANCEL_REASONS = [
-  'Fixed it myself',
-  'Booked by mistake',
-  'Need a different time',
-  'Found someone else',
-  'Something else',
-];
+const CANCEL_REASONS = ['Plans changed', 'Fixed it myself', 'Booked the wrong time', 'Other'];
 const REPORT_REASONS = [
-  "The fix didn't work",
-  'Charged too much',
-  'Arrived late',
-  'Damage to my place',
+  "Charge I don't recognize",
+  'Job not finished',
+  'Damage in my unit',
+  'Manong was late',
   'Something else',
 ];
 
-const guardTip = (app: App, b: Booking) =>
-  `Make sure your condo guards know ${b.category === 'moving' ? 'the movers are' : 'a Manong is'} coming for ${app.state.catalog[b.category].guardJob}.`;
+const tierOf = (app: App, b: Booking) => app.state.catalog[b.category].tiers[b.serviceType];
+const proOf = (app: App, b: Booking) => app.state.catalog[b.category].pro;
 
-/** Timeline rows: [title, detail, 'done' | 'cur' | '']. */
-function Timeline({
-  steps,
-  note,
-  current,
-}: {
-  steps: [string, string, 'done' | 'cur' | ''][];
-  note?: string;
-  /** A finished step that is also where the booking is now (checked, with "Current status"). */
-  current?: number;
-}) {
-  return (
-    <View accessibilityRole="list">
-      {steps.map(([title, detail, state], i) => (
-        <View key={title} style={[s.step, i < steps.length - 1 && { paddingBottom: 16 }]}>
-          {i < steps.length - 1 && (
-            <View style={[s.rail, state === 'done' && { backgroundColor: C.success }]} />
-          )}
-          <View
-            style={[
-              s.node,
-              state === 'done' && { backgroundColor: C.success, borderColor: C.success },
-              state === 'cur' && { borderColor: C.mango, backgroundColor: C.mango },
-            ]}
-          >
-            {state === 'done' && <Icon name="check" size={12} color={C.white} />}
-          </View>
-          <View style={{ flex: 1 }}>
-            <T w={600} style={{ color: state ? C.ink : C.slate }}>
-              {title}
-            </T>
-            <Sub style={{ fontSize: 13 }}>{detail}</Sub>
-            {(state === 'cur' || i === current) && (
-              <T w={600} style={{ fontSize: 12, color: C.success }}>
-                Current status{note ?? ''}
-              </T>
-            )}
-          </View>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-function ManongRow({
-  app,
-  b,
-  chat = true,
-  sub = 'Your Manong',
-}: {
-  app: App;
-  b: Booking;
-  chat?: boolean;
-  sub?: string;
-}) {
-  const m = b.manong;
-  return (
-    <View style={s.row}>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`${m.name}, view profile`}
-        onPress={() => {
-          app.update({ viewManong: m });
-          app.go('manong');
-        }}
-        style={[s.row, { flex: 1 }]}
-      >
-        <Avatar initial={m.initial} />
-        <View style={{ flex: 1 }}>
-          <T w={600}>{m.name}</T>
-          <Sub style={{ fontSize: 13 }}>{sub}</Sub>
-        </View>
-      </Pressable>
-      {chat && (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Message ${m.first}`}
-          onPress={() => app.go('chat')}
-          style={s.chatBtn}
-        >
-          <Icon name="message-square" size={18} color={C.ink} />
-        </Pressable>
-      )}
-      <CallButton manong={m} />
-    </View>
-  );
-}
-
-/** Dev-only switcher: flips the mock booking status and failure cases. Hidden unless config.devTools. */
+/** Dev-only switcher for the mock booking status. Hidden unless config.devTools. */
 export function DevMenu({ app }: { app: App }) {
   const [open, setOpen] = useState(false);
-  const [, rerender] = useState(0);
   const b = app.state.booking;
   if (!config.devTools) return null;
   const stages: [Stage, string][] = [
-    ['booked', 'Booked'],
+    ['finding', 'Finding'],
+    ['pending', 'Pending'],
     ['confirmed', 'Confirmed'],
+    ['declined', 'Declined'],
     ['onway', 'On the way'],
-    ['late', 'Running late'],
-    ['inprogress', 'In progress'],
-    ['completed', 'Completed'],
-    ['mcancelled', 'Manong cancelled'],
-    ['cancelled', 'Cancelled'],
+    ['arrived', 'Arrived'],
+    ['done', 'Job done'],
   ];
-  const setStage = async (stage: Stage) => {
+  const set = (stage: Stage) => {
     if (!b) return;
     setOpen(false);
-    if (stage === 'cancelled') return finishCancel(app, b, 'Cancelled from the Dev menu', 0);
-    const next = setMockStage(b, stage, app.state.catalog);
-    app.update({ booking: next });
-    app.go(stage === 'completed' ? 'charges' : 'status', { reset: true });
-  };
-  const flag = (k: keyof typeof mockFlags) => {
-    mockFlags[k] = !mockFlags[k];
-    rerender((n) => n + 1);
+    const f = b.manong.first;
+    const note: Record<string, string> = {
+      confirmed: `${f} confirmed ${whenText(b)}`,
+      declined: `${f} can't take your booking. Pick another Manong.`,
+      onway: `${f} is on the way`,
+    };
+    app.update((st) => ({
+      booking: { ...b, stage },
+      eta: stage === 'onway' ? 10 : st.eta,
+      notifications: note[stage]
+        ? [
+            { group: 'Today', text: note[stage], time: 'Now', unread: true, act: 'bookings' },
+            ...st.notifications,
+          ]
+        : st.notifications,
+    }));
+    app.openBooking(stage);
   };
   return (
     <>
@@ -219,928 +120,948 @@ export function DevMenu({ app }: { app: App }) {
         </T>
       </Pressable>
       <Sheet open={open} onClose={() => setOpen(false)}>
-        <ScrollView style={{ maxHeight: 520 }} contentContainerStyle={{ gap: 8 }}>
-          <T w={700} style={{ fontSize: 18 }}>
-            Mock status
-          </T>
-          {b ? (
-            <Chips>
-              {stages.map(([k, label]) => (
-                <Chip key={k} label={label} on={b.stage === k} onPress={() => setStage(k)} />
-              ))}
-            </Chips>
-          ) : (
-            <Sub>Book something first to switch its status.</Sub>
-          )}
-          {b?.stage === 'inprogress' && (
-            <Btn
-              kind="secondary"
-              label={`${b.manong.first} needs a part`}
-              onPress={() => {
-                setOpen(false);
-                app.go('part');
-              }}
-            />
-          )}
-          <T w={700} style={{ fontSize: 18, marginTop: 8 }}>
-            Failure cases
-          </T>
-          <Option
-            title="No Manong free on the next search"
-            selected={mockFlags.noManongFree}
-            onPress={() => flag('noManongFree')}
+        <SheetTitle
+          title="Mock status"
+          sub={
+            b ? 'Stands in for what the Manong does.' : 'Book something first to switch its status.'
+          }
+        />
+        {b && (
+          <Chips>
+            {stages.map(([k, l]) => (
+              <Chip key={k} label={l} on={b.stage === k} onPress={() => set(k)} />
+            ))}
+          </Chips>
+        )}
+        {b && ['onway', 'arrived'].includes(b.stage) && (
+          <Btn
+            kind="grey"
+            label="Manong asks to add a part"
+            onPress={() => {
+              setOpen(false);
+              app.update({ partAsk: true });
+              app.openBooking();
+            }}
           />
-          <Option
-            title="Next GCash payment fails"
-            selected={mockFlags.failNextPayment}
-            onPress={() => flag('failNextPayment')}
-          />
-        </ScrollView>
+        )}
       </Sheet>
     </>
   );
 }
 
-async function finishCancel(app: App, b: Booking, reason: string, fee: number) {
-  const past = await cancelBooking(b, fee, app.state.catalog);
-  app.update((st) => ({
-    past: [past, ...st.past],
-    booking: null,
-    cancelled: { booking: b, reason, fee },
-  }));
-  app.go('cancelled', { reset: true });
-}
-
-export function Status({ app }: { app: App }) {
-  const b = app.state.booking;
-  if (!b)
-    return (
-      <Screen header={<Header title="Booking" onBack={app.home} />}>
-        <Sub style={{ textAlign: 'center', marginTop: 40 }}>This booking is closed.</Sub>
-        <Btn kind="link" label="Back to home" onPress={app.home} />
-      </Screen>
-    );
-  if (b.stage === 'onway') return <OnTheWay app={app} b={b} />;
-  if (b.stage === 'inprogress') return <InProgress app={app} b={b} />;
-  if (b.stage === 'mcancelled') return <ManongCancelled app={app} b={b} />;
-  return <NotToday app={app} b={b} />;
-}
-
-function NotToday({ app, b }: { app: App; b: Booking }) {
-  const m = b.manong;
-  const now = b.bookingType === 'on-demand';
-  const late = b.stage === 'late';
-  const [cancelling, setCancelling] = useState(false);
-  const [reason, setReason] = useState<number | null>(null);
-  const task = useTask();
-  const cur = b.stage === 'booked' ? 0 : 1;
-  const steps: [string, string, 'done' | 'cur' | ''][] = [
-    [now ? 'Requested' : 'Pending confirmation', 'Booked today', cur === 0 ? 'cur' : 'done'],
-    [
-      now ? 'Accepted' : 'Confirmed',
-      cur
-        ? now
-          ? `${m.first} accepted your request`
-          : `${m.first} confirmed your booking`
-        : `Waiting for ${m.first}`,
-      cur === 1 ? 'done' : '',
-    ],
-    ['In progress', now ? `When ${m.first} starts the job` : `Starts ${bookedWhen(b)}`, ''],
-    ['Completed', 'You review charges and pay', ''],
-  ];
+function Rows({ app, b }: { app: App; b: Booking }) {
   return (
-    <Screen
-      header={<Header title={`Booking ${b.id}`} onBack={app.home} right={<DevMenu app={app} />} />}
-      footer={
-        late ? (
-          <Btn kind="secondary" label={`Message ${m.first}`} onPress={() => app.go('chat')} />
-        ) : (
-          <>
-            <Sub style={{ textAlign: 'center', fontSize: 13 }}>
-              You can cancel for free until Manong starts the job.
-            </Sub>
-            <Btn kind="danger" label="Cancel booking" onPress={() => setCancelling(true)} />
-          </>
-        )
-      }
-    >
-      <Card>
-        <T w={700} style={{ fontSize: 18 }}>
-          {serviceName(b, app.state.catalog)}
-        </T>
-        <T w={600} style={{ marginTop: 2 }}>
-          {now ? 'Requested now' : bookedWhen(b)}
-        </T>
-        <Sub numberOfLines={1} style={{ fontSize: 13 }}>
-          {addressLine(b.address)}
-        </Sub>
-        <View style={{ marginTop: 12 }}>
-          <Ring stage={b.stage} accepted={now} />
+    <>
+      <View style={s.lrow}>
+        <Avatar manong={b.manong} size={50} />
+        <View style={{ flex: 1, gap: 2 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <T w={800} style={{ fontSize: 17 }}>
+              {b.manong.name}
+            </T>
+            <Verified />
+          </View>
+          <Sub style={{ fontSize: 12 }}>
+            {b.manong.skills} • {b.manong.rating}★ ({b.manong.jobs} jobs)
+          </Sub>
         </View>
-        <Tear />
-        <Timeline
-          steps={steps}
-          current={cur}
-          note={now && cur === 1 ? ", we'll tell you when he heads out" : undefined}
+      </View>
+      <View style={{ marginTop: 14 }}>
+        <Kv
+          rows={[
+            ['Service', tierOf(app, b).name],
+            ['Duration', DURATION[b.serviceType]],
+            ['When', whenText(b)],
+            ['Location', b.address.short],
+            [
+              'Estimate',
+              peso(priceOf(b.category, b.serviceType, app.state.voucher, app.state.catalog)),
+            ],
+          ]}
         />
-        <Tear />
-        <ManongRow app={app} b={b} />
-      </Card>
-      {late ? (
-        <Note icon="clock" text={`${m.first} is running late. We'll tell you when he's close.`} />
-      ) : (
-        <Note text={guardTip(app, b)} />
-      )}
+      </View>
+    </>
+  );
+}
+
+function Foot({ children }: { children: React.ReactNode }) {
+  return (
+    <SafeAreaView edges={['bottom']} style={s.foot}>
+      {children}
+    </SafeAreaView>
+  );
+}
+
+/** Closes the active booking after a cancel. */
+async function cancelAndClose(app: App, b: Booking, reason: string | null, message: string) {
+  await cancelBooking(b, reason);
+  app.update({ booking: null });
+  app.home();
+  app.toast(message);
+}
+
+export function Finding({ app }: { app: App }) {
+  const b = app.state.booking!; // opened only while a "now" booking is searching
+  const [pct, setPct] = useState(0.06);
+  const [secs, setSecs] = useState(38);
+  const [cancelling, setCancelling] = useState(false);
+  const task = useTask();
+  const left = useRef(false);
+  const gcash = app.state.payment === 'gcash';
+
+  useEffect(() => {
+    let n = 0;
+    const t = setInterval(() => {
+      n += 1;
+      setPct(Math.min(1, 0.06 + n * 0.07));
+      setSecs((x) => Math.max(0, x - 3));
+      if (n < 14) return;
+      clearInterval(t);
+      // TODO(backend): acceptance arrives by push; the mock accepts after a few seconds.
+      app.update((st) =>
+        st.booking?.stage === 'finding'
+          ? { booking: { ...st.booking, stage: 'onway' }, eta: 10 }
+          : {},
+      );
+      app.go('found', { replace: true });
+      app.toast(`${b.manong.first} accepted your request`);
+    }, 400);
+    return () => {
+      clearInterval(t);
+      if (!left.current) return;
+      // Left with the back arrow: the search carries on and Home's strip picks it up.
+      setTimeout(() => {
+        app.update((st) =>
+          st.booking?.stage === 'finding'
+            ? {
+                booking: { ...st.booking, stage: 'onway' },
+                eta: 10,
+                notifications: [
+                  {
+                    group: 'Today',
+                    text: `${b.manong.first} accepted your request`,
+                    time: 'Now',
+                    unread: true,
+                    act: 'home',
+                  },
+                  ...st.notifications,
+                ],
+              }
+            : {},
+        );
+        app.toast(`${b.manong.first} accepted your request`);
+      }, 3500);
+    };
+  }, []);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.paper }}>
+      <Canopy
+        title="Finding Your Manong"
+        sub="Searching for available Manongs nearby..."
+        pill={app.state.catalog[b.category].name}
+        onBack={() => {
+          left.current = true;
+          app.home();
+          app.toast("We'll let you know when a Manong accepts");
+        }}
+      />
+      <View style={{ marginTop: -28 }}>
+        <MapView building={b.address.title.split(',')[0]} finding height={330} />
+      </View>
+      <View style={s.bsheet}>
+        <View style={s.grab} />
+        <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 20 }}>
+          <View style={s.between}>
+            <View style={{ flex: 1 }}>
+              <T w={800} style={{ fontSize: 20 }}>
+                Connecting to Manong <T style={{ color: C.mango }}>●</T>
+              </T>
+              <Sub style={{ fontSize: 14 }}>
+                {proOf(app, b)} • {tierOf(app, b).name}
+              </Sub>
+            </View>
+            <View style={s.eta}>
+              <Icon name="clock" size={14} color={C.ink} />
+              <T w={700}>~ {secs} s</T>
+            </View>
+          </View>
+          <Progress value={pct} />
+          <Grey>
+            <View style={s.lrow}>
+              <Icon name="map-pin" size={18} color={C.ink} />
+              <View style={{ flex: 1 }}>
+                <T w={700} style={{ fontSize: 14 }}>
+                  {b.address.title.replace(', Tower 1', '')}
+                </T>
+                <Sub style={{ fontSize: 12 }}>{b.address.detail}</Sub>
+              </View>
+            </View>
+            <View style={s.lrow}>
+              <Icon name="shield" size={18} color={C.gcash} />
+              <T style={{ flex: 1, fontSize: 13, color: '#444' }}>
+                {gcash ? 'GCash Escrow Protection' : 'Pay cash after the job'}
+              </T>
+              <Pill text={gcash ? 'Safe Hold' : 'Cash'} bg={C.mango} />
+            </View>
+          </Grey>
+          <View style={s.tip}>
+            <Icon name="zap" size={18} color={C.goldText} />
+            <T style={{ flex: 1, fontSize: 13 }}>
+              <T w={800} style={{ fontSize: 13 }}>
+                Mang Juan Pro-Tip:
+              </T>{' '}
+              Notify lobby security or prepare condo gate authorization so Manong can head straight
+              up.
+            </T>
+          </View>
+          <Btn
+            kind="grey"
+            label="Cancel Request"
+            icon={<Icon name="x" size={18} color={C.ink} />}
+            onPress={() => setCancelling(true)}
+          />
+        </ScrollView>
+      </View>
       <Sheet open={cancelling} onClose={() => setCancelling(false)}>
-        <T w={700} style={{ fontSize: 20 }}>
-          Cancel this booking?
-        </T>
-        <Label style={{ marginTop: 0 }}>Tell us why (optional)</Label>
-        <Chips>
-          {CANCEL_REASONS.map((r, i) => (
-            <Chip
-              key={r}
-              label={r}
-              on={reason === i}
-              onPress={() => setReason(reason === i ? null : i)}
-            />
-          ))}
-        </Chips>
+        <SheetTitle
+          title="Cancel this request?"
+          sub="We'll stop looking and release your GCash hold. You'll go back to the home screen."
+        />
         <ErrorText text={task.error} />
-        <Btn label="Keep my booking" onPress={() => setCancelling(false)} />
         <Btn
-          kind="danger"
-          label="Yes, cancel booking"
+          kind="white"
+          label="Yes, cancel request"
+          loading={task.busy}
+          style={{ borderWidth: 1.5, borderColor: C.destructive }}
+          onPress={() =>
+            task.run(() =>
+              cancelAndClose(
+                app,
+                b,
+                null,
+                gcash ? 'Request cancelled. GCash hold released.' : 'Request cancelled.',
+              ),
+            )
+          }
+        />
+        <Btn label="Keep looking" onPress={() => setCancelling(false)} />
+      </Sheet>
+    </View>
+  );
+}
+
+export function Found({ app }: { app: App }) {
+  const b = app.state.booking!; // opened only while the Manong is on the way or arrived
+  const { eta, partAsk, catalog } = app.state;
+  const arrived = b.stage === 'arrived';
+  const [sheet, setSheet] = useState<'chat' | 'qr' | 'call' | 'stop' | 'report' | null>(null);
+  const [reason, setReason] = useState<number | null>(null);
+  const [text, setText] = useState('');
+  const task = useTask();
+  const [part, price] = catalog[b.category].part;
+
+  useEffect(() => {
+    if (b.stage !== 'onway') return;
+    // TODO(backend): ETA and distance from the live location feed; the mock counts down.
+    const t = setInterval(() => {
+      app.update((st) => {
+        if (st.booking?.stage !== 'onway') return {};
+        const next = Math.max(0, st.eta - 1);
+        if (next > 0) return { eta: next };
+        app.toast(`${st.booking.manong.first} has arrived at Tower 1`);
+        return { eta: 0, booking: { ...st.booking, stage: 'arrived' } };
+      });
+    }, 1500);
+    return () => clearInterval(t);
+  }, [b.stage]);
+
+  return (
+    <View style={{ flex: 1, backgroundColor: C.paper }}>
+      <Canopy
+        title={arrived ? 'Manong Has Arrived' : 'Live Manong Tracking'}
+        sub="Real-time dispatch & GPS updates to your door."
+        pill={catalog[b.category].name}
+        onBack={app.home}
+        right={<DevMenu app={app} />}
+      />
+      <View style={{ marginTop: -28 }}>
+        <MapView building={b.address.title.split(',')[0]} height={280} />
+      </View>
+      <View style={s.bsheet}>
+        <View style={s.grab} />
+        <ScrollView contentContainerStyle={{ gap: 12, paddingBottom: 20 }}>
+          <View style={s.between}>
+            <View style={{ flex: 1 }}>
+              <T w={800} style={{ fontSize: 20 }}>
+                {arrived ? 'Manong is at your door' : 'Manong on the move'}{' '}
+                <T style={{ color: C.mango }}>●</T>
+              </T>
+              <Sub style={{ fontSize: 14 }}>
+                {proOf(app, b)} • {tierOf(app, b).name}
+              </Sub>
+            </View>
+            <View style={s.eta}>
+              <Icon name="clock" size={14} color={C.ink} />
+              <T w={700}>{arrived ? 'Arrived' : `~ ${eta} mins`}</T>
+            </View>
+          </View>
+          <Progress value={arrived ? 1 : (60 + (10 - eta) * 4) / 100} />
+          <Grey>
+            <View style={s.lrow}>
+              <Avatar manong={b.manong} size={50} />
+              <View style={{ flex: 1, gap: 2 }}>
+                <View
+                  style={{ flexDirection: 'row', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}
+                >
+                  <T w={800} style={{ fontSize: 17 }}>
+                    {b.manong.name}
+                  </T>
+                  <Verified label="Verified Manong" />
+                </View>
+                <Sub style={{ fontSize: 12 }}>
+                  {proOf(app, b)} • {b.manong.rating}★ ({b.manong.jobs} jobs)
+                </Sub>
+                <View style={{ flexDirection: 'row', gap: 4, alignItems: 'center' }}>
+                  <Icon name="navigation" size={12} color={C.gcash} />
+                  <T style={{ fontSize: 12, color: C.gcash }}>
+                    {arrived ? 'At your building' : `${(eta * 0.14).toFixed(1)} km away from you`}
+                  </T>
+                </View>
+              </View>
+            </View>
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <Btn
+                kind="white"
+                label="Chat Manong"
+                icon={<Icon name="message-square" size={18} color={C.ink} />}
+                onPress={() => setSheet('chat')}
+                style={{ flex: 1, height: 48, paddingHorizontal: 10 }}
+              />
+              <Btn
+                label="Call Manong"
+                icon={<Icon name="phone" size={18} color={C.white} />}
+                onPress={() => setSheet('call')}
+                style={{ flex: 1, height: 48, paddingHorizontal: 10 }}
+              />
+            </View>
+            <View
+              style={[s.lrow, { borderTopWidth: 1, borderTopColor: '#e3e3e3', paddingTop: 12 }]}
+            >
+              <Icon name="credit-card" size={20} color={C.ink} />
+              <View style={{ flex: 1 }}>
+                <Sub style={{ fontSize: 11 }}>Lobby Security Gate Pass</Sub>
+                <T w={800} style={{ letterSpacing: 0.6 }}>
+                  PIN: {b.id}
+                </T>
+              </View>
+              <Pressable accessibilityRole="button" onPress={() => setSheet('qr')} style={s.small}>
+                <Icon name="grid" size={14} color={C.ink} />
+                <T w={700} style={{ fontSize: 13 }}>
+                  Show QR
+                </T>
+              </Pressable>
+            </View>
+          </Grey>
+          <Grey>
+            <View style={s.lrow}>
+              <Icon name="map-pin" size={18} color={C.ink} />
+              <View style={{ flex: 1 }}>
+                <T w={700} style={{ fontSize: 14 }}>
+                  {b.address.title.replace(', Tower 1', '')}
+                </T>
+                <Sub style={{ fontSize: 12 }}>{b.address.detail}</Sub>
+              </View>
+            </View>
+          </Grey>
+          {arrived && (
+            <Btn
+              label="Job done · View order summary"
+              icon={<Icon name="arrow-right" size={20} color={C.white} />}
+              style={{ flexDirection: 'row-reverse' }}
+              onPress={() => {
+                app.update({ booking: { ...b, stage: 'done' } });
+                app.go('summary', { replace: true });
+              }}
+            />
+          )}
+          <Btn
+            kind="grey"
+            label="Cancel Request/ Report Issue"
+            icon={<Icon name="alert-triangle" size={18} color={C.ink} />}
+            onPress={() => setSheet('stop')}
+          />
+        </ScrollView>
+      </View>
+      <ChatSheet app={app} manong={b.manong} open={sheet === 'chat'} close={() => setSheet(null)} />
+      <QrSheet pin={b.id} open={sheet === 'qr'} close={() => setSheet(null)} />
+      <CallScreen manong={b.manong} open={sheet === 'call'} close={() => setSheet(null)} />
+      <Sheet open={sheet === 'stop'} onClose={() => setSheet(null)}>
+        <SheetTitle title="Need to stop or report?" />
+        <Opt
+          title="Cancel request"
+          sub="Free before Manong starts. GCash hold is released."
+          icon={<Icon name="x" size={20} color={C.ink} />}
+          onPress={() =>
+            task.run(() =>
+              cancelAndClose(
+                app,
+                b,
+                null,
+                app.state.payment === 'gcash'
+                  ? 'Request cancelled. GCash hold released.'
+                  : 'Request cancelled.',
+              ),
+            )
+          }
+        />
+        <Opt
+          title="Report an issue"
+          sub="Late, unsafe, or wrong Manong"
+          icon={<Icon name="alert-triangle" size={20} color={C.ink} />}
+          onPress={() => setSheet('report')}
+        />
+        <ErrorText text={task.error} />
+        <Btn kind="grey" label="Keep booking" onPress={() => setSheet(null)} />
+      </Sheet>
+      <Sheet open={sheet === 'report'} onClose={() => setSheet(null)}>
+        <SheetTitle title="Report a problem" sub="Our team replies within 15 minutes." />
+        {REPORT_REASONS.map((r, i) => (
+          <Opt
+            key={r}
+            title={r}
+            on={reason === i}
+            onPress={() => setReason(reason === i ? null : i)}
+          />
+        ))}
+        <TextInput
+          accessibilityLabel="Details"
+          multiline
+          value={text}
+          onChangeText={setText}
+          placeholder="Tell us what happened"
+          placeholderTextColor={C.muted}
+          style={s.area}
+        />
+        <ErrorText text={task.error} />
+        <Btn
+          label="Send report"
           loading={task.busy}
           onPress={() =>
             task.run(async () => {
-              await finishCancel(
-                app,
-                b,
-                reason != null ? CANCEL_REASONS[reason] : 'No reason given',
-                0,
-              );
-              setCancelling(false);
+              await reportIssue(b.id, reason != null ? REPORT_REASONS[reason] : null, text);
+              setSheet(null);
+              app.toast("Report sent. We'll message you shortly.");
             })
           }
         />
       </Sheet>
-    </Screen>
-  );
-}
-
-function InProgress({ app, b }: { app: App; b: Booking }) {
-  const m = b.manong;
-  return (
-    <Screen
-      header={<Header title={`Booking ${b.id}`} onBack={app.home} right={<DevMenu app={app} />} />}
-      footer={<Btn kind="secondary" label={`Message ${m.first}`} onPress={() => app.go('chat')} />}
-    >
-      <Card>
-        <T w={700} style={{ fontSize: 18 }}>
-          {serviceName(b, app.state.catalog)}
-        </T>
-        <Sub style={{ fontSize: 13 }}>Started 10:32 AM</Sub>
-        <View style={{ marginTop: 12 }}>
-          <Ring stage="inprogress" />
-        </View>
-        <Tear />
-        <Timeline
-          steps={[
-            ['Confirmed', `${m.first} confirmed your booking`, 'done'],
-            [`${m.first} arrived`, `At ${b.address.unit || 'your place'}`, 'done'],
-            ['In progress', `Fixing the ${b.problem.toLowerCase()}`, 'cur'],
-            ['Completed', 'You review charges and pay', ''],
-          ]}
+      <Sheet open={partAsk} onClose={() => app.update({ partAsk: false })}>
+        <SheetTitle
+          title={`${b.manong.first} needs a part`}
+          sub="Approve it before it's added to your bill. Nothing changes unless you say yes."
         />
-        <Tear />
-        <ManongRow app={app} b={b} chat={false} />
-      </Card>
-    </Screen>
+        <Grey>
+          <Kv
+            rows={[
+              [part, peso(price)],
+              [
+                'Total with this part',
+                peso(priceOf(b.category, b.serviceType, app.state.voucher, catalog) + price),
+              ],
+            ]}
+          />
+        </Grey>
+        {[true, false].map((yes) => (
+          <Btn
+            key={String(yes)}
+            kind={yes ? 'primary' : 'grey'}
+            label={yes ? `Approve ${peso(price)}` : 'Decline'}
+            onPress={async () => {
+              const next = await answerPart(b, yes);
+              app.update({ booking: next, partAsk: false });
+              app.toast(
+                yes
+                  ? 'Part approved and added to your bill'
+                  : 'Declined. Manong finishes the base repair only.',
+              );
+            }}
+          />
+        ))}
+      </Sheet>
+    </View>
   );
 }
 
-function ManongCancelled({ app, b }: { app: App; b: Booking }) {
-  const [pick, setPick] = useState(0);
-  const go = () => {
-    // Same job, a different Manong: the mock sends whoever b.manong isn't.
+export function Pending({ app }: { app: App }) {
+  const b = app.state.booking!; // opened only while a scheduled booking waits or is confirmed
+  const conf = b.stage === 'confirmed';
+  const f = b.manong.first;
+  const [cancelling, setCancelling] = useState(false);
+  const [calling, setCalling] = useState(false);
+  const [reason, setReason] = useState<number | null>(null);
+  const task = useTask();
+  const steps = [
+    ['Pending confirmation', 'Request sent today'],
+    ['Confirmed', conf ? `${f} confirmed your booking` : `Waiting for ${f}`],
+    ['In progress', `Starts ${dayLabel(b.day)} at ${b.time}`],
+    ['Completed', 'You review charges and pay'],
+  ];
+  const cur = conf ? 1 : 0;
+  return (
+    <View style={{ flex: 1, backgroundColor: C.paper }}>
+      <Canopy
+        title={conf ? 'Booking Confirmed' : 'Request Sent'}
+        sub={
+          conf ? `${f} will arrive ${weekday(b.day)} at ${b.time}.` : `Waiting for ${f} to confirm.`
+        }
+        pill={app.state.catalog[b.category].name}
+        onBack={app.home}
+        right={<DevMenu app={app} />}
+      />
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        <Card accessibilityRole="list">
+          {steps.map(([t, d], i) => (
+            <View key={t} style={[s.step, i < steps.length - 1 && { paddingBottom: 16 }]}>
+              {i < steps.length - 1 && (
+                <View style={[s.rail, i < cur && { backgroundColor: C.success }]} />
+              )}
+              <View style={[s.node, i < cur && s.nodeDone, i === cur && s.nodeCur]} />
+              <View style={{ flex: 1 }}>
+                <T
+                  w={i <= cur ? 700 : 500}
+                  style={{ fontSize: 16, color: i <= cur ? C.ink : C.muted }}
+                >
+                  {t}
+                </T>
+                <Sub style={{ fontSize: 12 }}>{d}</Sub>
+              </View>
+            </View>
+          ))}
+        </Card>
+        <Card>
+          <Rows app={app} b={b} />
+        </Card>
+      </ScrollView>
+      <Foot>
+        {conf && (
+          <Btn
+            label={`Call ${f}`}
+            icon={<Icon name="phone" size={18} color={C.white} />}
+            onPress={() => setCalling(true)}
+          />
+        )}
+        <Btn
+          kind="grey"
+          label="Cancel Request"
+          icon={<Icon name="x" size={18} color={C.ink} />}
+          onPress={() => setCancelling(true)}
+        />
+      </Foot>
+      <CallScreen manong={b.manong} open={calling} close={() => setCalling(false)} />
+      <Sheet open={cancelling} onClose={() => setCancelling(false)}>
+        <SheetTitle
+          title="Cancel this booking?"
+          sub="It's free until your Manong starts the job. Tell us why (optional)."
+        />
+        {CANCEL_REASONS.map((r, i) => (
+          <Opt
+            key={r}
+            title={r}
+            on={reason === i}
+            onPress={() => setReason(reason === i ? null : i)}
+          />
+        ))}
+        <ErrorText text={task.error} />
+        <Btn
+          kind="white"
+          label="Cancel booking"
+          loading={task.busy}
+          style={{ borderWidth: 1.5, borderColor: C.destructive }}
+          onPress={() =>
+            task.run(() =>
+              cancelAndClose(
+                app,
+                b,
+                reason != null ? CANCEL_REASONS[reason] : null,
+                'Booking cancelled. No charge.',
+              ),
+            )
+          }
+        />
+        <Btn kind="grey" label="Keep booking" onPress={() => setCancelling(false)} />
+      </Sheet>
+    </View>
+  );
+}
+
+export function Declined({ app }: { app: App }) {
+  const b = app.state.booking!; // opened only after the Manong declined
+  const f = b.manong.first;
+  const retry = (to: 'pick' | 'details') => {
     app.update((st) => ({
       booking: null,
       draft: {
         ...st.draft,
         category: b.category,
         serviceType: b.serviceType,
-        bookingType: b.bookingType,
-        desc: b.problem,
-        symptoms: [],
-        day: b.day,
-        time: b.time,
-        manong: null,
-        preferred: b.manong.key === 'alfred' ? 'John' : 'Alfred',
-        retried: true,
+        manongKey: null,
+        avoidKey: b.manong.key,
       },
     }));
-    app.go(pick === 0 ? 'finding' : 'schedule', { reset: true });
+    app.go(to, { reset: true });
   };
-  return (
-    <Screen
-      header={<Header title={`Booking ${b.id}`} onBack={app.home} right={<DevMenu app={app} />} />}
-      footer={<Btn label="Continue" onPress={go} />}
-    >
-      <H>{b.manong.first} had to cancel</H>
-      <Sub>Something came up on his side. Your booking is safe and you won't be charged.</Sub>
-      <Label>What would you like to do?</Label>
-      <Option
-        title="Find another Manong"
-        desc="Same day and time"
-        selected={pick === 0}
-        onPress={() => setPick(0)}
-      />
-      <Option
-        title="Pick a new time"
-        desc="Choose another day"
-        selected={pick === 1}
-        onPress={() => setPick(1)}
-      />
-    </Screen>
-  );
-}
-
-// Book 5b: the map fills the screen behind a sheet that peeks and drags open.
-// TODO(backend): live location feed for the Manong's marker and the distance; the mock map is a static image.
-function OnTheWay({ app, b }: { app: App; b: Booking }) {
-  const m = b.manong;
-  const tower = b.address.unit.split(', ').pop() || 'your place';
-  const [h, setH] = useState(0);
-  const [peek, setPeek] = useState(true);
-  const y = useRef(new Animated.Value(0)).current;
-  const peekY = Math.max(h * 0.46, 0);
-  const snap = (toPeek: boolean) => {
-    setPeek(toPeek);
-    Animated.spring(y, {
-      toValue: toPeek ? peekY : 0,
-      useNativeDriver: false,
-      bounciness: 0,
-    }).start();
-  };
-  const start = useRef(0);
-  const pan = useRef(
-    PanResponder.create({
-      // Claim the drag on its first pixel (mouse on web) or once it moves (touch, over the handle button).
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_e, g) => Math.abs(g.dy) > 4,
-      onMoveShouldSetPanResponderCapture: (_e, g) => Math.abs(g.dy) > 4,
-      onPanResponderGrant: () => {
-        y.stopAnimation((v) => (start.current = v));
-      },
-      onPanResponderMove: (_e, g) =>
-        y.setValue(Math.min(Math.max(start.current + g.dy, 0), peekRef.current)),
-      onPanResponderTerminationRequest: () => false,
-      onPanResponderRelease: (_e, g) => snapRef.current(start.current + g.dy > peekRef.current / 2),
-      onPanResponderTerminate: (_e, g) =>
-        snapRef.current(start.current + g.dy > peekRef.current / 2),
-    }),
-  ).current;
-  // PanResponder is created once, so it reads the latest layout through refs.
-  const peekRef = useRef(peekY);
-  peekRef.current = peekY;
-  const snapRef = useRef(snap);
-  snapRef.current = snap;
-
   return (
     <View style={{ flex: 1, backgroundColor: C.paper }}>
-      <Header title={`Booking ${b.id}`} onBack={app.home} right={<DevMenu app={app} />} />
-      <View
-        style={{ flex: 1, overflow: 'hidden' }}
-        onLayout={(e) => {
-          const nh = e.nativeEvent.layout.height;
-          setH(nh);
-          y.setValue(peek ? nh * 0.46 : 0);
-        }}
-      >
-        <View
-          style={StyleSheet.absoluteFill}
-          accessible
-          accessibilityLabel={`Map: ${m.first} is 6 km away, heading to ${tower}`}
-        >
-          <Image
-            source={require('../assets/map.png')}
-            style={StyleSheet.absoluteFill}
-            resizeMode="cover"
-          />
-          <Svg
-            style={StyleSheet.absoluteFill}
-            viewBox="0 0 375 420"
-            preserveAspectRatio="xMidYMin slice"
-          >
-            <Path
-              d="M300 70 C 285 120, 270 140, 250 180 S 210 250, 190 275"
-              stroke="#111"
-              strokeWidth={4}
-              fill="none"
-              strokeLinecap="round"
-            />
-          </Svg>
-          <View style={[s.pin, { right: '17%', top: 40 }]}>
-            <Icon name="home" size={18} color={C.mango} />
-          </View>
-          <View style={[s.mapPill, { right: '12%', top: 84 }]}>
-            <T w={600} style={{ fontSize: 13 }}>
-              {tower}
-            </T>
-          </View>
-          <View style={[s.marker, { left: '58%', top: 150 }]}>
-            <T w={800}>{m.initial}</T>
-          </View>
-          <View style={[s.mapPill, { left: '28%', top: 118, backgroundColor: '#111' }]}>
-            <Icon name="navigation" size={14} color={C.white} />
-            <T w={600} style={{ fontSize: 13, color: C.white }}>
-              6 km
-            </T>
-          </View>
-        </View>
-        {peek && h > 0 && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Center map"
-            onPress={() => app.toast('Centered on your building')}
-            style={[s.recenter, { top: peekY - 60 }]}
-          >
-            <Icon name="crosshair" size={20} color={C.ink} />
-          </Pressable>
-        )}
-        <Animated.View style={[s.sheet, { top: y }]}>
-          <View {...pan.panHandlers}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={peek ? 'Show more details' : 'Show less'}
-              onPress={() => snap(!peek)}
-              style={{ paddingVertical: 10 }}
-            >
-              <View style={s.grab} />
-            </Pressable>
-            <T w={700} style={{ fontSize: 18 }}>
-              {serviceName(b, app.state.catalog)}
-            </T>
-            <T w={600} style={{ marginTop: 2 }}>
-              {b.time ? `Today at ${b.time}` : 'Today'}
-            </T>
-            <Sub numberOfLines={1} style={{ fontSize: 13 }}>
-              {addressLine(b.address)}
-            </Sub>
-            <View style={{ marginTop: 12 }}>
-              <Ring stage="onway" />
-            </View>
-          </View>
-          <ScrollView scrollEnabled={!peek} contentContainerStyle={{ paddingBottom: 32 }}>
-            <Tear />
-            <ManongRow app={app} b={b} chat={false} sub={m.vehicle} />
-            <Tear />
-            <Timeline
-              steps={[
-                ['Pending confirmation', 'Booked earlier', 'done'],
-                ['Confirmed', `${m.first} confirmed your booking`, 'done'],
-                ['On the way', `${m.first} is heading to ${tower}`, 'cur'],
-                ['In progress', `Starts once ${m.first} arrives`, ''],
-                ['Completed', 'You review charges and pay', ''],
-              ]}
-            />
-          </ScrollView>
-        </Animated.View>
-      </View>
+      <Canopy
+        title={`${f} Can't Take It`}
+        sub="Your request is closed and you won't be charged."
+        pill={app.state.catalog[b.category].name}
+        onBack={app.home}
+        right={<DevMenu app={app} />}
+      />
+      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+        <Card>
+          <T style={{ fontSize: 15, lineHeight: 21, marginBottom: 12 }}>
+            {f} couldn't make {dayLabel(b.day)} at {b.time}. Pick another Manong for the same time,
+            or choose a different time.
+          </T>
+          <Rows app={app} b={b} />
+        </Card>
+      </ScrollView>
+      <Foot>
+        <Btn label="Find another Manong" onPress={() => retry('pick')} />
+        <Btn kind="grey" label="Pick a new time" onPress={() => retry('details')} />
+        <Btn
+          kind="text"
+          label="Cancel request"
+          onPress={() => {
+            app.update({ booking: null });
+            app.home();
+            app.toast('Request cancelled. No charge.');
+          }}
+        />
+      </Foot>
     </View>
   );
 }
 
-export function Part({ app }: { app: App }) {
-  const b = app.state.booking!; // opened only from an in-progress booking
-  const [name, price, why] = app.state.catalog[b.category].part;
-  const task = useTask();
-  return (
-    <Screen
-      header={<Header title={`Booking ${b.id}`} onBack={app.back} />}
-      footer={
-        <>
-          <ErrorText text={task.error} />
-          <Btn
-            label={`Approve ${peso(price)}`}
-            loading={task.busy}
-            onPress={() =>
-              task.run(async () => {
-                app.update({ booking: await approvePart(b, app.state.catalog) });
-                app.back();
-                app.toast(`Approved. ${peso(price)} added to your bill.`);
-              })
-            }
-          />
-          <Btn
-            kind="secondary"
-            label="Decline"
-            onPress={() => {
-              app.back();
-              app.toast(`Declined. ${b.manong.first} will finish the base repair only.`);
-            }}
-          />
-        </>
-      }
-    >
-      <H>{b.manong.first} needs a part</H>
-      <Sub>Approve it before he adds it to your bill. Nothing changes unless you say yes.</Sub>
-      <Card>
-        <View style={s.row}>
-          <View style={s.sq}>
-            <Icon name={app.state.catalog[b.category].icon} size={18} color={C.ink} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <T w={600}>{name}</T>
-            <Sub style={{ fontSize: 13 }}>{why}</Sub>
-          </View>
-          <T w={700} style={{ fontSize: 18 }}>
-            {peso(price)}
-          </T>
-        </View>
-        <Tear />
-        <Rows
-          rows={[
-            ['Base charge', peso(tierOf(b, app.state.catalog).price)],
-            ['This part', peso(price)],
-          ]}
-        />
-        <View style={[s.between, { marginTop: 8 }]}>
-          <T w={700}>New total</T>
-          <T w={700}>{peso(totalOf(b, app.state.catalog) + price)}</T>
-        </View>
-      </Card>
-      <Note
-        text={`Not sure? Message ${b.manong.first} first. If you decline, he finishes the base repair only.`}
-      />
-    </Screen>
-  );
-}
+/** Shares a plain-text e-receipt. TODO(backend): a PDF receipt from the server. */
+const shareReceipt = async (app: App, lines: string[]) => {
+  try {
+    await Share.share({
+      message: ['MANG JUAN E-RECEIPT', ...lines].join('\n'),
+      title: 'Mang Juan e-receipt',
+    });
+  } catch {
+    app.toast("Couldn't open the share sheet");
+  }
+};
 
-export function Charges({ app }: { app: App }) {
-  const b = app.state.booking!; // opened only for a completed booking
-  const { catalog } = app.state;
-  const [method, setMethod] = useState(b.payment);
-  const [failed, setFailed] = useState<string | null>(null);
+export function Summary({ app }: { app: App }) {
+  const b = app.state.booking!; // opened only when the job is done
+  const { catalog, voucher, payment } = app.state;
+  const tier = tierOf(app, b);
+  const [stars, setStars] = useState(5);
+  const [praise, setPraise] = useState<string[]>(['Arrived on time', 'Clean & thorough work']);
+  const [review, setReview] = useState('');
+  const [tip, setTip] = useState(50);
+  const [custom, setCustom] = useState(false);
   const task = useTask();
-  const total = totalOf(b, catalog);
-  const mats = materialsOf(b, catalog);
-  const paying = task.busy && method === 'gcash';
-  const payNow = (how = method) =>
+  const total = totalOf(b, voucher, tip, catalog);
+  const gcash = payment === 'gcash';
+  const [part, partPrice] = catalog[b.category].part;
+  const f = b.manong.first;
+  const receiptLines = () =>
+    [
+      `Booking #${b.id}`,
+      `${tier.name}: ${peso(tier.price)}`,
+      b.partApproved ? `${part}: ${peso(partPrice)}` : '',
+      voucher ? 'Voucher MANONG50: -₱50' : '',
+      `Tip: ${peso(tip)}`,
+      `Total: ${peso(total)}`,
+      `Paid via ${gcash ? 'GCash' : 'Cash'}`,
+      `Manong: ${b.manong.name}`,
+    ].filter(Boolean);
+  const submit = () =>
     task.run(async () => {
-      try {
-        const paid = await pay(b, how);
-        app.update({ booking: paid });
-        app.go('rate', { replace: true });
-        app.toast(`Paid ${peso(total)}. Receipt emailed.`);
-      } catch (e) {
-        setFailed((e as Error).message);
-      }
+      await chargeTip(tip, payment);
+      const past = await rateBooking(b, { stars, praise, review, tip }, payment, voucher, catalog);
+      app.update((st) => ({
+        past: [past, ...st.past],
+        booking: null,
+        thanks: { manong: b.manong, tierName: tier.name, stars, tip, total },
+      }));
+      app.go('thanks', { replace: true });
     });
   return (
-    <Screen
-      header={<Header title={`Booking ${b.id}`} onBack={app.home} right={<DevMenu app={app} />} />}
-      footer={
-        failed ? (
-          <>
-            <Btn label="Try GCash again" loading={task.busy} onPress={() => payNow('gcash')} />
-            <Btn
-              kind="link"
-              label="Pay in cash instead"
-              onPress={() => {
-                setMethod('cash');
-                payNow('cash');
-              }}
-            />
-          </>
-        ) : (
-          <>
-            <ErrorText text={task.error} />
-            <Btn
-              label={
-                method === 'gcash'
-                  ? `Pay ${peso(total)} with GCash`
-                  : `I paid ${peso(total)} in cash`
-              }
-              loading={task.busy}
-              onPress={() => payNow()}
-            />
-            <Btn
-              kind="link"
-              label="Report a problem"
-              onPress={() => {
-                app.update({ reportFrom: 'charges' });
-                app.go('report');
-              }}
-            />
-          </>
-        )
-      }
-    >
-      <H>{failed ? 'GCash payment failed' : `${b.manong.first} finished the job`}</H>
-      <Sub>{failed ?? 'Check the charges before you pay.'}</Sub>
-      <Card>
-        <View style={s.between}>
-          <T w={600} style={{ fontSize: 16, flexShrink: 1 }}>
-            {tierOf(b, catalog).name}
-          </T>
-          <Ring stage="completed" />
-        </View>
-        <View style={[s.between, { marginTop: 10 }]}>
-          <Sub>Base charge</Sub>
-          <T w={600}>{peso(tierOf(b, catalog).price)}</T>
-        </View>
-        {mats.length > 0 && (
-          <>
-            <Tear />
-            <T w={600} style={{ fontSize: 14, marginBottom: 6 }}>
-              Materials added <Sub>{mats.length === 1 ? '1 item' : `${mats.length} items`}</Sub>
+    <View style={{ flex: 1, backgroundColor: C.paper }}>
+      <SafeAreaView edges={['top']} style={s.ahead}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={app.home}
+          style={{ width: 44, height: 44, justifyContent: 'center' }}
+        >
+          <Icon name="arrow-left" size={24} color={C.ink} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Icon name="file-text" size={20} color={C.ink} />
+            <T w={800} style={{ fontSize: 20 }}>
+              Order Summary
             </T>
-            {mats.map(([n, p]) => (
-              <View key={n} style={[s.between, { marginTop: 4 }]}>
-                <Sub>{n}</Sub>
-                <T w={600}>{peso(p)}</T>
-              </View>
-            ))}
-          </>
-        )}
-        <Tear />
-        <View style={s.between}>
-          <T w={700} style={{ fontSize: 16 }}>
-            Total
-          </T>
-          <T w={800} style={{ fontSize: 26 }}>
-            {peso(total)}
-          </T>
-        </View>
-        <View style={[s.between, { marginTop: 12 }]}>
-          <View style={s.row}>
-            {method === 'gcash' ? (
-              <GcashMark />
-            ) : (
-              <Icon name="dollar-sign" size={16} color={C.slate} />
-            )}
-            <Sub>{method === 'gcash' ? 'Paying with GCash' : 'Paying with cash'}</Sub>
           </View>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => {
-              const next = method === 'gcash' ? 'cash' : 'gcash';
-              setMethod(next);
-              app.toast(`Paying with ${next === 'gcash' ? 'GCash' : 'cash'}`);
-            }}
-          >
-            <T w={600} style={{ textDecorationLine: 'underline' }}>
-              Change
-            </T>
-          </Pressable>
+          <Sub style={{ color: C.goldText }}>Service Completed • Invoice & Review</Sub>
         </View>
-      </Card>
-      {failed ? (
-        <Note bad text="Check your GCash balance, or pay in cash." />
-      ) : (
-        <Note
-          text={`Ask ${b.manong.first} about any charge you don't recognize. Paying closes ticket ${b.id}.`}
-        />
-      )}
-      <Sheet open={paying} onClose={() => {}}>
-        <Loader />
-        <T w={700} style={{ fontSize: 20, textAlign: 'center' }}>
-          Paying with GCash…
-        </T>
-        <Sub style={{ textAlign: 'center' }}>
-          Sending {peso(total)} to {b.manong.first}.
-        </Sub>
-      </Sheet>
-    </Screen>
-  );
-}
-
-export function Rate({ app }: { app: App }) {
-  const b = app.state.booking!; // opened right after paying
-  const { catalog, addresses, addressIdx } = app.state;
-  const [stars, setStars] = useState(4);
-  const [praise, setPraise] = useState<string[]>(['On time', 'Clean work']);
-  const [note, setNote] = useState('');
-  const task = useTask();
-  const toggle = (p: string) =>
-    setPraise(praise.includes(p) ? praise.filter((x) => x !== p) : [...praise, p]);
-  const finish = (rating: number) =>
-    task.run(async () => {
-      const done = await rateBooking(b, rating, praise, note, catalog);
-      app.update((st) => ({ past: [done, ...st.past], booking: null }));
-      if (rating) app.go('thanks', { replace: true });
-      else app.home();
-    });
-  return (
-    <Screen
-      top={false}
-      footer={
-        <>
-          <ErrorText text={task.error} />
-          <Btn
-            label="Submit rating"
-            disabled={!stars}
-            loading={task.busy}
-            onPress={() => finish(stars)}
-          />
-          <Btn kind="link" label="Skip for now" onPress={() => finish(0)} />
-        </>
-      }
-    >
-      <SafeAreaView edges={['top']} style={s.rateBand}>
-        <Card>
-          <View style={s.between}>
-            <T w={600} style={{ flexShrink: 1 }}>
-              {serviceName(b, catalog)}
-            </T>
-            <Ring stage="paid" />
-          </View>
-          <Tear />
-          <Sub style={{ fontSize: 13 }}>
-            {peso(totalOf(b, catalog))} with {b.payment === 'gcash' ? 'GCash' : 'cash'}, receipt
-            emailed
-          </Sub>
-        </Card>
       </SafeAreaView>
-      <Avatar initial={b.manong.initial} size={56} />
-      <H>How did {b.manong.first} do?</H>
-      <Sub>
-        Your rating helps other residents in{' '}
-        {b.address.bldg || addresses[addressIdx]?.bldg || 'your building'}.
-      </Sub>
-      <View style={s.row} accessibilityRole="radiogroup">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <Pressable
-            key={n}
-            accessibilityRole="radio"
-            accessibilityLabel={`${n} stars`}
-            accessibilityState={{ checked: stars === n }}
-            onPress={() => setStars(n)}
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 12 }}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={s.statusPill}>
+          <Icon name="check-circle" size={14} color={C.ink} />
+          <T w={800} style={{ fontSize: 12, letterSpacing: 0.5 }}>
+            SERVICE COMPLETED • {gcash ? 'GCASH PAID' : 'PAY IN CASH'}
+          </T>
+        </View>
+        <Card>
+          <View style={[s.between, { marginBottom: 14 }]}>
+            <View style={s.rIc}>
+              <Icon name="file-text" size={18} color={C.ink} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <T w={800}>Payment Summary</T>
+              <Sub style={{ fontSize: 11 }}>Booking ID: #{b.id}</Sub>
+            </View>
+            <T w={800} style={{ fontSize: 20 }}>
+              {peso(total)}.00
+            </T>
+          </View>
+          <Kv
+            rows={[
+              ['Service Performed', tier.name],
+              ['Base price', peso(tier.price)],
+              ...(b.partApproved ? [[part, peso(partPrice)] as [string, string]] : []),
+              ...(voucher ? [['Voucher MANONG50', '−₱50'] as [string, string]] : []),
+              ['Tip', peso(tip)],
+              ['Duration', '35 mins'],
+              ['Location', b.address.short],
+              [
+                'Payment Method',
+                <T key="pm" w={600} style={{ color: C.gcash, fontSize: 14 }}>
+                  {gcash ? 'GCash (Paid Escrow)' : 'Cash on completion'}
+                </T>,
+              ],
+            ]}
+          />
+          <Btn
+            kind="text"
+            label="Download Official E-Receipt"
+            icon={<Icon name="download" size={16} color={C.slate} />}
+            onPress={() => shareReceipt(app, receiptLines())}
+          />
+        </Card>
+        <Card style={{ alignItems: 'center', gap: 6, paddingVertical: 20 }}>
+          <Avatar manong={b.manong} size={80} />
+          <T style={{ marginTop: 4 }}>{b.manong.name}</T>
+          <Sub style={{ fontSize: 14 }}>
+            {proOf(app, b)} • ★ <T w={800}>{b.manong.rating}</T> ({b.manong.jobs} jobs)
+          </Sub>
+          <T w={800} style={{ marginTop: 8 }}>
+            How was Manong {f}'s service?
+          </T>
+          <View
+            style={{ flexDirection: 'row', gap: 8, marginVertical: 6 }}
+            accessibilityRole="radiogroup"
           >
-            <FontAwesome name="star" size={36} color={n <= stars ? C.star : C.line} />
-          </Pressable>
-        ))}
-      </View>
-      <T w={700} style={{ color: C.gold }}>
-        {STARS[stars]}
-      </T>
-      <Label>{stars && stars < 4 ? 'What could be better?' : 'What went well?'}</Label>
-      <Chips>
-        {PRAISE.map((p) => (
-          <Chip key={p} label={p} on={praise.includes(p)} onPress={() => toggle(p)} />
-        ))}
-      </Chips>
-      <TextInput
-        accessibilityLabel="Note"
-        multiline
-        value={note}
-        onChangeText={setNote}
-        placeholder={`Add a note for ${b.manong.first} (optional)`}
-        placeholderTextColor={C.slate}
-        style={s.textarea}
-      />
-    </Screen>
+            {[1, 2, 3, 4, 5].map((n) => (
+              <Pressable
+                key={n}
+                accessibilityRole="radio"
+                accessibilityLabel={`${n} stars`}
+                accessibilityState={{ checked: stars === n }}
+                onPress={() => setStars(n)}
+              >
+                <FontAwesome name="star" size={38} color={n <= stars ? C.star : C.line} />
+              </Pressable>
+            ))}
+          </View>
+          <T w={800} style={{ color: '#7a5a00' }}>
+            {STARS[stars]}
+          </T>
+        </Card>
+        <Card style={{ gap: 12 }}>
+          <View style={s.between}>
+            <T w={800}>{stars >= 4 ? 'What did he do well?' : 'What could be better?'}</T>
+            <Sub style={{ fontSize: 12 }}>Select all that apply</Sub>
+          </View>
+          <Chips>
+            {PRAISE.map(([e, l]) => (
+              <Chip
+                key={l}
+                tone="mango"
+                label={`${e} ${l}`}
+                on={praise.includes(l)}
+                onPress={() =>
+                  setPraise(praise.includes(l) ? praise.filter((x) => x !== l) : [...praise, l])
+                }
+              />
+            ))}
+          </Chips>
+          <TextInput
+            accessibilityLabel="Review"
+            multiline
+            value={review}
+            onChangeText={setReview}
+            placeholder={`Tell us more about Manong ${f}'s service (optional).`}
+            placeholderTextColor={C.muted}
+            style={s.area}
+          />
+        </Card>
+        <Card style={{ gap: 10 }}>
+          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+            <Icon name="gift" size={20} color="#7a5a00" />
+            <T w={800} style={{ fontSize: 17 }}>
+              Pa-Tip kay Manong {f}?
+            </T>
+          </View>
+          <Sub>
+            100% of your tip goes directly to your Manong's personal{' '}
+            {gcash ? 'GCash wallet' : 'pocket'}.
+          </Sub>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            {[0, 20, 50, 100].map((v) => {
+              const on = !custom && tip === v;
+              return (
+                <Pressable
+                  key={v}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: on }}
+                  onPress={() => {
+                    setCustom(false);
+                    setTip(v);
+                  }}
+                  style={[s.tipBtn, on && { backgroundColor: C.ink }]}
+                >
+                  {v === 50 && (
+                    <View style={s.pop}>
+                      <T w={800} style={{ fontSize: 8 }}>
+                        POPULAR
+                      </T>
+                    </View>
+                  )}
+                  <T w={700} style={{ color: on ? C.white : C.ink, fontSize: 14 }}>
+                    {v ? `+${peso(v)}` : 'No Tip'}
+                  </T>
+                </Pressable>
+              );
+            })}
+          </View>
+          {custom && (
+            <TextInput
+              accessibilityLabel="Custom tip"
+              keyboardType="number-pad"
+              value={tip ? String(tip) : ''}
+              onChangeText={(v) => setTip(Math.min(5000, Number(v.replace(/\D/g, '')) || 0))}
+              placeholder="Enter tip amount"
+              placeholderTextColor={C.muted}
+              style={[s.area, { minHeight: 48 }]}
+            />
+          )}
+          <View
+            style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }}
+          >
+            <Sub style={{ fontSize: 12 }}>Tip will be charged to {gcash ? 'GCash' : 'Cash'}</Sub>
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => {
+                if (custom) setTip(50);
+                setCustom(!custom);
+              }}
+            >
+              <T w={600} style={{ color: C.gcash, fontSize: 12 }}>
+                {custom ? 'Use presets' : 'Custom amount'}
+              </T>
+            </Pressable>
+          </View>
+        </Card>
+        <ErrorText text={task.error} />
+        <Btn
+          label="Submit Rating & Done"
+          loading={task.busy}
+          icon={<Icon name="arrow-right" size={20} color={C.white} />}
+          style={{ flexDirection: 'row-reverse' }}
+          onPress={submit}
+        />
+        <Btn kind="text" label="Skip for now" onPress={app.home} />
+      </ScrollView>
+    </View>
   );
 }
 
 export function Thanks({ app }: { app: App }) {
+  const t = app.state.thanks!; // opened right after submitting a rating
+  const first = app.state.user.name.split(' ')[0];
   return (
-    <Screen
-      footer={
-        <>
-          <Btn label="Back to home" onPress={app.home} />
-          <Btn kind="link" label="Book another job" onPress={() => app.startBooking('plumbing')} />
-        </>
-      }
-    >
-      <View style={{ alignItems: 'center', gap: 12, paddingTop: 160 }}>
-        <View style={s.mark}>
-          <Image source={require('../assets/mark.png')} style={{ width: 46, height: 42 }} />
+    <View style={{ flex: 1, backgroundColor: C.mango }}>
+      <SafeAreaView
+        edges={['top']}
+        style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
+      >
+        <View style={s.illo}>
+          <Image
+            source={IMG.illo}
+            style={{ width: 150, height: 150 }}
+            resizeMode="contain"
+            accessibilityIgnoresInvertColors
+          />
         </View>
-        <H style={{ textAlign: 'center' }}>Salamat, {app.state.user.first}!</H>
-        <Sub style={{ textAlign: 'center' }}>
-          Your rating was sent. Ticket closed and receipt emailed.
-        </Sub>
-      </View>
-    </Screen>
-  );
-}
-
-export function Cancelled({ app }: { app: App }) {
-  const c = app.state.cancelled!; // opened right after a cancel
-  const b = c.booking;
-  const rebook = () => {
-    app.update((st) => ({
-      draft: {
-        ...st.draft,
-        category: b.category,
-        serviceType: b.serviceType,
-        bookingType: 'scheduled',
-        desc: b.problem,
-        symptoms: [],
-        day: null,
-        time: null,
-        manong: null,
-        preferred: null,
-        retried: false,
-      },
-    }));
-    app.go('schedule', { reset: true });
-  };
-  return (
-    <Screen
-      header={<Header title={`Booking ${b.id}`} onBack={app.home} />}
-      footer={
-        <>
-          <Btn label="Book a new time" onPress={rebook} />
-          <Btn kind="link" label="Go to home" onPress={app.home} />
-        </>
-      }
-    >
-      <H>Booking cancelled</H>
-      <Sub>
-        {c.fee
-          ? `You paid a ${peso(c.fee)} trip fee. ${b.manong.first} has been told.`
-          : `You weren't charged. ${b.manong.first} has been told, and the slot is free again.`}
-      </Sub>
-      <Card>
-        <T w={700} style={{ fontSize: 18 }}>
-          {serviceName(b, app.state.catalog)}
+      </SafeAreaView>
+      <SafeAreaView edges={['bottom']} style={s.thx}>
+        <T w={800} style={{ fontSize: 12, color: C.gold, letterSpacing: 1 }}>
+          JOB COMPLETE
         </T>
-        <Sub style={{ fontSize: 13 }}>
-          Was set for {b.bookingType === 'on-demand' ? 'today, now' : bookedWhen(b)}
+        <T w={800} style={{ fontSize: 28 }}>
+          Salamat, {first}
+        </T>
+        <Sub style={{ fontSize: 15, lineHeight: 21 }}>
+          {t.manong.first} finished your {t.tierName.toLowerCase()} job. We sent the receipt to{' '}
+          {app.state.user.email}.
         </Sub>
-        <View style={{ marginTop: 12 }}>
-          <Ring stage="cancelled" />
-        </View>
-        <Tear />
-        <Rows
+        <Kv
           rows={[
+            ['Manong', t.manong.name],
+            ['Your rating', '★'.repeat(t.stars)],
+            ...(t.tip ? [['Tip', peso(t.tip)] as [string, string]] : []),
             [
-              'Cancelled on',
-              `${dayLabel(new Date())}, ${new Date().toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit' })}`,
+              'Total paid',
+              <T key="tp" w={800}>
+                {peso(t.total)}
+              </T>,
             ],
-            ['Reason', c.reason],
-            ['Charge', peso(c.fee)],
           ]}
         />
-      </Card>
-    </Screen>
-  );
-}
-
-export function Report({ app }: { app: App }) {
-  const b = app.state.booking;
-  const [reason, setReason] = useState<number | null>(null);
-  const [text, setText] = useState('');
-  const [photo, setPhoto] = useState(false);
-  const task = useTask();
-  return (
-    <Screen
-      header={<Header title={`Booking ${b?.id ?? ''}`} onBack={app.back} />}
-      footer={
-        <>
-          <ErrorText text={task.error} />
-          <Btn
-            label="Send report"
-            loading={task.busy}
-            onPress={() =>
-              task.run(async () => {
-                await reportProblem(
-                  b?.id ?? '',
-                  reason != null ? REPORT_REASONS[reason] : null,
-                  text,
-                );
-                app.go('reportsent', { replace: true });
-              })
-            }
-          />
-        </>
-      }
-    >
-      <H>What went wrong?</H>
-      <Sub>Tell us and we'll sort it out with {b ? b.manong.first : 'your Manong'}.</Sub>
-      <Chips>
-        {REPORT_REASONS.map((r, i) => (
-          <Chip
-            key={r}
-            label={r}
-            on={reason === i}
-            onPress={() => setReason(reason === i ? null : i)}
-          />
-        ))}
-      </Chips>
-      <Label>What happened</Label>
-      <View style={s.box}>
-        <TextInput
-          accessibilityLabel="What happened"
-          multiline
-          maxLength={300}
-          value={text}
-          onChangeText={setText}
-          placeholder="e.g. The sink started dripping again an hour after he left."
-          placeholderTextColor={C.slate}
-          style={{ minHeight: 64, fontSize: 15, color: C.ink, textAlignVertical: 'top' }}
+        <Btn label="Back to home" onPress={app.home} />
+        <Btn
+          kind="text"
+          label="Download e-receipt"
+          icon={<Icon name="download" size={16} color={C.slate} />}
+          onPress={() =>
+            shareReceipt(app, [
+              `${t.tierName}`,
+              `Manong: ${t.manong.name}`,
+              `Tip: ${peso(t.tip)}`,
+              `Total: ${peso(t.total)}`,
+            ])
+          }
         />
-        <Sub style={{ alignSelf: 'flex-end', fontSize: 12 }}>{text.length} / 300</Sub>
-      </View>
-      <View style={s.row}>
-        {/* TODO(backend): upload the photo with the report. The mock uses a sample photo. */}
-        {photo ? (
-          <Image
-            source={require('../assets/pipe.png')}
-            style={s.photo}
-            accessibilityLabel="Report photo"
-          />
-        ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Add photo"
-            onPress={() => setPhoto(true)}
-            style={[s.photo, s.addPhoto]}
-          >
-            <Icon name="camera" size={20} color={C.ink} />
-            <T w={600} style={{ fontSize: 13 }}>
-              Add
-            </T>
-          </Pressable>
-        )}
-        <Sub style={{ flex: 1, fontSize: 13 }}>Photos help us check faster. Optional.</Sub>
-      </View>
-    </Screen>
-  );
-}
-
-export function ReportSent({ app }: { app: App }) {
-  const b = app.state.booking;
-  const id = b?.id ?? app.state.cancelled?.booking.id ?? '';
-  const first = b?.manong.first ?? app.state.cancelled?.booking.manong.first ?? 'your Manong';
-  return (
-    <Screen
-      header={<Header title={`Booking ${id}`} onBack={app.home} />}
-      footer={
-        <>
-          <Btn
-            label="Back to booking"
-            onPress={() => (b ? app.go(app.state.reportFrom, { reset: true }) : app.home())}
-          />
-          <Btn kind="link" label="Go to home" onPress={app.home} />
-        </>
-      }
-    >
-      <H>We got your report</H>
-      <Sub>Ticket {id}-R1. We'll text you each time there's an update.</Sub>
-      <Card style={{ gap: 14 }}>
-        <T w={700} style={{ fontSize: 17 }}>
-          What happens next
-        </T>
-        {[
-          ['We review your report', "We'll text you once we've looked at it."],
-          [`We check with ${first}`, 'He gets a chance to explain.'],
-          ['We make it right', 'A free revisit or a refund if the fix failed.'],
-        ].map(([t, d], i) => (
-          <View key={t} style={s.row}>
-            <View style={s.num}>
-              <T w={700}>{i + 1}</T>
-            </View>
-            <View style={{ flex: 1 }}>
-              <T w={600}>{t}</T>
-              <Sub style={{ fontSize: 13 }}>{d}</Sub>
-            </View>
-          </View>
-        ))}
-      </Card>
-    </Screen>
+      </SafeAreaView>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
-  row: { flexDirection: 'row', gap: 12, alignItems: 'center' },
-  step: { flexDirection: 'row', gap: 12 },
-  rail: { position: 'absolute', left: 9, top: 22, bottom: 0, width: 2, backgroundColor: C.line },
-  node: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: C.line,
-    backgroundColor: C.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 1,
-  },
-  chatBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: C.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   dev: {
     borderWidth: 1.5,
     borderColor: C.ink,
@@ -1150,114 +1071,17 @@ const s = StyleSheet.create({
     minHeight: 32,
     justifyContent: 'center',
   },
-  sq: {
-    width: 40,
-    height: 40,
-    borderRadius: R.control,
-    backgroundColor: C.mangoSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  rateBand: {
-    backgroundColor: C.mango,
-    margin: -20,
-    marginBottom: 0,
-    padding: 20,
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-  textarea: {
-    minHeight: 80,
-    backgroundColor: C.white,
-    borderRadius: R.card,
-    borderWidth: 1,
-    borderColor: C.line,
-    padding: 14,
-    fontSize: 15,
-    textAlignVertical: 'top',
-  },
-  box: {
-    backgroundColor: C.white,
-    borderRadius: R.card,
-    borderWidth: 1,
-    borderColor: C.line,
-    padding: 14,
-  },
-  photo: { width: 76, height: 76, borderRadius: R.control },
-  addPhoto: {
-    borderWidth: 1.5,
-    borderStyle: 'dashed',
-    borderColor: C.line,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-  },
-  mark: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: C.mango,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  num: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: C.mango,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pin: {
-    position: 'absolute',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#111',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  mapPill: {
-    position: 'absolute',
-    flexDirection: 'row',
-    gap: 6,
-    alignItems: 'center',
-    backgroundColor: C.white,
-    borderRadius: R.full,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-  },
-  marker: {
-    position: 'absolute',
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: C.mango,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 10,
-    borderColor: 'rgba(255,199,44,0.35)',
-  },
-  recenter: {
-    position: 'absolute',
-    right: 24,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.white,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...SHADOW.ticket,
-  },
-  sheet: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
+  between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 12 },
+  lrow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  foot: { paddingHorizontal: 16, paddingTop: 10, gap: 10, backgroundColor: C.paper },
+  bsheet: {
+    flex: 1,
+    marginTop: -20,
     backgroundColor: C.white,
     borderTopLeftRadius: R.sheet,
     borderTopRightRadius: R.sheet,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
+    paddingTop: 8,
     ...SHADOW.sheet,
   },
   grab: {
@@ -1266,5 +1090,115 @@ const s = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: 'rgba(0,0,0,0.15)',
     alignSelf: 'center',
+    marginBottom: 12,
+  },
+  eta: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    backgroundColor: C.mangoSoft,
+    borderRadius: R.full,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  tip: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'flex-start',
+    backgroundColor: C.mangoPale,
+    borderRadius: R.control,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: C.mangoSoft,
+  },
+  small: {
+    flexDirection: 'row',
+    gap: 6,
+    alignItems: 'center',
+    backgroundColor: C.mango,
+    borderRadius: 17,
+    height: 34,
+    paddingHorizontal: 14,
+  },
+  area: {
+    backgroundColor: C.cloud,
+    borderRadius: R.control,
+    padding: 14,
+    minHeight: 80,
+    fontSize: 15,
+    color: C.ink,
+    textAlignVertical: 'top',
+  },
+  step: { flexDirection: 'row', gap: 12 },
+  rail: { position: 'absolute', left: 8, top: 22, bottom: 0, width: 2, backgroundColor: '#ddd' },
+  node: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    backgroundColor: C.white,
+    marginTop: 2,
+  },
+  nodeDone: { backgroundColor: C.success, borderColor: C.success },
+  nodeCur: { backgroundColor: C.mango, borderColor: C.mango },
+  ahead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: C.mango,
+    paddingHorizontal: 12,
+    paddingBottom: 14,
+    borderBottomLeftRadius: R.canopy,
+    borderBottomRightRadius: R.canopy,
+  },
+  statusPill: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    alignSelf: 'center',
+    backgroundColor: C.mangoSoft,
+    borderRadius: R.full,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  rIc: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.grey,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tipBtn: {
+    flex: 1,
+    height: 44,
+    borderRadius: R.full,
+    backgroundColor: C.grey,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pop: {
+    position: 'absolute',
+    top: -9,
+    backgroundColor: C.mango,
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  illo: {
+    width: 200,
+    height: 200,
+    backgroundColor: C.white,
+    borderRadius: R.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thx: {
+    backgroundColor: C.white,
+    borderTopLeftRadius: R.canopy,
+    borderTopRightRadius: R.canopy,
+    padding: 24,
+    gap: 12,
   },
 });

@@ -1,57 +1,76 @@
 import { describe, expect, it } from 'vitest';
 import { BOOKING_STATES as S, BOOKING_TYPES, canTransition } from '../../src/utils/contract.js';
-import { cancelBooking, contractStatus, setMockStage } from '../../mobile/services/bookings';
-import { pay } from '../../mobile/services/payments';
-import { mockFlags } from '../../mobile/mocks/flags';
+import {
+  cancelBooking,
+  contractStatus,
+  requestBooking,
+  totalOf,
+} from '../../mobile/services/bookings';
+import { pickFor } from '../../mobile/services/manongs';
+import { chargeTip } from '../../mobile/services/payments';
 import { CATALOG } from '../../mobile/mocks/catalog';
-import { ALFRED } from '../../mobile/mocks/account';
+import { ROSTER } from '../../mobile/mocks/account';
 
-const booking = (bookingType, stage = 'confirmed') => ({
-  id: 'MJ-1',
+const address = { title: 'Green Residences, Tower 1', detail: 'Unit 6', short: 'Unit 6, Tower 1' };
+const draft = (over = {}) => ({
   category: 'plumbing',
-  serviceType: 'STANDARD',
-  bookingType,
-  problem: 'Leak',
-  day: null,
-  time: null,
-  address: { label: 'Home', bldg: 'Green Residences', unit: '12B', city: '', note: '' },
-  manong: ALFRED,
-  stage,
-  payment: 'gcash',
-  parts: [],
+  serviceType: 'CHECKUP',
+  desc: '',
+  symptoms: ['Dripping Water'],
+  photos: 0,
+  notes: '',
+  bookingType: 'scheduled',
+  day: 1,
+  time: '10:30 AM',
+  manongKey: null,
+  avoidKey: null,
+  ...over,
 });
 
-describe('mobile booking services', () => {
-  it.each(Object.values(BOOKING_TYPES))(
-    'walks the %s happy path through allowed contract moves',
-    (type) => {
-      const path = ['booked', 'confirmed', 'onway', 'inprogress', 'completed'].map((st) =>
-        contractStatus(st, type),
-      );
-      for (let i = 1; i < path.length; i++)
-        if (path[i] !== path[i - 1]) expect(canTransition(type, path[i - 1], path[i])).toBe(true);
-      expect(path.at(-1)).toBe(S.COMPLETED);
-    },
-  );
-
-  it('refuses to cancel once the job is in progress', async () => {
-    await expect(cancelBooking(booking('scheduled', 'inprogress'), 0, CATALOG)).rejects.toThrow();
-    await expect(cancelBooking(booking('scheduled'), 0, CATALOG)).resolves.toMatchObject({
-      status: 'cancelled',
-    });
+describe('mobile booking services (Flow 4)', () => {
+  it.each([
+    [BOOKING_TYPES.ON_DEMAND, ['finding', 'onway', 'arrived', 'done']],
+    [BOOKING_TYPES.SCHEDULED, ['pending', 'confirmed', 'onway', 'arrived', 'done']],
+  ])('walks the %s happy path through allowed contract moves', (type, stages) => {
+    const path = stages.map((st) => contractStatus(st, type));
+    for (let i = 1; i < path.length; i++)
+      if (path[i] !== path[i - 1]) expect(canTransition(type, path[i - 1], path[i])).toBe(true);
+    expect(path.at(-1)).toBe(S.COMPLETED);
+    expect(
+      canTransition(
+        BOOKING_TYPES.SCHEDULED,
+        contractStatus('pending', 'scheduled'),
+        contractStatus('declined', 'scheduled'),
+      ),
+    ).toBe(true);
   });
 
-  it('adds the extra part to a finished job only once', () => {
-    const done = setMockStage(booking('scheduled'), 'completed', CATALOG);
-    expect(done.parts).toEqual([['P-trap, PVC 1½ in', 180]]);
-    expect(setMockStage(done, 'paid', CATALOG).parts).toHaveLength(1);
+  it('books the nearest free Manong, skips who is busy or declined, and honours a pick', () => {
+    const roster = ROSTER.plumbing;
+    expect(pickFor(roster, draft()).manong.first).toBe('Clariso');
+    expect(pickFor(roster, draft({ avoidKey: 'clariso' })).manong.first).toBe('John');
+    expect(pickFor(roster, draft({ manongKey: 'ramon' })).manong.first).toBe('Clariso'); // Ramon is booked at 10:30
+    expect(pickFor(roster, draft({ manongKey: 'john' })).manong.first).toBe('John');
   });
 
-  it('fails one GCash payment when the dev flag is on, then succeeds', async () => {
-    mockFlags.failNextPayment = true;
-    await expect(pay(booking('scheduled', 'completed'), 'gcash')).rejects.toThrow();
-    await expect(pay(booking('scheduled', 'completed'), 'gcash')).resolves.toMatchObject({
-      stage: 'paid',
+  it('starts "now" jobs as a search and scheduled ones as pending', async () => {
+    await expect(
+      requestBooking(draft({ bookingType: 'on-demand' }), address, ROSTER.plumbing),
+    ).resolves.toMatchObject({ stage: 'finding', time: 'Now' });
+    await expect(requestBooking(draft(), address, ROSTER.plumbing)).resolves.toMatchObject({
+      stage: 'pending',
     });
+    await expect(
+      requestBooking(draft({ symptoms: [] }), address, ROSTER.plumbing),
+    ).rejects.toThrow();
+    await expect(requestBooking(draft(), undefined, ROSTER.plumbing)).rejects.toThrow();
+  });
+
+  it('totals price, voucher, approved part and tip, and refuses to cancel a started job', async () => {
+    const b = await requestBooking(draft(), address, ROSTER.plumbing);
+    expect(totalOf(b, true, 50, CATALOG)).toBe(250);
+    expect(totalOf({ ...b, partApproved: true }, true, 50, CATALOG)).toBe(430);
+    await expect(cancelBooking({ ...b, stage: 'arrived' }, null)).rejects.toThrow();
+    await expect(chargeTip(-1, 'gcash')).rejects.toThrow();
   });
 });
