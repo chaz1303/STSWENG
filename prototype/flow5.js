@@ -531,10 +531,24 @@ async function api5(method, path, body) {
   }
   const j = await r.json().catch(() => null);
   if (r.ok && j) return j;
+  // An expired or bad token on any signed-in call: drop it and send the resident to Log in.
+  if (r.status === 401 && !path.startsWith('/auth')) {
+    saveToken5(null);
+    if (is5() && !['a-welcome', 'a-login'].includes(st.screen)) {
+      go('a-login', { reset: true });
+      toast('Please log in again');
+    }
+  }
   if (!j || !j.error || r.status >= 500) throw { offline: true };
   throw j.error;
 }
+// Sample data only in the ?lab prototype. In the real app a server failure must never look like a
+// successful sign-up or booking.
 function offline5(then) {
+  if (APP5) {
+    render(); // clears the busy state on the button
+    return toast("Can't reach the server right now. Please try again in a moment.");
+  }
   st.api = false;
   then();
   toast('Demo mode: server not reachable, using sample data');
@@ -560,12 +574,7 @@ function book5() {
     st.bid = booking.id;
     sync5();
   }).catch((e) => {
-    if (e.offline) return;
-    if (e.code === 'UNAUTHENTICATED') {
-      saveToken5(null);
-      go('a-login', { reset: true });
-      return toast('Please log in again');
-    }
+    if (e.code === 'UNAUTHENTICATED') return; // api5 already sent them to Log in
     if (st.screen === 'a-finding') {
       clearTimers();
       go('a-confirm', { replace: true });
@@ -700,3 +709,6 @@ jumpTo = (s) => {
   }
   return jump4(s);
 };
+
+// Moved here from an inline <script> so the CSP can stay script-src 'self'.
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');

@@ -356,6 +356,7 @@
 /* ---------- installed app (html.app is set in flow5.js): the phone frame is the whole screen ---------- */
 html.app, html.app body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #ffc72c; }
 html.app body { display: block; }
+html.app { -webkit-tap-highlight-color: transparent; } /* no grey flash on tap in Android Chrome */
 html.app .panel, html.app .flow-badge, html.app .frame-name { display: none; }
 html.app .stage { display: block; padding: 0; margin: 0; }
 html.app .phone { position: absolute; left: 50%; top: 0; margin-left: -187.5px; border-radius: 0; box-shadow: none; transform-origin: top center; transform: scale(var(--fit, 1)); }

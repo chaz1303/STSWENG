@@ -63,6 +63,22 @@ export function createApp({ store = pgStore(getDb), secret = jwtSecret, authLimi
   const app = express();
   app.set('trust proxy', 1); // one proxy in front on the host, so req.ip is the client's address
   app.disable('x-powered-by');
+  // The login token sits in localStorage, so the CSP is what stops an injected script from reading it.
+  // 'unsafe-inline' for styles only: the prototype renders style="" attributes.
+  app.use((req, res, next) => {
+    res.set({
+      'Content-Security-Policy':
+        "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+        "font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; " +
+        "connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; " +
+        "manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
+      'Strict-Transport-Security': 'max-age=31536000',
+      'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(self)',
+    });
+    next();
+  });
   app.use(express.json({ limit: '20kb' }));
 
   app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
