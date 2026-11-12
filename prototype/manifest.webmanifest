@@ -1,0 +1,16 @@
+{
+  "name": "Mang Juan",
+  "short_name": "Mang Juan",
+  "description": "Book a trusted Manong for home repairs, cleaning, locks and moving.",
+  "start_url": "./?app#f5/a-welcome",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffd230",
+  "theme_color": "#ffc72c",
+  "icons": [
+    { "src": "assets/png/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/png/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/png/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -10,6 +10,13 @@
 VARIANTS.f5 = { flow: 'A', label: 'Figma replica', group: 'Flow 5', start: 'a-welcome' };
 GROUP_DESC['Flow 5'] = 'The Figma file, screen for screen: name your price, pick from live Manong offers, track, rate and pay.';
 const is5 = () => st.variant === 'f5';
+// Installed app (or ?app in the address): no side panel, and the 375 x 812 phone frame is scaled to fill the screen.
+if (matchMedia('(display-mode: standalone)').matches || new URLSearchParams(location.search).has('app')) {
+  const fit = () => document.documentElement.style.setProperty('--fit', Math.min(innerWidth / 375, innerHeight / 812));
+  document.documentElement.classList.add('app');
+  addEventListener('resize', fit);
+  fit();
+}
 const F5 = A + 'f5/';
 const i5 = (n, cls = '') => `<img ${cls ? `class="${cls}" ` : ''}src="${F5}${n}.svg" alt="" />`;
 const digits5 = (s) => String(s || '').replace(/\D/g, '');
