@@ -204,7 +204,22 @@ describe('everything else', () => {
   it('serves the prototype from the same origin', async () => {
     const res = await request(app).get('/');
     expect(res.status).toBe(200);
-    expect(res.text).toContain('Mang Juan Prototype');
+    expect(res.text).toContain('flow5.js');
+  });
+  it('reports database health without leaking the error message', async () => {
+    expect((await request(app).get('/api/health/db')).body).toEqual({ status: 'ok' });
+    const down = createApp({
+      store: {
+        ping: async () => {
+          throw Object.assign(new Error('connect to db.secret-host failed'), {
+            code: 'ENETUNREACH',
+          });
+        },
+      },
+      secret: () => SECRET,
+    });
+    const res = await request(down).get('/api/health/db');
+    expect([res.status, res.body]).toEqual([503, { status: 'down', code: 'ENETUNREACH' }]);
   });
   it('answers unknown API paths with a JSON 404', async () => {
     const res = await request(app).get('/api/nope');

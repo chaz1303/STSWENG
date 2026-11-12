@@ -7,6 +7,7 @@ const BOOKING =
 export function pgStore(getDb) {
   const q = async (text, params) => (await getDb().query(text, params)).rows;
   return {
+    ping: () => q('SELECT 1'),
     // Throws { taken: 'email' | 'mobile_number' } when the unique check fails.
     // The live table has a required, unique `username` column that the U01 spec doesn't have (ICM open
     // item 33). Nothing collects a username yet, so it is filled with the mobile number.

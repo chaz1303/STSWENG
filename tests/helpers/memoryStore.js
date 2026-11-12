@@ -13,6 +13,7 @@ export function memoryStore() {
   return {
     residents,
     bookings,
+    async ping() {},
     async createResident(r) {
       for (const k of ['email', 'mobile_number'])
         if (residents.some((x) => x[k] === r[k]))

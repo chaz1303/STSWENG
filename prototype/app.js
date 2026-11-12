@@ -1443,7 +1443,8 @@ function renderPanel() {
 phone.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
   if (!el) {
-    if (st.hints && !e.target.closest('input,textarea,label,form')) {
+    // Hotspot flash is a prototype aid, so the installed app (html.app, see flow5.js) never shows it.
+    if (st.hints && !document.documentElement.classList.contains('app') && !e.target.closest('input,textarea,label,form')) {
       phone.classList.add('hint');
       setTimeout(() => phone.classList.remove('hint'), 500);
     }

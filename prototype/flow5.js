@@ -10,12 +10,20 @@
 VARIANTS.f5 = { flow: 'A', label: 'Figma replica', group: 'Flow 5', start: 'a-welcome' };
 GROUP_DESC['Flow 5'] = 'The Figma file, screen for screen: name your price, pick from live Manong offers, track, rate and pay.';
 const is5 = () => st.variant === 'f5';
-// Installed app (or ?app in the address): no side panel, and the 375 x 812 phone frame is scaled to fill the screen.
-if (matchMedia('(display-mode: standalone)').matches || new URLSearchParams(location.search).has('app')) {
+// The page opens as the Flow 5 app: no side panel, no other flows, and the 375 x 812 frame scaled to fill
+// the screen. Add ?lab to the address to get the prototype picker with Flows 1 to 5 and the Simulate buttons.
+const APP5 = !new URLSearchParams(location.search).has('lab');
+if (APP5) {
   const fit = () => document.documentElement.style.setProperty('--fit', Math.min(innerWidth / 375, innerHeight / 812));
+  const onlyF5 = () => {
+    if (!location.hash.startsWith('#f5/')) location.replace(location.pathname + location.search + '#f5/a-welcome');
+  };
   document.documentElement.classList.add('app');
+  document.title = 'Mang Juan';
   addEventListener('resize', fit);
+  addEventListener('hashchange', onlyF5);
   fit();
+  onlyF5();
 }
 const F5 = A + 'f5/';
 const i5 = (n, cls = '') => `<img ${cls ? `class="${cls}" ` : ''}src="${F5}${n}.svg" alt="" />`;
@@ -523,10 +531,24 @@ async function api5(method, path, body) {
   }
   const j = await r.json().catch(() => null);
   if (r.ok && j) return j;
+  // An expired or bad token on any signed-in call: drop it and send the resident to Log in.
+  if (r.status === 401 && !path.startsWith('/auth')) {
+    saveToken5(null);
+    if (is5() && !['a-welcome', 'a-login'].includes(st.screen)) {
+      go('a-login', { reset: true });
+      toast('Please log in again');
+    }
+  }
   if (!j || !j.error || r.status >= 500) throw { offline: true };
   throw j.error;
 }
+// Sample data only in the ?lab prototype. In the real app a server failure must never look like a
+// successful sign-up or booking.
 function offline5(then) {
+  if (APP5) {
+    render(); // clears the busy state on the button
+    return toast("Can't reach the server right now. Please try again in a moment.");
+  }
   st.api = false;
   then();
   toast('Demo mode: server not reachable, using sample data');
@@ -552,12 +574,7 @@ function book5() {
     st.bid = booking.id;
     sync5();
   }).catch((e) => {
-    if (e.offline) return;
-    if (e.code === 'UNAUTHENTICATED') {
-      saveToken5(null);
-      go('a-login', { reset: true });
-      return toast('Please log in again');
-    }
+    if (e.code === 'UNAUTHENTICATED') return; // api5 already sent them to Log in
     if (st.screen === 'a-finding') {
       clearTimers();
       go('a-confirm', { replace: true });
@@ -629,6 +646,39 @@ AFTER['a-finding'] = () => {
     live();
   });
 };
+// The app has no Simulate panel, so a scheduled request moves on by itself: confirmed, then on the way.
+const afterPending5 = AFTER['a-pending'];
+AFTER['a-pending'] = () => {
+  if (afterPending5) afterPending5();
+  if (!is5() || !APP5) return;
+  const step = (from, fn) => setTimeout(() => {
+    const b = st.fb;
+    if (is5() && st.screen === 'a-pending' && b && b.status === from && !st.sheet) fn(b);
+  }, 6000);
+  step('pending', (b) => {
+    b.status = 'confirmed';
+    pushN(`${b.m.first} confirmed ${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}`, 'a-history');
+    render(true);
+  });
+  step('confirmed', (b) => {
+    b.status = 'onway';
+    Object.assign(st, { eta: 10, km: 1.4, arrived: false });
+    go('a-found', { replace: true });
+    toast(`${b.m.first} is on the way`);
+  });
+};
+// A saved session goes straight to Home.
+if (APP5) addEventListener('DOMContentLoaded', () => {
+  if (!token5() || !is5()) return;
+  api5('GET', '/me').then(({ resident }) => {
+    if (!is5() || !['a-welcome', 'a-login'].includes(st.screen)) return;
+    Object.assign(st, { user: resident, api: true });
+    go('a-home', { reset: true, replace: true });
+    sync5();
+  }).catch((e) => {
+    if (!e.offline) saveToken5(null);
+  });
+});
 AFTER['a-otp'] = () => {
   if (!is5()) return;
   every(1000, () => {
@@ -659,3 +709,6 @@ jumpTo = (s) => {
   }
   return jump4(s);
 };
+
+// Moved here from an inline <script> so the CSP can stay script-src 'self'.
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');
