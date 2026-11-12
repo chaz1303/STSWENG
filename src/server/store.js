@@ -8,17 +8,19 @@ export function pgStore(getDb) {
   const q = async (text, params) => (await getDb().query(text, params)).rows;
   return {
     // Throws { taken: 'email' | 'mobile_number' } when the unique check fails.
+    // The live table has a required, unique `username` column that the U01 spec doesn't have (ICM open
+    // item 33). Nothing collects a username yet, so it is filled with the mobile number.
     async createResident({ email, mobile_number, password_hash, full_name }) {
       try {
         const rows = await q(
-          `INSERT INTO residents (email, mobile_number, password_hash, full_name) VALUES ($1, $2, $3, $4) RETURNING ${RESIDENT}`,
+          `INSERT INTO residents (email, mobile_number, password_hash, full_name, username) VALUES ($1, $2::text, $3, $4, $2::text) RETURNING ${RESIDENT}`,
           [email, mobile_number, password_hash, full_name],
         );
         return rows[0];
       } catch (e) {
         if (e.code === '23505')
           throw Object.assign(new Error('duplicate resident'), {
-            taken: String(e.constraint).includes('mobile') ? 'mobile_number' : 'email',
+            taken: /mobile|username/.test(String(e.constraint)) ? 'mobile_number' : 'email',
           });
         throw e;
       }

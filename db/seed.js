@@ -18,7 +18,7 @@ const db = getDb();
 try {
   // Keyed on the mobile number, so running it again resets the demo password instead of failing.
   await db.query(
-    `INSERT INTO residents (email, mobile_number, password_hash, full_name) VALUES ($1, $2, $3, $4)
+    `INSERT INTO residents (email, mobile_number, password_hash, full_name, username) VALUES ($1, $2::text, $3, $4, $2::text)
      ON CONFLICT (mobile_number) DO UPDATE
        SET email = EXCLUDED.email, password_hash = EXCLUDED.password_hash, full_name = EXCLUDED.full_name, updated_at = now()`,
     [value.email, value.mobile_number, hashPassword(value.password), value.full_name],
