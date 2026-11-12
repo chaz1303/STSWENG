@@ -1475,11 +1475,11 @@ CLARISO.key = 'clariso';
 CLARISO.ini = 'CP';
 P.chevD = '<path d="m6 9 6 6 6-6"/>';
 const fFresh = fresh;
-fresh = (v = 'main') => (v === 'final' ? Object.assign(fFresh(v), {
+fresh = (v = 'main') => (v === 'final' || v === 'f5' ? Object.assign(fFresh(v), {
   when: 'now', pickManong: null, altManong: false, fb: null, partOk: false, bkTabF: 'up', sw: { book: true, promo: false },
   nF: [{ g: 'Today', t: 'MANONG50 applied: ₱50 off your next booking', time: '8:00 AM', unread: true, act: 'a-home' }, { g: 'Earlier', t: 'Your receipt for MJ-8790 is ready', time: 'Oct 2', unread: false, act: 'a-history' }],
 }) : fFresh(v));
-const isF = () => st.variant === 'final';
+const isF = () => st.variant === 'final' || st.variant === 'f5'; // Flow 5 (flow5.js) builds on Flow 4
 const FD = { quick: '~15 mins', standard: '30–60 mins', major: '1 hr +' };
 const rosterF = () => (st.cat === 'plumbing' ? [{ m: CLARISO, km: 0.4, now: true, busy: [] }, ...ROSTER3.plumbing.filter((a) => a.m.key !== 'alfred3')] : ROSTER3[st.cat] || ROSTER3.plumbing);
 const poolF = () => rosterF().filter(isFree3);
