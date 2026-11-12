@@ -344,3 +344,11 @@
 .f5[data-s='a-summary'] .achips { gap: 10px 6px; }
 .f5[data-s='a-found'] .abar { margin-bottom: 18px; }
 .f5[data-s='a-summary'] .small { font-size: 14px; line-height: 18px; }
+
+/* ---------- Bookings tab: requests saved on the server ---------- */
+.f5 .f5srv + .f4empty { display: none; }
+.f5 .f5srv { margin-bottom: 12px; }
+.f5 .f5srow { cursor: default; align-items: flex-start; }
+.f5 .f5srow > svg { flex: none; width: 28px; height: 28px; margin-top: 2px; }
+.f5 .f5cxl { flex: none; align-self: center; min-height: 44px; padding: 0 14px; border-radius: 999px; background: #f3f3f3; font-size: 13px; font-weight: 600; color: #b42318; }
+.f5 .f5login:disabled, .f5 .f5next:disabled { opacity: 0.7; }

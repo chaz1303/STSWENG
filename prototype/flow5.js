@@ -45,7 +45,7 @@ fresh = (v = 'main') => {
   if (v === 'f5' && i < 0) r.push({ m: SOFIO, km: 1.2, now: true, busy: [] });
   if (v !== 'f5' && i >= 0) r.splice(i, 1);
   const s = fresh4(v);
-  return v === 'f5' ? Object.assign(s, { offer: null, inc: 50, f5n: 0, f5t: 24, f5no: [], f5exp: 120, cancelled: null, guest: false, user: null, regName: '', regEmail: '', regPw: '', api: null }) : s;
+  return v === 'f5' ? Object.assign(s, { offer: null, inc: 50, f5n: 0, f5t: 24, f5no: [], f5exp: 120, cancelled: null, guest: false, user: null, regName: '', regEmail: '', regPw: '', api: null, srv: null, bid: null, busy: false }) : s;
 };
 // Screen name on the phone element, so flow5.css can style one screen without touching the others.
 const render4 = render;
@@ -84,7 +84,7 @@ S['a-login'] = () => (!is5() ? login4() : `<div class="f5auth">${statusBar(true)
       <button data-act="togglePw" aria-label="${st.showPw ? 'Hide' : 'Show'} password">${st.showPw ? ic('eye') : i5('ic-eye-off')}</button></div>
     <div class="f5forgot"><button data-act="sheet" data-arg="forgot">Forgot password?</button></div>
     ${st.authErr ? `<p class="f5err2" role="alert">${esc(st.authErr)}</p>` : ''}
-    <button class="f5login" data-act="loginA">Log in</button></div>
+    <button class="f5login" data-act="loginA" ${st.busy ? 'disabled' : ''}>${st.busy ? 'Logging in…' : 'Log in'}</button></div>
   <div class="f5alt"><div class="f5or"><span>or continue with</span></div>
     <div class="f5soc"><button data-act="social" data-arg="Google">${i5('ic-google')}Google</button><button data-act="social" data-arg="Facebook">${i5('ic-facebook')}Facebook</button></div>
     <button class="f5apple" data-act="social" data-arg="Apple">${i5('ic-apple')}Apple</button></div>
@@ -114,10 +114,10 @@ S['a-signup'] = () => `<div class="f5auth f5otp">${statusBar(true)}${otpHead5('L
   <div class="f5reg" id="regForm">
     <label for="f5rn">Full Name</label><input id="f5rn" data-model="regName" value="${esc(st.regName)}" placeholder="Juan Dela Cruz" autocomplete="name" />
     <label for="f5re">Email</label><input id="f5re" data-model="regEmail" type="email" value="${esc(st.regEmail)}" placeholder="name@email.com" autocomplete="email" />
-    <label for="f5rp">Password</label><input id="f5rp" data-model="regPw" type="password" value="${esc(st.regPw)}" placeholder="At least 8 characters" autocomplete="new-password" />
+    <label for="f5rp">Password</label><input id="f5rp" data-model="regPw" type="password" value="${esc(st.regPw)}" placeholder="8+ characters, A-Z, 0-9, symbol" autocomplete="new-password" />
     ${st.authErr ? `<p class="f5err" style="position:static;margin:10px 0 0" role="alert">${esc(st.authErr)}</p>` : ''}</div>
   <p class="f5sms" style="top:428px">Mobile number <b>+63 ${fmtPh5(st.phoneNum)}</b> verified</p>
-  <button class="f5next" data-act="register5">Create account</button></div>${homeBar}`;
+  <button class="f5next" data-act="register5" ${st.busy ? 'disabled' : ''}>${st.busy ? 'Creating…' : 'Create account'}</button></div>${homeBar}`;
 
 // ---------- booking ----------
 const svc4 = S['a-service'], det4 = S['a-details'], find4 = S['a-finding'], found4 = S['a-found'], sum4 = S['a-summary'];
@@ -250,18 +250,23 @@ SHEETS.warranty5 = () => `<h3>Mang Juan Labor Warranty</h3><p class="sub">If the
   <button class="btn primary" data-act="closeSheet">Got it</button>`;
 
 // ---------- actions ----------
-const act4 = { startA: ACT.startA, loginA: ACT.loginA, confirmCancelA: ACT.confirmCancelA, cancelF: ACT.cancelF, retryF: ACT.retryF, social: ACT.social, logout: ACT.logout };
+const act4 = { submitA: ACT.submitA, startA: ACT.startA, loginA: ACT.loginA, confirmCancelA: ACT.confirmCancelA, cancelF: ACT.cancelF, retryF: ACT.retryF, social: ACT.social, logout: ACT.logout };
 function cancel5() {
   const b = st.fb, r = st.sheet && st.sheet.reason;
   clearTimers();
   st.cancelled = { m: b ? b.m : aideF(), tier: tA().name, cat: cat().name, total: priceA(), pay: st.pay, voucher: st.voucher,
     reason: r >= 0 && r != null ? ['Plans changed', 'Fixed it myself', 'Booked the wrong time', 'Other'][r] : `Customer requested cancellation before ${b && b.status === 'pending' ? 'Manong confirmed' : 'technician dispatch'}` };
   st.fb = null;
+  unbook5();
   pushN('Booking cancelled. Nothing was charged.', 'a-history');
   go('a-cancelled', { reset: true });
   st.stack = ['a-home'];
 }
 Object.assign(ACT, {
+  submitA() {
+    if (is5()) st.bid = null;
+    return act4.submitA.call(ACT);
+  },
   guest5() {
     st.guest = true;
     go('a-home', { reset: true, replace: true });
@@ -287,7 +292,20 @@ Object.assign(ACT, {
       return shake('#loginForm');
     }
     st.guest = false;
-    go('a-home', { reset: true, replace: true });
+    st.busy = true;
+    render();
+    api5('POST', '/auth/login', { mobile_number: '+63' + n, password: st.loginPw }).then(({ token, resident }) => {
+      saveToken5(token);
+      Object.assign(st, { user: resident, api: true, busy: false });
+      go('a-home', { reset: true, replace: true });
+      sync5();
+    }).catch((e) => {
+      st.busy = false;
+      if (e.offline) return offline5(() => go('a-home', { reset: true, replace: true }));
+      st.authErr = e.message || 'Could not log in. Please try again.';
+      render();
+      shake('#loginForm');
+    });
   },
   social(n) {
     if (is5()) st.guest = false;
@@ -327,17 +345,33 @@ Object.assign(ACT, {
     go('a-signup', { replace: true });
   },
   register5() {
-    st.authErr = st.regName.trim().length < 2 ? 'Enter your full name.' : !/^\S+@\S+\.\S+$/.test(st.regEmail.trim()) ? 'Enter a valid email address.' : st.regPw.length < 8 ? 'Use at least 8 characters for your password.' : '';
+    const pw = st.regPw;
+    st.authErr = st.regName.trim().length < 2 ? 'Enter your full name.' : !/^\S+@\S+\.\S+$/.test(st.regEmail.trim()) ? 'Enter a valid email address.'
+      : pw.length < 8 || !/[A-Z]/.test(pw) || !/\d/.test(pw) || !/[^A-Za-z0-9]/.test(pw) ? 'Use at least 8 characters with an uppercase letter, a number and a special character.' : '';
     if (st.authErr) {
       render();
       return shake('#regForm');
     }
     const mob = digits5(st.phoneNum);
-    st.stack = [];
-    go('a-login', { replace: true });
-    st.loginId = fmtPh5(mob);
+    const done = () => {
+      st.stack = [];
+      go('a-login', { replace: true });
+      st.loginId = fmtPh5(mob);
+      render();
+      toast('Account created. Log in to continue.');
+    };
+    st.busy = true;
     render();
-    toast('Account created. Log in to continue.');
+    api5('POST', '/auth/register', { full_name: st.regName, email: st.regEmail, mobile_number: '+63' + mob, password: pw }).then(() => {
+      st.busy = false;
+      done();
+    }).catch((e) => {
+      st.busy = false;
+      if (e.offline) return offline5(done);
+      st.authErr = (e.fields && Object.values(e.fields)[0]) || e.message || 'Could not create the account. Please try again.';
+      render();
+      shake('#regForm');
+    });
   },
   toConfirm5() {
     if (!st.descA.trim() && !st.symptomsA.length) {
@@ -360,6 +394,7 @@ Object.assign(ACT, {
     st.offer = offer5();
     Object.assign(st, { f5n: 0, f5t: 24, f5no: [], inc: 50 });
     go('a-finding');
+    book5();
   },
   inc5(v) {
     st.inc = +v;
@@ -399,6 +434,7 @@ Object.assign(ACT, {
   },
   cancelFind5() {
     clearTimers();
+    unbook5();
     go('a-confirm', { replace: true });
     toast('Request cancelled. Nothing was charged.');
   },
@@ -418,6 +454,15 @@ Object.assign(ACT, {
     go(w === 'manong' ? 'a-finding' : 'a-confirm', { reset: true });
     st.stack = ['a-home'];
     if (w === 'time') sheet('when5');
+  },
+  cancelSrv5(id) {
+    st.sheet = null;
+    render();
+    api5('PATCH', `/bookings/${encodeURIComponent(id)}/cancel`).then(() => toast('Request cancelled. Nothing was charged.')).catch((e) => toast(e.offline ? 'Server not reachable. Try again.' : e.message)).finally(sync5);
+  },
+  logout() {
+    if (is5()) saveToken5(null);
+    return act4.logout.call(ACT);
   },
   again5() {
     st.cancelled = null;
@@ -442,6 +487,125 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'Backspace') ACT.key5('del');
   else if (e.key === 'Enter' && st.screen === 'a-phone') ACT.sendCode5();
 });
+
+// ---------- back end (src/server/app.js) ----------
+// Flow 5 talks to the API when the page is served by Express. If the API can't be reached (static
+// host, server down, 5xx) every call falls back to the mock behaviour above, so the walkthrough still runs.
+const TOKEN5 = 'mj_token';
+const token5 = () => {
+  try {
+    return localStorage.getItem(TOKEN5);
+  } catch {
+    return null;
+  }
+};
+const saveToken5 = (t) => {
+  try {
+    if (t) localStorage.setItem(TOKEN5, t);
+    else localStorage.removeItem(TOKEN5);
+  } catch {
+    /* private mode: the session just won't survive a reload */
+  }
+};
+async function api5(method, path, body) {
+  let r;
+  try {
+    r = await fetch('/api' + path, { method, headers: { 'Content-Type': 'application/json', ...(token5() && { Authorization: 'Bearer ' + token5() }) }, body: body && JSON.stringify(body) });
+  } catch {
+    throw { offline: true };
+  }
+  const j = await r.json().catch(() => null);
+  if (r.ok && j) return j;
+  if (!j || !j.error || r.status >= 500) throw { offline: true };
+  throw j.error;
+}
+function offline5(then) {
+  st.api = false;
+  then();
+  toast('Demo mode: server not reachable, using sample data');
+}
+const SVC_TYPE5 = { quick: 'CHECKUP', standard: 'STANDARD', major: 'MAJOR' };
+const SVC_LABEL5 = { CHECKUP: 'Checkup / Quick Repair', STANDARD: 'Standard Service', MAJOR: 'Major Repair' }; // labels from src/utils/contract.js
+// The prototype's calendar is a fixed week where "today" is Oct 20. Real bookings need a real date,
+// so day 21 becomes tomorrow, day 22 the day after, and so on (Manila time).
+function realTime5() {
+  const [, h, m, ap] = /^(\d+):(\d+) (AM|PM)$/.exec(st.time) || [0, '10', '30', 'AM'];
+  const d = new Date();
+  d.setDate(d.getDate() + (st.day - 20));
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p((+h % 12) + (ap === 'PM' ? 12 : 0))}:${m}:00+08:00`;
+}
+function book5() {
+  if (!st.api) return;
+  const now = st.when === 'now', a = addrA();
+  api5('POST', '/bookings', {
+    category: st.cat, service_type: SVC_TYPE5[st.tierA], booking_type: now ? 'on-demand' : 'scheduled', ...(now ? {} : { scheduled_for: realTime5() }),
+    address: `${a.short}, ${a.t}`.slice(0, 200), problem: [...st.symptomsA, st.descA.trim()].filter(Boolean).join('; ').slice(0, 300), price_offer: offer5(),
+  }).then(({ booking }) => {
+    st.bid = booking.id;
+    sync5();
+  }).catch((e) => {
+    if (e.offline) return;
+    if (e.code === 'UNAUTHENTICATED') {
+      saveToken5(null);
+      go('a-login', { reset: true });
+      return toast('Please log in again');
+    }
+    if (st.screen === 'a-finding') {
+      clearTimers();
+      go('a-confirm', { replace: true });
+    }
+    toast((e.fields && Object.values(e.fields)[0]) || e.message || 'Could not send the request');
+  });
+}
+function unbook5() {
+  const id = st.bid;
+  st.bid = null;
+  if (st.api && id) api5('PATCH', `/bookings/${id}/cancel`).catch(() => {}).finally(sync5);
+}
+function sync5() {
+  if (!st.api) return;
+  api5('GET', '/bookings').then(({ bookings }) => {
+    st.srv = bookings;
+    if (is5() && st.screen === 'a-history' && !st.sheet) render();
+  }).catch(() => {});
+}
+// Bookings tab: requests saved on the server, with their contract status. Statuses only move when the
+// aide side (Team 2) updates them, so a request stays "Requested" here while the prototype simulates the visit.
+const CHIP5 = { Requested: 'pending', 'Pending Confirmation': 'pending', Accepted: 'confirmed', Confirmed: 'confirmed', 'In Progress': 'onway', Completed: 'paid', Declined: 'declined', Cancelled: 'declined' };
+const OPEN5 = ['Requested', 'Pending Confirmation', 'Accepted', 'Confirmed'];
+const srvRow5 = (b) => {
+  const c = Object.hasOwn(CATS, b.category) ? CATS[b.category] : null;
+  const when = b.scheduled_for ? new Date(b.scheduled_for).toLocaleString('en-PH', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'On-demand';
+  return `<div class="listrow f5srow">${ic(c ? c.icon : 'wrench')}<div class="grow"><b>${esc(c ? c.name : b.category)}, ${esc(SVC_LABEL5[b.service_type] || b.service_type)}</b><small>${esc(when)}${b.price_offer != null ? ` • ${peso(b.price_offer)}` : ''}</small>
+    <span style="display:block;margin-top:6px"><span class="f4chip ${CHIP5[b.status] || 'pending'}">${esc(b.status)}</span></span></div>
+    ${OPEN5.includes(b.status) ? `<button class="f5cxl" data-act="sheet" data-arg="cancelSrv5" data-arg2="${esc(b.id)}">Cancel</button>` : ''}</div>`;
+};
+SHEETS.cancelSrv5 = () => `<h3>Cancel this request?</h3><p class="sub">It's free until your Manong starts the job.</p>
+  <div class="stack"><button class="btn danger" data-act="cancelSrv5" data-arg="${esc(st.sheet.arg2)}">Cancel request</button><button class="btn secondary" data-act="closeSheet">Keep it</button></div>`;
+const hist5 = S['a-history'], acct5 = S['a-account'], thanks5 = S['a-thanks'];
+S['a-history'] = () => {
+  const h = hist5();
+  if (!is5() || !st.srv || !st.srv.length) return h;
+  const up = st.bkTabF === 'up', rows = st.srv.filter((b) => OPEN5.includes(b.status) === up);
+  if (!rows.length) return h;
+  return h.replace('<div class="scroll" style="padding:8px 16px 20px">', `<div class="scroll" style="padding:8px 16px 20px"><div class="f5srv"><h3 class="f4cap" style="margin:6px 4px 8px">${up ? 'Your requests' : 'Closed requests'}</h3><div class="list">${rows.map(srvRow5).join('')}</div></div>`);
+};
+// The signed-in resident's details replace the sample profile.
+const me5 = (h) => {
+  const u = is5() && st.user;
+  if (!u) return h;
+  const first = esc(u.full_name.split(' ')[0]), ini = esc(u.full_name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase());
+  return h.replace('<span class="f4av">ES</span>', `<span class="f4av">${ini}</span>`).replace('<h1>Enzo Santos</h1>', `<h1>${esc(u.full_name)}</h1>`)
+    .replace('0917 555 0142 · enzo@email.com', `${esc(u.mobile_number)} · ${esc(u.email)}`).replace('Salamat, Enzo', `Salamat, ${first}`).replace('enzo@email.com', esc(u.email));
+};
+S['a-account'] = () => me5(acct5());
+S['a-thanks'] = () => me5(thanks5());
+const afterHist5 = AFTER['a-history'];
+AFTER['a-history'] = () => {
+  if (afterHist5) afterHist5();
+  if (is5()) sync5();
+};
 
 // ---------- timers and live text ----------
 Object.assign(LIVE, { f5t: () => st.f5t, f5pct: () => Math.round((st.f5t / 30) * 100) + '%', f5exp: () => st.f5exp });
