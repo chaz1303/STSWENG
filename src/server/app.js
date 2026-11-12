@@ -17,6 +17,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PROTOTYPE_DIR = fileURLToPath(new URL('../../prototype', import.meta.url));
 // Compared against when the account doesn't exist, so a wrong number takes as long as a wrong password.
 const DUMMY_HASH = hashPassword('no such resident');
+const TOO_MANY = 'Too many attempts. Please wait a few minutes and try again.';
 
 const fail = (res, status, code, message, fields) =>
   res.status(status).json({ error: { code, message, ...(fields && { fields }) } });
@@ -25,7 +26,8 @@ const publicResident = (r) => ({
   email: r.email,
   mobile_number: r.mobile_number,
   full_name: r.full_name,
-  email_verified: Boolean(r.email_verified_at),
+  is_verified_email: Boolean(r.is_verified_email),
+  is_verified_number: Boolean(r.is_verified_number),
 });
 function jwtSecret() {
   const s = process.env.JWT_SECRET;
@@ -33,33 +35,42 @@ function jwtSecret() {
   return s;
 }
 
-// Fixed-window limit per IP for the sign-in routes: scrypt is slow on purpose, so unlimited tries
-// would let one client tie up the server or guess passwords (open item 18).
+// Fixed-window counter per key (open item 18). Used per IP for the sign-in routes, and per account
+// for wrong passwords, so guessing one account's password is slow even from many addresses.
 // shortcut: counts in memory, so it resets on restart and isn't shared between instances. Move it to
 // the database or the host's limiter when the app runs on more than one instance.
-function rateLimit(max, windowMs) {
+function counter(max, windowMs) {
   const hits = new Map();
-  return (req, res, next) => {
-    const now = Date.now();
-    if (hits.size > 5000) for (const [k, v] of hits) if (v.reset <= now) hits.delete(k);
-    const h = hits.get(req.ip);
-    if (!h || h.reset <= now) hits.set(req.ip, { n: 1, reset: now + windowMs });
-    else if (++h.n > max) {
-      res.set('Retry-After', String(Math.ceil((h.reset - now) / 1000)));
-      return fail(
-        res,
-        429,
-        'TOO_MANY_REQUESTS',
-        'Too many attempts. Please wait a few minutes and try again.',
-      );
-    }
-    next();
+  return {
+    // Seconds left in the window once `max` is reached, else 0.
+    wait(key) {
+      const h = hits.get(key),
+        now = Date.now();
+      return h && h.reset > now && h.n >= max ? Math.ceil((h.reset - now) / 1000) : 0;
+    },
+    add(key) {
+      const now = Date.now();
+      if (hits.size > 5000) for (const [k, v] of hits) if (v.reset <= now) hits.delete(k);
+      const h = hits.get(key);
+      if (!h || h.reset <= now) hits.set(key, { n: 1, reset: now + windowMs });
+      else h.n++;
+    },
+    clear: (key) => hits.delete(key),
   };
 }
+const tooMany = (res, seconds) => {
+  res.set('Retry-After', String(seconds));
+  return fail(res, 429, 'TOO_MANY_REQUESTS', TOO_MANY);
+};
 
 // `store` and `secret` can be replaced in tests. The default store reaches the database lazily, so
 // routes that don't need it (health, the static prototype) work without DATABASE_URL.
-export function createApp({ store = pgStore(getDb), secret = jwtSecret, authLimit = 30 } = {}) {
+export function createApp({
+  store = pgStore(getDb),
+  secret = jwtSecret,
+  authLimit = 30,
+  loginFailLimit = 5,
+} = {}) {
   const app = express();
   app.set('trust proxy', 1); // one proxy in front on the host, so req.ip is the client's address
   app.disable('x-powered-by');
@@ -96,18 +107,30 @@ export function createApp({ store = pgStore(getDb), secret = jwtSecret, authLimi
   });
 
   const auth = express.Router();
-  auth.use(rateLimit(authLimit, 10 * 60 * 1000));
+  const perIp = counter(authLimit, 10 * 60 * 1000);
+  // 5 wrong passwords for one email or number lock it for 15 minutes. Unknown accounts count the same
+  // way, so the lock doesn't reveal which accounts exist.
+  const perAccount = counter(loginFailLimit, 15 * 60 * 1000);
+  auth.use((req, res, next) => {
+    const wait = perIp.wait(req.ip);
+    if (wait) return tooMany(res, wait);
+    perIp.add(req.ip);
+    next();
+  });
   auth.post('/register', async (req, res) => {
     const { value, fields } = validateRegister(req.body);
     if (fields)
       return fail(res, 400, 'VALIDATION_ERROR', 'Please check the highlighted fields.', fields);
     const { password, ...rest } = value;
     try {
+      // shortcut: no email or SMS service yet (open items 15, 24), so new accounts are marked verified
+      // on both. Set these to false once the verification links and codes are sent.
       const resident = await store.createResident({
         ...rest,
-        password_hash: hashPassword(password),
+        password_hash: await hashPassword(password),
+        is_verified_email: true,
+        is_verified_number: true,
       });
-      // Soft verification (open item 3): the account works at once. No email is sent yet (item 15).
       res
         .status(201)
         .json({ token: signToken(resident.id, secret()), resident: publicResident(resident) });
@@ -123,8 +146,16 @@ export function createApp({ store = pgStore(getDb), secret = jwtSecret, authLimi
     const { value, fields } = validateLogin(req.body);
     if (fields)
       return fail(res, 400, 'VALIDATION_ERROR', 'Please check the highlighted fields.', fields);
+    const account = value.email ?? value.mobile_number;
+    const wait = perAccount.wait(account);
+    if (wait) return tooMany(res, wait);
     const resident = await store.findResidentForLogin(value);
-    const ok = verifyPassword(value.password, resident ? resident.password_hash : DUMMY_HASH);
+    const ok = await verifyPassword(
+      value.password,
+      resident ? resident.password_hash : await DUMMY_HASH,
+    );
+    if (ok) perAccount.clear(account);
+    else perAccount.add(account);
     if (!resident || !ok)
       return fail(
         res,
