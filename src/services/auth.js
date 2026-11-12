@@ -1,20 +1,24 @@
 // Sign-up and log-in rules (U01). Pure functions: no database, no Express.
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+import { promisify } from 'node:util';
 
 const b64 = (v) => Buffer.from(v).toString('base64url');
 const SCRYPT = { N: 16384, r: 8, p: 1 };
+// Async on purpose: scryptSync blocked the whole server during every log-in, so a burst of attempts
+// stalled everyone. Hashing is one-way: a password can be checked, never recovered.
+const scryptAsync = promisify(scrypt);
 
-export function hashPassword(password) {
+export async function hashPassword(password) {
   const salt = randomBytes(16);
-  const hash = scryptSync(password, salt, 64, SCRYPT);
+  const hash = await scryptAsync(password, salt, 64, SCRYPT);
   return `scrypt$${salt.toString('base64url')}$${hash.toString('base64url')}`;
 }
 
-export function verifyPassword(password, stored) {
+export async function verifyPassword(password, stored) {
   const [scheme, salt, hash] = String(stored).split('$');
   if (scheme !== 'scrypt' || !salt || !hash) return false;
   const want = Buffer.from(hash, 'base64url');
-  const got = scryptSync(String(password), Buffer.from(salt, 'base64url'), 64, SCRYPT);
+  const got = await scryptAsync(String(password), Buffer.from(salt, 'base64url'), 64, SCRYPT);
   return want.length === got.length && timingSafeEqual(want, got);
 }
 

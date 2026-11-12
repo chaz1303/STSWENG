@@ -48,7 +48,9 @@ describe('POST /api/auth/register', () => {
       email: 'juan@example.com',
       mobile_number: '+639171234567',
       full_name: 'Juan Dela Cruz',
-      email_verified: false,
+      // Placeholder until email and SMS verification exist (open items 15, 24).
+      is_verified_email: true,
+      is_verified_number: true,
     });
     expect(res.body.token.split('.')).toHaveLength(3);
     expect(JSON.stringify(res.body)).not.toMatch(/password|scrypt/);
@@ -115,6 +117,22 @@ describe('POST /api/auth/login', () => {
         ).status,
       );
     expect(tries).toEqual([401, 401, 401, 429]);
+  });
+  it('locks one account after 5 wrong passwords, even with the right one next', async () => {
+    const wrong = () => login({ mobile_number: juan.mobile_number, password: 'Wrong#123' });
+    for (let i = 0; i < 5; i++) expect((await wrong()).status).toBe(401);
+    const locked = await login({ mobile_number: '+639171234567', password: juan.password });
+    expect([locked.status, locked.body.error.code]).toEqual([429, 'TOO_MANY_REQUESTS']);
+    expect(Number(locked.headers['retry-after'])).toBeGreaterThan(0);
+    // Other accounts are not affected.
+    await register(maria);
+    expect((await login({ email: maria.email, password: maria.password })).status).toBe(200);
+  });
+  it('clears the failure count after a successful log-in', async () => {
+    const wrong = () => login({ email: juan.email, password: 'Wrong#123' });
+    for (let i = 0; i < 4; i++) await wrong();
+    expect((await login({ email: juan.email, password: juan.password })).status).toBe(200);
+    for (let i = 0; i < 4; i++) expect((await wrong()).status).toBe(401);
   });
 });
 

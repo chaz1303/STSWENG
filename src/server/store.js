@@ -1,6 +1,6 @@
 // SQL for residents and bookings. Every query is parameterised. The app talks to this object only,
 // so tests can swap in an in-memory store with the same methods (tests/helpers/memoryStore.js).
-const RESIDENT = 'id, email, mobile_number, full_name, email_verified_at';
+const RESIDENT = 'id, email, mobile_number, full_name, is_verified_email, is_verified_number';
 const BOOKING =
   'id, category, service_type, booking_type, status, scheduled_for, address, problem, price_offer, created_at, updated_at';
 
@@ -11,11 +11,19 @@ export function pgStore(getDb) {
     // Throws { taken: 'email' | 'mobile_number' } when the unique check fails.
     // The live table has a required, unique `username` column that the U01 spec doesn't have (ICM open
     // item 33). Nothing collects a username yet, so it is filled with the mobile number.
-    async createResident({ email, mobile_number, password_hash, full_name }) {
+    async createResident({
+      email,
+      mobile_number,
+      password_hash,
+      full_name,
+      is_verified_email = false,
+      is_verified_number = false,
+    }) {
       try {
         const rows = await q(
-          `INSERT INTO residents (email, mobile_number, password_hash, full_name, username) VALUES ($1, $2::text, $3, $4, $2::text) RETURNING ${RESIDENT}`,
-          [email, mobile_number, password_hash, full_name],
+          `INSERT INTO residents (email, mobile_number, password_hash, full_name, username, is_verified_email, is_verified_number)
+           VALUES ($1, $2::text, $3, $4, $2::text, $5, $6) RETURNING ${RESIDENT}`,
+          [email, mobile_number, password_hash, full_name, is_verified_email, is_verified_number],
         );
         return rows[0];
       } catch (e) {

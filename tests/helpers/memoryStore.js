@@ -18,7 +18,7 @@ export function memoryStore() {
       for (const k of ['email', 'mobile_number'])
         if (residents.some((x) => x[k] === r[k]))
           throw Object.assign(new Error('duplicate'), { taken: k });
-      const row = { id: randomUUID(), email_verified_at: null, ...r };
+      const row = { id: randomUUID(), is_verified_email: false, is_verified_number: false, ...r };
       residents.push(row);
       return pub(row);
     },

@@ -19,17 +19,17 @@ const good = {
 };
 
 describe('passwords', () => {
-  it('verifies the right password and rejects the wrong one', () => {
-    const hash = hashPassword('Secret#123');
+  it('verifies the right password and rejects the wrong one', async () => {
+    const hash = await hashPassword('Secret#123');
     expect(hash).not.toContain('Secret#123');
-    expect(verifyPassword('Secret#123', hash)).toBe(true);
-    expect(verifyPassword('Secret#124', hash)).toBe(false);
+    expect(await verifyPassword('Secret#123', hash)).toBe(true);
+    expect(await verifyPassword('Secret#124', hash)).toBe(false);
   });
-  it('salts each hash', () =>
-    expect(hashPassword('Secret#123')).not.toBe(hashPassword('Secret#123')));
-  it('rejects a stored value it does not understand', () => {
-    expect(verifyPassword('x', 'plaintext')).toBe(false);
-    expect(verifyPassword('x', undefined)).toBe(false);
+  it('salts each hash', async () =>
+    expect(await hashPassword('Secret#123')).not.toBe(await hashPassword('Secret#123')));
+  it('rejects a stored value it does not understand', async () => {
+    expect(await verifyPassword('x', 'plaintext')).toBe(false);
+    expect(await verifyPassword('x', undefined)).toBe(false);
   });
 });
 
