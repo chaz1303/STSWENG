@@ -1,7 +1,7 @@
 // Service worker for the prototype: keeps the app shell available offline.
 // Network first, so a new deploy shows up on the next load; the cache is only the offline fallback.
 // Requests to /api/ are never touched or cached.
-const CACHE = 'mj-shell-v1';
+const CACHE = 'mj-shell-v2';
 const SHELL = ['./', 'index.html', 'styles.css', 'flow5.css', 'app.js', 'full.js', 'flow5.js', 'manifest.webmanifest', 'assets/png/icon-192.png', 'assets/png/icon-512.png'];
 
 self.addEventListener('install', (e) => {

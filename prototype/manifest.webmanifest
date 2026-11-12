@@ -2,7 +2,7 @@
   "name": "Mang Juan",
   "short_name": "Mang Juan",
   "description": "Book a trusted Manong for home repairs, cleaning, locks and moving.",
-  "start_url": "./?app#f5/a-welcome",
+  "start_url": "./#f5/a-welcome",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

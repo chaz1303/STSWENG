@@ -66,6 +66,18 @@ export function createApp({ store = pgStore(getDb), secret = jwtSecret, authLimi
   app.use(express.json({ limit: '20kb' }));
 
   app.get('/api/health', (req, res) => res.json({ status: 'ok' }));
+  // Says whether the database answers. On failure it gives the driver's error code only (for example
+  // ENETUNREACH or 28P01), never the message, which can hold the host name.
+  app.get('/api/health/db', async (req, res) => {
+    try {
+      await store.ping();
+      res.json({ status: 'ok' });
+    } catch (e) {
+      res
+        .status(503)
+        .json({ status: 'down', code: String(e.code ?? e.name ?? 'UNKNOWN').slice(0, 40) });
+    }
+  });
 
   const auth = express.Router();
   auth.use(rateLimit(authLimit, 10 * 60 * 1000));
