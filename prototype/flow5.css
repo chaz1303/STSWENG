@@ -1,0 +1,363 @@
+/* Flow 5: Figma replica. Values come from the Figma file's design context (node ids in flow5.js / FLOW5_GAPS.md).
+   Everything is scoped to .f5 (the phone gets that class while Flow 5 is open), so Flows 1 to 4 are untouched. */
+.f5 { --pjs: 'Plus Jakarta Sans', system-ui, sans-serif; --ari: Arimo, Arial, Helvetica, sans-serif; --int: Inter, system-ui, sans-serif; }
+.f5 img { max-width: none; }
+.f5 button:disabled { opacity: 0.45; cursor: default; }
+
+/* ---------- welcome / log in (frames 14:1100, 1:21) ---------- */
+.f5 .f5auth { position: absolute; inset: 0; background: #ffd230; font-family: var(--pjs); overflow: hidden; }
+.f5 .f5auth ~ .homebar { background: #fff; }
+.f5 .f5logo { position: absolute; width: 323px; height: 224px; object-fit: cover; pointer-events: none; }
+.f5 .f5head { position: absolute; top: 135px; left: 18px; right: 15px; text-align: center; }
+.f5 .f5head h2 { margin: 0; font-size: 24px; line-height: 33px; font-weight: 800; letter-spacing: -0.6px; color: #111827; }
+.f5 .f5head h2 u { color: #d97706; text-decoration: underline 1px #d97706; text-underline-position: from-font; }
+.f5 .f5head p { margin: 8px 0 0; font-size: 12px; line-height: 19.5px; font-weight: 500; color: #4b5563; }
+.f5 .f5glow { position: absolute; left: 87px; top: 292px; width: 208px; height: 208px; border-radius: 50%; background: rgba(252, 211, 77, 0.4); filter: blur(40px); }
+.f5 .f5hc { position: absolute; display: flex; align-items: center; padding: 11px; border-radius: 16px; background: rgba(255, 255, 255, 0.95); border: 1px solid #f3f4f6; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05); }
+.f5 .f5hc .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05); }
+.f5 .f5hc > span:last-child { padding: 0 4px 0 10px; display: flex; flex-direction: column; }
+.f5 .f5hc b { font-size: 12px; line-height: 15px; font-weight: 700; color: #111827; white-space: nowrap; display: flex; align-items: center; }
+.f5 .f5hc b i { width: 6px; height: 6px; border-radius: 50%; background: #10b981; margin-left: 4px; }
+.f5 .f5hc small { font-size: 10px; line-height: 15px; font-weight: 500; color: #6b7280; white-space: nowrap; }
+.f5 .f5hc em { font-style: normal; font-weight: 600; }
+.f5 .f5hc em.g { color: #059669; }
+.f5 .f5hc em.a { color: #b45309; }
+.f5 .f5hc.c1 { left: 39px; top: 305.5px; }
+.f5 .f5hc.c1 .ic { background: #eff6ff; }
+.f5 .f5hc.c2 { right: 37px; top: 369px; }
+.f5 .f5hc.c2 .ic { background: #fffbeb; }
+.f5 .f5hc.c3 { left: 59px; top: 433.5px; border-color: rgba(253, 230, 138, 0.7); box-shadow: 0 14px 35px rgba(244, 180, 0, 0.18); }
+.f5 .f5hc.c3 .ic { background: #ecfeff; }
+.f5 .f5hc.c3 > span:last-child { padding: 0 8px 0 12px; }
+.f5 .f5top { position: absolute; right: 72px; top: 287.5px; padding: 3px 11px; border-radius: 999px; background: #fbbf24; border: 1px solid #fff; font-size: 9px; line-height: 13.5px; font-weight: 800; letter-spacing: 0.45px; color: #030712; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); }
+.f5 .f5pill { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; padding: 5px 11px; border-radius: 999px; background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(229, 231, 235, 0.9); font-size: 11px; line-height: 16.5px; font-weight: 700; color: #1f2937; white-space: nowrap; }
+.f5 .f5pill > span { font: 400 12px/16px var(--int); margin-right: 6px; }
+.f5 .f5pill img { width: 14px; height: 14px; margin: 1px 6px 1px 2px; }
+.f5 .f5pill.p1 { left: 113.7px; top: 531.25px; }
+.f5 .f5pill.p2 { left: 179px; top: 563.5px; }
+.f5 .f5pill.p3 { left: 252px; top: 531.5px; }
+.f5 .f5proof { position: absolute; top: 587px; left: 0; right: 0; margin: 0; display: flex; justify-content: center; align-items: center; gap: 4px; font-size: 11px; line-height: 16.5px; font-weight: 500; color: #6b7280; }
+.f5 .f5proof b { color: #1f2937; font-weight: 700; }
+.f5 .f5wfoot { position: absolute; top: 615px; left: 17px; right: 16px; padding-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.f5 .f5start { position: relative; height: 45px; border-radius: 16px; background: #fbbf24; border-top: 1px solid #fde68a; box-shadow: 0 10px 25px -5px rgba(255, 202, 40, 0.4); display: flex; align-items: center; justify-content: center; font: 800 15px/22.5px var(--pjs); letter-spacing: -0.375px; color: #030712; }
+.f5 .f5start i { position: absolute; right: 24px; top: 10px; width: 24px; height: 24px; border-radius: 50%; background: rgba(0, 0, 0, 0.1); display: grid; place-items: center; }
+.f5 .f5have { height: 34px; border-radius: 16px; background: #fff; border: 1px solid #e5e7eb; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); font: 700 14px/20px var(--pjs); letter-spacing: -0.35px; color: #111827; }
+.f5 .f5guest { padding: 8px 0 2px; font: 600 12px/16px var(--pjs); color: #6b7280; text-decoration: underline; text-underline-position: from-font; }
+.f5 .f5legal { margin: 0; padding: 4px 16px 0; text-align: center; font-size: 10px; line-height: 12.5px; color: #9ca3af; }
+.f5 .f5legal button { font: 500 10px/12.5px var(--pjs); color: #4b5563; text-decoration: underline; text-underline-position: from-font; }
+
+.f5 .f5form { position: absolute; top: 260px; left: 16px; right: 17px; display: flex; flex-direction: column; font-family: var(--ari); }
+.f5 .f5form label { padding-left: 2px; font-size: 12px; line-height: 16px; font-weight: 700; color: #262626; }
+.f5 .f5in { position: relative; margin-top: 6px; height: 48px; border-radius: 12px; background: #f4f4f6; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); display: flex; align-items: center; }
+.f5 .f5in input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; outline: 0; padding: 0 16px 0 77px; font: 400 14px var(--ari); color: #171717; }
+.f5 .f5in.pw input { padding: 0 44px 0 16px; }
+.f5 .f5in input::placeholder { color: #a3a3a3; }
+.f5 .f5in:focus-within { box-shadow: 0 0 0 2px #181a1f; }
+.f5 .f5cc { position: absolute; left: 11px; top: 5px; width: 57.38px; height: 38px; border-radius: 32px; background: #efeeeb; font: 700 13px/18px var(--pjs); letter-spacing: -0.325px; color: #1a1c1a; text-align: left; padding-left: 12px; }
+.f5 .f5cc img { position: absolute; left: 41.38px; top: 16.5px; }
+.f5 .f5in.pw button { position: absolute; right: 14px; top: 10px; padding: 4px; display: grid; }
+.f5 .f5in.pw button svg { width: 20px; height: 20px; }
+.f5 .f5forgot { display: flex; justify-content: flex-end; padding-top: 10px; }
+.f5 .f5forgot button { font: 700 12px/16px var(--ari); color: #171717; }
+.f5 .f5err2 { margin: 6px 0 -6px 2px; font: 700 12px/16px var(--ari); color: #b91c1c; }
+.f5 .f5login { margin-top: 16px; height: 52px; border-radius: 999px; background: #181a1f; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1); font: 700 16px/24px var(--ari); letter-spacing: 0.4px; color: #fff; }
+.f5 .f5alt { position: absolute; top: 527px; left: 16px; right: 17px; height: 139px; font-family: var(--ari); }
+.f5 .f5or { position: absolute; top: 8px; left: 0; right: 0; border-top: 1px solid rgba(64, 64, 64, 0.2); text-align: center; }
+.f5 .f5or span { position: relative; top: -9px; display: inline-block; background: #ffd230; padding: 0 12px; font-size: 12px; line-height: 16px; color: #404040; }
+.f5 .f5soc { position: absolute; top: 29px; left: 0; right: 0; display: flex; gap: 14px; }
+.f5 .f5soc button, .f5 .f5apple { flex: 1; height: 48px; border-radius: 999px; background: #fff; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 14px/20px var(--ari); color: #262626; }
+.f5 .f5apple { position: absolute; top: 91px; left: 84px; width: 174px; flex: none; gap: 10px; border: 1px solid rgba(212, 196, 173, 0.4); font-size: 13px; line-height: 18px; color: #1a1c1a; }
+.f5 .f5new { position: absolute; top: 754px; left: 16px; width: 342px; margin: 0; text-align: center; font: 400 12px/16px var(--ari); color: #171717; }
+.f5 .f5new button { font: 700 12px/16px var(--ari); text-decoration: underline; text-underline-position: from-font; color: #171717; }
+
+/* ---------- sign-up with OTP (frames 24:1863, 24:2351, 22:144) ---------- */
+.f5 .f5otp { font-family: var(--int); color: #000; }
+.f5 .f5bk { position: absolute; left: 20px; top: 47px; width: 35px; height: 35px; display: grid; place-items: center; }
+.f5 .f5ttl0 { position: absolute; top: 55px; left: 0; right: 0; margin: 0; text-align: center; font: 600 16px/19px var(--int); }
+.f5 .f5lab0 { position: absolute; top: 144px; left: 18px; margin: 0; font-size: 16px; line-height: 19px; }
+.f5 .f5ccbox { position: absolute; left: 20px; top: 181px; width: 71px; height: 45px; }
+.f5 .f5ccbox .bg { position: absolute; left: -4px; top: 0; width: 79px; height: 53px; }
+.f5 .f5ccbox .flag { position: absolute; left: 5px; top: 13px; }
+.f5 .f5ccbox span { position: absolute; left: 34px; top: 14px; font-size: 16px; line-height: 19px; }
+.f5 .f5num { position: absolute; left: 108px; top: 181px; width: 247px; height: 45px; border-radius: 12px; background: rgba(255, 255, 255, 0.5); box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25); display: flex; align-items: center; padding: 0 14px 0 16px; font-size: 16px; }
+.f5 .f5num span { flex: 1; }
+.f5 .f5num .ph { color: rgba(0, 0, 0, 0.35); order: 2; }
+.f5 .f5num .caret { width: 1px; height: 22px; background: #555; margin-right: 1px; animation: f5blink 1s steps(1) infinite; }
+.f5 .f5num button { display: grid; }
+@keyframes f5blink { 50% { opacity: 0; } }
+.f5 .f5err { position: absolute; left: 20px; top: 242px; margin: 0; font-size: 16px; line-height: 19px; color: #e0192d; }
+.f5 .f5sms { position: absolute; top: 428px; left: 0; right: 0; margin: 0; text-align: center; font-size: 16px; line-height: 19px; }
+.f5 .f5next { position: absolute; left: 20px; top: 461px; width: 335px; height: 50px; border-radius: 12px; background: #222; box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05); font: 400 20px var(--int); color: #fff; }
+.f5 .f5next.off { opacity: 0.7; }
+.f5 .f5keys { position: absolute; left: 0; right: 0; top: 545px; height: 267px; background: #d1d3d9; padding: 6px 6px 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 46px; gap: 7px 5px; align-content: start; }
+.f5 .f5keys button { position: relative; border-radius: 4.6px; background: #fff; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3); font-family: -apple-system, Inter, system-ui, sans-serif; color: #000; }
+.f5 .f5keys button:active { background: #b9bcc5; }
+.f5 .f5keys b { position: absolute; left: 0; right: 0; top: 2px; font-size: 25px; line-height: 26px; font-weight: 400; letter-spacing: 0.29px; }
+.f5 .f5keys b:only-child { top: 10px; }
+.f5 .f5keys small { position: absolute; left: 0; right: 0; top: 29px; font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: 2px; padding-left: 2px; }
+.f5 .f5keys .del { background: none; box-shadow: none; display: grid; place-items: center; }
+.f5 .f5keys .del img { width: 100%; height: 100%; }
+.f5 .f5sent { position: absolute; left: 20px; top: 106px; width: 340px; margin: 0; font-size: 14px; line-height: 17px; }
+.f5 .f5boxes { position: absolute; left: 15px; top: 235px; width: 345px; display: flex; gap: 3px; }
+.f5 .f5boxes span { flex: 1; height: 55px; border-radius: 10px; background: rgba(255, 255, 255, 0.75); box-shadow: 0 4px 4px rgba(0, 0, 0, 0.18); display: grid; place-items: center; font-size: 24px; }
+.f5 .f5boxes .cur::after { content: ''; width: 1px; height: 24px; background: #222; animation: f5blink 1s steps(1) infinite; }
+.f5 .f5exp { position: absolute; left: 22px; top: 400px; margin: 0; font-size: 16px; line-height: 23px; }
+.f5 .f5exp button { font: 700 16px/23px var(--int); }
+.f5 .f5reg { position: absolute; top: 120px; left: 20px; right: 20px; display: flex; flex-direction: column; }
+.f5 .f5reg label { font-size: 16px; line-height: 19px; margin: 14px 0 8px -2px; }
+.f5 .f5reg input { height: 45px; border: 0; outline: 0; border-radius: 12px; background: rgba(255, 255, 255, 0.5); box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25); padding: 0 16px; font: 400 16px var(--int); }
+.f5 .f5reg input:focus { background: rgba(255, 255, 255, 0.8); }
+
+/* ---------- booking chrome shared by the new frames ---------- */
+/* Canopy is 144px tall in the booking frames. The two scheduled frames are Flow 4 captures and keep its taller canopy. */
+.f5:not([data-s='a-pending']):not([data-s='a-declined']) .canopy { height: 144px; padding: 44px 19px 10px 42px; background: #ffc72c; box-shadow: 0 8px 24px rgba(255, 199, 44, 0.22); overflow: hidden; }
+.f5:not([data-s='a-pending']):not([data-s='a-declined']) .canopy::after { content: ''; position: absolute; right: -32px; bottom: -40px; width: 160px; height: 160px; border-radius: 50%; background: rgba(119, 90, 0, 0.1); filter: blur(20px); pointer-events: none; }
+.f5:not([data-s='a-pending']):not([data-s='a-declined']) .canopy .row { margin-left: -24px; position: relative; z-index: 1; }
+.f5:not([data-s='a-pending']):not([data-s='a-declined']) .canopy h1 { margin: 5px 0 2px; font-weight: 700; line-height: 25px; color: #251a00; position: relative; z-index: 1; }
+.f5:not([data-s='a-pending']):not([data-s='a-declined']) .canopy p { line-height: 16px; color: #5a4300; position: relative; z-index: 1; white-space: nowrap; }
+.f5:not([data-s='a-pending']):not([data-s='a-declined']) .catpill { height: 23px; padding: 0 12px; background: rgba(255, 255, 255, 0.8); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); font-size: 11px; font-weight: 700; letter-spacing: 0.55px; color: #251a00; }
+.f5:not([data-s='a-pending']):not([data-s='a-declined']) .catpill svg { width: 12px; height: 12px; }
+/* The booking frames draw the clock inside a dark pill. */
+.f5:is([data-s='a-service'], [data-s='a-details'], [data-s='a-confirm'], [data-s='a-finding'], [data-s='a-found'], [data-s='a-summary'], [data-s='a-cancelled']) .statusbar > span:first-child { background: #1a1c1c; color: #fff; width: 54px; height: 21px; border-radius: 24px; text-align: center; line-height: 21px; letter-spacing: -0.32px; margin-left: -4px; }
+.f5 .afoot.f5foot { border-radius: 0; padding: 14px 14px 22px; gap: 10px; box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06); }
+.f5 .afoot.f5foot .abtn { height: 48px; font-size: 16px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+.f5 .afoot.f5foot .small { margin: 0 0 2px; font-size: 11px; }
+.f5 .afoot.f5sub { padding: 8px 12px 26px; gap: 0; }
+.f5 .afoot.f5sub .abtn { height: 50px; font-size: 15px; }
+.f5[data-s='a-service'] .body { padding: 8px 20px 20px; gap: 11px; }
+
+.f5 .f5card { background: #fff; border-radius: 16px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); font-family: var(--pjs); }
+.f5 .f5card small, .f5 .f5pay > small { font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.55px; text-transform: uppercase; color: #504533; display: block; }
+.f5 .f5map { position: absolute; left: 10px; top: 154px; width: 356px; height: 194px; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+.f5 .f5map.inflow { position: relative; left: 0; top: 0; flex: none; }
+.f5 .f5map .m { position: absolute; left: -83px; top: -199px; width: 507px; height: 614px; }
+.f5 .f5map .r { position: absolute; left: 89px; top: 6px; width: 192px; height: 192px; }
+.f5 .f5map .ring { position: absolute; left: 121px; top: 38px; width: 128px; height: 128px; border-radius: 50%; background: rgba(255, 199, 44, 0.4); animation: f5ping 2.4s ease-out infinite; }
+@keyframes f5ping { 0% { transform: scale(0.85); } 60% { transform: scale(1.12); } 100% { transform: scale(0.85); } }
+.f5 .f5map .mpin { position: absolute; left: 163px; top: 80px; width: 44px; height: 44px; border-radius: 50%; background: #ffc72c; padding: 4px; filter: drop-shadow(0 4px 8px rgba(119, 90, 0, 0.35)); }
+.f5 .f5map .mpin::after { content: ''; position: absolute; left: 17px; bottom: -4px; width: 10px; height: 10px; background: #ffc72c; transform: rotate(45deg); z-index: -1; }
+.f5 .f5map .mpin span { width: 100%; height: 100%; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+.f5 .f5map .tag { position: absolute; left: 18px; top: 17px; display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); font: 600 13px/18px var(--pjs); color: #1a1c1a; }
+@media (prefers-reduced-motion: reduce) { .f5 .f5map .ring { animation: none; } }
+
+/* ---------- confirm your booking (frames 3333:3641, 3330:1579) ---------- */
+.f5 .f5sheet { position: absolute; left: 0; right: 0; top: 306px; bottom: 0; background: #fff; border-radius: 28px 28px 0 0; filter: drop-shadow(0 -8px 16px rgba(0, 0, 0, 0.08)); display: flex; flex-direction: column; padding-top: 12px; }
+.f5 .f5sheet .grab { flex: none; width: 40px; height: 6px; border-radius: 999px; background: #e2e2e2; margin: 0 auto 16px; }
+.f5 .f5sheet .scroll { padding: 10px 9px 27px 8px; display: flex; flex-direction: column; gap: 10px; background: linear-gradient(#fff 0, #fff 200px, #f9f9f9 260px); }
+.f5 .f5sheet .scroll > * { flex: none; }
+.f5 .f5sum { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 14px; }
+.f5 .f5sum hr { margin: 0; border: 0; height: 1px; background: #e9e8e5; }
+.f5 .f5sum .row { display: flex; align-items: center; gap: 10px; }
+.f5 .f5sum .row.top { align-items: flex-start; }
+.f5 .f5sum .ic { flex: none; width: 32px; height: 32px; border-radius: 50%; background: #efeeeb; display: grid; place-items: center; }
+.f5 .f5sum .row.top .ic { margin-top: 2px; }
+.f5 .f5sum .grow { flex: 1; min-width: 0; }
+.f5 .f5sum b { display: block; font-size: 13px; line-height: 18px; font-weight: 600; color: #1a1c1a; }
+.f5 .f5sum b.big { font-size: 15px; line-height: 20px; }
+.f5 .f5sum p { margin: 2px 0 0; font-size: 12px; line-height: 16px; color: #504533; }
+.f5 .f5sum .ver { flex: none; margin: 0 7px 0 0; }
+.f5 .f5sum .ed { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; }
+.f5 .f5sum .gate { display: inline-flex; align-items: center; gap: 6px; margin-top: 4px; padding: 4px 10px; border-radius: 32px; background: #efeeeb; font-size: 12px; line-height: 16px; color: #504533; }
+.f5 .f5fare { margin-top: 12px; padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.f5 .f5fare .hd { display: flex; justify-content: space-between; align-items: center; }
+.f5 .f5fare .hd p { margin: 0; font-size: 12px; line-height: 16px; color: #504533; }
+.f5 .f5fare .rate { width: 120px; display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: #ffdea4; font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.44px; color: #261900; }
+.f5 .f5fare .step { display: flex; align-items: center; justify-content: space-between; padding: 8px; border-radius: 48px; background: #f4f3f0; }
+.f5 .f5fare .step button { width: 44px; height: 44px; border-radius: 32px; background: #fff; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); display: grid; place-items: center; }
+.f5 .f5fare .step div { text-align: center; }
+.f5 .f5fare .step b { display: block; font-size: 28px; line-height: 34px; font-weight: 800; letter-spacing: -0.56px; color: #1a1c1a; }
+.f5 .f5fare .step small { text-transform: none; letter-spacing: 0.44px; }
+.f5 .f5fare .chips { display: flex; gap: 8px; padding-top: 4px; }
+.f5 .f5fare .chips button { flex: 1; padding: 6px 0; border-radius: 32px; background: #efeeeb; font: 600 13px/18px var(--pjs); color: #1a1c1a; }
+.f5 .f5fare .chips button.on { background: #2f312f; color: #f2f1ee; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); }
+.f5 .f5pay { padding: 16px; display: flex; flex-direction: column; gap: 10px; margin-top: 11px; }
+.f5 .f5pay .opts2 { display: flex; gap: 10px; }
+.f5 .f5pay .opts2 button { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 48px; background: #faf9f6; text-align: left; font-family: var(--pjs); }
+.f5 .f5pay .opts2 button.on { background: #f4f3f0; }
+.f5 .f5pay .opts2 i { flex: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 1px solid #767676; display: grid; place-items: center; }
+.f5 .f5pay .opts2 .on i { border-color: #7b5900; }
+.f5 .f5pay .opts2 .on i::after { content: ''; width: 9.6px; height: 9.6px; border-radius: 50%; background: #7b5900; }
+.f5 .f5pay .opts2 b { display: block; font-size: 13px; line-height: 18px; font-weight: 600; color: #1a1c1a; white-space: nowrap; }
+.f5 .f5pay .opts2 small { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0; text-transform: none; white-space: nowrap; }
+.f5 .f5note { display: flex; align-items: flex-start; gap: 10px; padding: 15px 8px 0; font-family: var(--pjs); }
+.f5 .f5note img { flex: none; }
+.f5 .f5note p { margin: 0; font-size: 12px; line-height: 16px; color: #504533; }
+.f5 .f5cta { position: absolute; left: 15px; right: 16px; bottom: 27px; z-index: 5; font-family: var(--pjs); }
+.f5 .f5cta button, .f5 .f5go { width: 100%; height: 48px; border-radius: 999px; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2)); display: flex; align-items: center; justify-content: center; font: 700 15px/24px var(--pjs); }
+.f5 .f5sheet .f5go { width: 344px; margin: 1px 0 0 7px; }
+.f5 .f5go { background: #212121; color: #f1f1f1; gap: 8px; }
+.f5 .f5go span { width: 171px; text-align: center; margin-left: 2px; }
+.f5 .f5go b { font-size: 18px; color: #ffc72c; }
+.f5 .f5stop { background: #e8e8e8; color: #1a1c1c; gap: 10px; }
+.f5 .f5stop span { width: 171px; text-align: center; margin-right: 26px; }
+
+/* ---------- find your Manong (frames 3333:2153, 3333:2577) ---------- */
+.f5 .f5find { margin-top: -12px; padding: 17px 9px 110px 10px; display: flex; flex-direction: column; gap: 10px; font-family: var(--pjs); background: #f9f9f9; }
+.f5 .f5find > * { flex: none; }
+.f5 .f5status { margin-top: -24px; position: relative; z-index: 1; padding: 12px; display: flex; align-items: center; gap: 8px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+.f5 .f5status > i { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #7b5900; box-shadow: 0 0 0 0 rgba(247, 185, 40, 0.75); animation: f5dot 1.4s ease-out infinite; }
+@keyframes f5dot { to { box-shadow: 0 0 0 8px rgba(247, 185, 40, 0); } }
+.f5 .f5status > b { flex: 1; max-width: 168px; font-size: 13px; line-height: 18px; font-weight: 600; color: #1a1c1a; }
+.f5 .f5status > span { margin-left: auto; width: 134px; display: flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 999px; background: #efeeeb; }
+.f5 .f5status > span small { width: 72px; text-transform: none; letter-spacing: 0.44px; }
+.f5 .f5status > span b { font-size: 13px; line-height: 18px; font-weight: 700; color: #7b5900; }
+.f5 .f5count { background: #fff; border-radius: 48px; padding: 12px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); display: flex; flex-direction: column; gap: 8px; }
+.f5 .f5count > div:first-child { display: flex; justify-content: space-between; align-items: center; }
+.f5 .f5count span { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; line-height: 18px; font-weight: 600; color: #5f5e5e; }
+.f5 .f5count span span span { display: inline; }
+.f5 .f5count em { display: inline-flex; align-items: center; gap: 4px; font-style: normal; font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.44px; color: #ab3425; }
+.f5 .f5count .bar { height: 6px; border-radius: 999px; background: #efeeeb; overflow: hidden; }
+.f5 .f5count .bar i { display: block; height: 100%; border-radius: 999px; background: #f7b928; transform-origin: left; transition: transform 0.9s linear; }
+.f5 .f5oh { display: flex; justify-content: center; align-items: center; gap: 8px; padding-top: 4px; margin-bottom: -7px; }
+.f5 .f5oh h2 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; color: #1a1c1a; }
+.f5 .f5oh span { padding: 2px 8px; border-radius: 999px; background: #ffdea4; font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.44px; color: #261900; }
+.f5 .f5wait { margin: 8px 0; padding: 22px 24px; border-radius: 16px; background: #fff; text-align: center; font-size: 13px; line-height: 18px; color: #5f5e5e; }
+.f5 .f5offer { position: relative; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 12px; filter: none; box-shadow: 0 2px 12px rgba(30, 30, 30, 0.06); animation: f5in 0.3s ease-out; }
+.f5 .f5offer.ctr { box-shadow: 0 2px 8px rgba(30, 30, 30, 0.04); margin-top: 2px; }
+@keyframes f5in { from { opacity: 0; transform: translateY(8px); } }
+.f5 .f5offer .match { position: absolute; right: 0; top: 0; display: flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: 0 0 0 48px; background: #f7b928; font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.44px; color: #694b00; }
+.f5 .f5offer .who { display: flex; gap: 12px; align-items: flex-start; }
+.f5 .f5offer:not(.ctr) .who { padding-top: 8px; }
+.f5 .f5offer:not(.ctr) .who .grow { padding-right: 64px; }
+.f5 .f5offer .ph { position: relative; flex: none; width: 56px; height: 56px; }
+.f5 .f5offer .ph .vb { position: absolute; right: -6px; bottom: -7px; }
+.f5 .f5offer .grow { flex: 1; min-width: 0; }
+.f5 .f5offer .nm { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.f5 .f5offer h3 { margin: 0; font-size: 18px; line-height: 24px; font-weight: 700; color: #1a1c1a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.f5 .f5offer .tagc { flex: none; padding: 2px 8px; border-radius: 999px; background: #e9e8e5; font-size: 11px; line-height: 14px; font-weight: 700; letter-spacing: 0.44px; color: #504533; }
+.f5 .f5offer .who small { text-transform: none; letter-spacing: 0.44px; color: #5f5e5e; }
+.f5 .f5offer .who p { margin: 0; padding-top: 6px; display: flex; align-items: center; gap: 2px; font-size: 12px; line-height: 16px; color: #5f5e5e; }
+.f5 .f5offer .who p b { font-size: 13px; line-height: 18px; font-weight: 800; color: #1a1c1a; }
+.f5 .f5offer .who p > span:nth-of-type(2) { margin: 0 12px 0 10px; }
+.f5 .f5offer .who p .eta { margin-left: 2px; font-size: 13px; line-height: 18px; font-weight: 600; }
+.f5 .f5offer .oprice { display: flex; align-items: center; gap: 6px; padding: 14px 12px 8px; border-radius: 48px; background: #f4f3f0; }
+.f5 .f5offer .oprice span { flex: 1; font-size: 13px; line-height: 18px; font-weight: 600; color: #1a1c1a; }
+.f5 .f5offer .oprice b { font-size: 22px; line-height: 28px; font-weight: 800; letter-spacing: -0.22px; color: #1a1c1a; padding-bottom: 1px; }
+.f5 .f5offer .acts { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; height: 48px; }
+.f5 .f5offer .acts .no { border-radius: 999px; background: #efeeeb; display: grid; place-items: center; }
+.f5 .f5offer .acts .yes { grid-column: span 4; border-radius: 999px; background: #f7b928; filter: drop-shadow(0 4px 7px rgba(247, 185, 40, 0.35)); display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 15px/20px var(--pjs); color: #694b00; }
+.f5 .f5offer.ctr .acts .yes { grid-column: span 5; filter: none; }
+.f5 .f5raise { margin-top: 10px; background: #f4f3f0; border-radius: 16px; padding: 16px; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); display: flex; flex-direction: column; gap: 8px; }
+.f5 .f5raise .hd { display: flex; align-items: center; gap: 8px; }
+.f5 .f5raise h4 { margin: 0; font-size: 15px; line-height: 20px; font-weight: 600; color: #1a1c1a; }
+.f5 .f5raise .hd p { margin: 0; font-size: 12px; line-height: 16px; color: #5f5e5e; white-space: nowrap; }
+.f5 .f5raise .pills { display: flex; gap: 8px; padding-top: 4px; }
+.f5 .f5raise .pills button { width: 74px; height: 38px; border-radius: 48px; background: #fff; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); display: grid; place-items: center; font: 700 13px/18px var(--pjs); color: #7b5900; }
+.f5 .f5raise .pills button.on { background: #ffdf99; color: #251a00; }
+.f5 .f5raise .new { margin: 0; height: 39px; display: flex; align-items: center; gap: 12px; padding-left: 38px; font-size: 13px; line-height: 19.5px; color: #504533; }
+.f5 .f5raise .new span { width: 76px; }
+.f5 .f5raise .new b { font-size: 14px; line-height: 21px; font-weight: 700; color: #7b5900; }
+.f5 .f5raise .new em { font-style: normal; padding: 2px 6px; border-radius: 16px; background: #e9e8e5; font-size: 11px; line-height: 16.5px; color: #5f5e5e; }
+.f5 .f5raise .upd { height: 48px; border-radius: 999px; background: #694b00; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); display: flex; align-items: center; justify-content: center; gap: 8px; font: 700 15px/22.5px var(--pjs); color: #f1f1f1; }
+.f5 .f5raise .upd span:first-of-type { margin: 0 34px 0 38px; }
+.f5 .f5warr { display: flex; align-items: center; gap: 12px; padding: 5px 14px; text-align: left; width: 100%; }
+.f5 .f5warr .ic { flex: none; width: 40px; height: 40px; border-radius: 50%; background: #e2dfde; display: grid; place-items: center; }
+.f5 .f5warr .grow { flex: 1; min-width: 0; }
+.f5 .f5warr b { display: block; font-size: 13px; line-height: 18px; font-weight: 600; color: #1a1c1a; }
+.f5 .f5warr small { font-size: 12px; line-height: 16px; font-weight: 400; letter-spacing: 0; text-transform: none; color: #5f5e5e; }
+
+/* ---------- live tracking (frame 3333:4007): Flow 4 sheet over the Figma map card ---------- */
+.f5[data-s='a-found'] .bsheet { max-height: 465px !important; border-radius: 28px 28px 0 0; padding: 12px 12px 34px; }
+.f5[data-s='a-found'] .etapill { white-space: nowrap; flex: none; }
+
+/* ---------- order summary (frames 3225:3766, 3333:4637) and cancelled (3333:4635, 3333:4633) ---------- */
+.f5 .f5cx { gap: 10px; padding: 10px 9px 20px; font-family: var(--pjs); }
+.f5 .f5cx .status-pill { background: rgba(255, 199, 44, 0.2); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); padding: 6px 14px; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: 0.35px; color: #1a1c1c; }
+.f5 .f5rc { background: #fff; border: 1px solid #f5f5f5; border-radius: 16px; padding: 17px; filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.05)); }
+.f5 .f5rc .top { display: flex; align-items: flex-start; padding-bottom: 13px; border-bottom: 1px solid #f3f4f6; }
+.f5 .f5rc .top .ic { flex: none; width: 36px; height: 36px; border-radius: 12px; background: #f3f4f6; display: grid; place-items: center; margin-top: 2px; }
+.f5 .f5rc .top .grow { flex: 1; padding-left: 10px; }
+.f5 .f5rc .top .grow b { display: block; font-size: 14px; line-height: 17.5px; font-weight: 700; letter-spacing: -0.35px; color: #111827; }
+.f5 .f5rc .top .grow small { font-size: 11px; line-height: 16.5px; font-weight: 500; color: #9ca3af; }
+.f5 .f5rc .amt { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.f5 .f5rc .amt b { font-size: 20px; line-height: 28px; font-weight: 800; letter-spacing: -0.5px; color: #171717; }
+.f5 .f5rc .amt span { padding: 2px 6px; border-radius: 6px; background: #dcfce7; font-size: 10px; line-height: 15px; font-weight: 700; letter-spacing: 0.5px; color: #15803d; }
+.f5 .f5rc dl { margin: 0; padding: 12px 0 16px; display: flex; flex-direction: column; gap: 8px; }
+.f5 .f5rc dl div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.f5 .f5rc dt { font-size: 12px; line-height: 16px; color: #6b7280; white-space: nowrap; }
+.f5 .f5rc dd { margin: 0; font-size: 12px; line-height: 16px; font-weight: 500; color: #374151; text-align: right; }
+.f5 .f5rc dd.s { font-weight: 600; color: #1f2937; }
+.f5 .f5rc dd.b { font-weight: 700; color: #171717; }
+.f5 .f5rc dd.blue { font-weight: 600; color: #2563eb; }
+.f5 .f5rc .waived { padding: 2px 6px; border-radius: 4px; background: #ecfdf5; font-weight: 600; color: #059669; }
+.f5 .f5rc dl .why { align-items: flex-start; padding-top: 9px; border-top: 1px dashed #f3f4f6; }
+.f5 .f5rc .why dt { color: #9ca3af; }
+.f5 .f5rc .why dd { max-width: 180px; font-size: 11px; color: #404040; }
+.f5 .f5rc .dl { width: 100%; padding: 14.5px 0 6px; border-top: 1px solid #f3f4f6; display: flex; justify-content: center; align-items: center; gap: 6px; font: 600 12px/16px var(--pjs); color: #404040; }
+.f5 .f5rc.mid { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.f5 .f5rc .av { position: relative; width: 64px; height: 64px; border-radius: 50%; border: 2px solid #fcd34d; background: #fff; padding: 4px; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); }
+.f5 .f5rc .av i { position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%; background: #525252; border: 2px solid #fff; display: grid; place-items: center; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+.f5 .f5rc .nm { padding-top: 6px; font-size: 14px; line-height: 20px; font-weight: 700; letter-spacing: -0.35px; color: #111827; }
+.f5 .f5rc .meta { margin: 0; padding-bottom: 12px; display: flex; align-items: center; gap: 6px; font-size: 11px; line-height: 16.5px; color: #6b7280; }
+.f5 .f5rc .rt { display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px; border-radius: 999px; background: #f3f4f6; font-size: 10px; line-height: 15px; font-weight: 500; color: #374151; }
+.f5 .f5rc .wallet { align-self: stretch; display: flex; align-items: flex-start; gap: 8px; padding: 13px; border-radius: 12px; background: #fafafa; border: 1px solid #f5f5f5; }
+.f5 .f5rc .wallet img { flex: none; margin-top: 2px; }
+.f5 .f5rc .wallet p { margin: 0; font-size: 11px; line-height: 17.88px; color: #4b5563; }
+.f5 .f5rc .wallet b { font-weight: 600; color: #1f2937; }
+.f5 .f5rc .wallet mark { padding: 0 4px; border-radius: 4px; background: #fffbeb; font-weight: 700; color: #b45309; }
+.f5 .f5rc .help { margin: 0; padding-top: 17px; font-size: 11px; line-height: 16.5px; font-weight: 600; color: #374151; }
+.f5 .f5rc .sup { margin-top: 4px; padding-bottom: 2px; display: flex; align-items: center; gap: 6px; font: 600 12px/16px var(--pjs); color: #2563eb; }
+.f5 .f5cfoot { flex: none; background: #fff; border-top: 1px solid #f3f4f6; padding: 13px 20px 26px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06); font-family: var(--pjs); }
+.f5 .f5cfoot .again { padding: 12px 16px; border-radius: 12px; background: #f7b928; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.05)); display: flex; justify-content: center; align-items: center; gap: 8px; font: 700 14px/20px var(--pjs); letter-spacing: -0.35px; color: #171717; }
+.f5 .f5cfoot .hm { padding: 10px 16px; border-radius: 12px; background: #f5f5f5; font: 600 12px/16px var(--pjs); letter-spacing: -0.3px; color: #404040; }
+
+/* ---------- Flow 1 components at the sizes the Figma booking frames use (3202:746, 3202:1858, 3225:3766) ---------- */
+.f5[data-s='a-service'] .body > .card:first-child { padding: 15px; height: 70px; }
+.f5 .tier { min-height: 133px; padding: 13px 16px 10px 18px; border-radius: 16px; }
+.f5 .tier .t b { font-size: 17px; line-height: 24px; font-weight: 600; color: #1a1c1c; }
+.f5 .tier .dur { padding: 2px 8px; background: #eee; font-size: 11px; line-height: 14px; font-weight: 500; color: #4f4633; }
+.f5 .tier .dur svg { width: 10px; height: 10px; }
+.f5 .tier p { margin: 6px 0 0; font-size: 12px; line-height: 16px; color: #4f4633; }
+.f5 .tier .badge { height: 22px; margin-top: 8px; padding: 2px 10px; background: #ffc72c; font-size: 10px; font-weight: 700; letter-spacing: 0.25px; color: #6f5400; }
+.f5 .tier .price b { font-size: 17px; line-height: 24px; font-weight: 600; color: #1a1c1c; }
+.f5 .tier .price { font-size: 11px; color: #5f5e5e; }
+.f5 .tier .price small { font-size: 10px; color: rgba(95, 94, 94, 0.85); }
+.f5 .tier .aradio { width: 24px; height: 24px; background: #eee; border: 0; }
+.f5 .tier.on .aradio { background: #1a1c1c; }
+.f5[data-s='a-details'] .body { padding: 10px 12.5px 20px; gap: 10px; }
+.f5[data-s='a-details'] .card, .f5[data-s='a-summary'] .card { padding: 10px 16px; box-shadow: none; filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.06)); }
+.f5 .sectitle { gap: 8px; font-size: 15px; line-height: 20px; font-weight: 600; color: #1a1c1c; }
+.f5 .sectitle .num { width: 24px; height: 24px; background: #ffdf99; font-size: 12px; font-weight: 700; color: #251a00; }
+.f5 .abox { padding: 14px; border-radius: 12px; background: #f3f3f3; font-size: 14px; line-height: 20px; color: #1a1c1c; }
+.f5[data-s='a-details'] .abox { height: 48px; min-height: 48px; }
+.f5 .cnt, .f5 .hint { font-size: 11px; line-height: 14px; font-weight: 500; color: #5f5e5e; }
+.f5 .achips { gap: 8px 6px; }
+.f5 .achip { padding: 6px 12px; background: #e8e8e8; font-size: 13px; line-height: 18px; font-weight: 600; color: #1a1c1c; }
+.f5 .achip.on:not(.y) { background: #1a1c1c; color: #fff; }
+.f5 .afoot.f5foot { padding: 15px 15.5px 30px; }
+.f5 .afoot.f5foot .abtn { font-weight: 600; }
+.f5 .ahead2 { padding-top: 44px; }
+.f5 .status-pill { background: rgba(255, 199, 44, 0.2); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); padding: 6px 14px; gap: 6px; font-size: 14px; line-height: 20px; font-weight: 600; letter-spacing: 0.35px; color: #1a1c1c; }
+.f5[data-s='a-summary'] [data-act='receipt'] { font-size: 14px; }
+.f5 .afoot.f5sub { padding-top: 15px; }
+.f5[data-s='a-found'] .etapill { font-size: 13px; padding: 5px 10px; }
+.f5 .tier .aradio { right: 16px; top: 13px; }
+.f5 .tier p { margin: 6px 0 8px; }
+.f5 .tier .badge { margin-top: 0; }
+.f5 .tier .badge + .price { margin-top: -4px; }
+.f5 .tier p + .price { margin-top: 2px; }
+.f5 .tier .price small { line-height: 12px; }
+.f5[data-s='a-service'] .addr b { text-overflow: clip; }
+.f5 .achip { height: 30px; min-height: 0; border: 0; }
+.f5 .ptile { font-size: 11px; font-weight: 600; }
+.f5[data-s='a-summary'] .card { padding: 20px; }
+.f5[data-s='a-summary'] .achips { gap: 10px 6px; }
+.f5[data-s='a-found'] .abar { margin-bottom: 18px; }
+.f5[data-s='a-summary'] .small { font-size: 14px; line-height: 18px; }
+
+/* ---------- Bookings tab: requests saved on the server ---------- */
+.f5 .f5srv + .f4empty { display: none; }
+.f5 .f5srv { margin-bottom: 12px; }
+.f5 .f5srow { cursor: default; align-items: flex-start; }
+.f5 .f5srow > svg { flex: none; width: 28px; height: 28px; margin-top: 2px; }
+.f5 .f5cxl { flex: none; align-self: center; min-height: 44px; padding: 0 14px; border-radius: 999px; background: #f3f3f3; font-size: 13px; font-weight: 600; color: #b42318; }
+.f5 .f5login:disabled, .f5 .f5next:disabled { opacity: 0.7; }
+
+/* ---------- installed app (html.app is set in flow5.js): the phone frame is the whole screen ---------- */
+html.app, html.app body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #ffc72c; }
+html.app body { display: block; }
+html.app .panel, html.app .flow-badge, html.app .frame-name { display: none; }
+html.app .stage { display: block; padding: 0; margin: 0; }
+html.app .phone { position: absolute; left: 50%; top: 0; margin-left: -187.5px; border-radius: 0; box-shadow: none; transform-origin: top center; transform: scale(var(--fit, 1)); }
+/* The device draws its own status bar and home indicator. */
+html.app .notch, html.app .statusbar, html.app .homebar { display: none; }
