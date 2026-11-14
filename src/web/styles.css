@@ -356,6 +356,7 @@ svg.i.fill {
 
 /* toast */
 .toast {
+  pointer-events: none; /* it stays in the page after fading out, over the sheet buttons */
   position: absolute;
   left: 50%;
   bottom: 110px;

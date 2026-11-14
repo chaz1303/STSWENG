@@ -27,6 +27,7 @@ const BOOKING_COLS = [
   'review',
   'tip',
   'reviewed_at',
+  'cancel_reason',
   'created_at',
   'updated_at',
 ];
@@ -362,10 +363,12 @@ export function pgStore(getDb) {
       ]);
     },
     // Changes the status only if it is still one of `from`, so two requests can't both win.
-    setBookingStatus(residentId, id, from, to) {
+    // cancelReason is saved only when given (the resident's cancel).
+    setBookingStatus(residentId, id, from, to, cancelReason = null) {
       return one(
-        `UPDATE bookings SET status = $4, updated_at = now() WHERE id = $1 AND resident_id = $2 AND status = ANY($3) RETURNING ${BOOKING}`,
-        [id, residentId, from, to],
+        `UPDATE bookings SET status = $4, cancel_reason = COALESCE($5, cancel_reason), updated_at = now()
+         WHERE id = $1 AND resident_id = $2 AND status = ANY($3) RETURNING ${BOOKING}`,
+        [id, residentId, from, to, cancelReason],
       );
     },
 

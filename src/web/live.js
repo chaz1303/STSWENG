@@ -22,7 +22,12 @@ if (APP5) {
 
   // ---------- state with no sample data ----------
   const freshLive = fresh;
-  fresh = (v) => (v === 'f5' ? Object.assign(freshLive(v), DEMO_OFF) : freshLive(v));
+  fresh = (v) => {
+    if (v !== 'f5') return freshLive(v);
+    // Logout calls fresh(): the next person on this device must not see the last resident's units.
+    ADDRESSES.splice(0, ADDRESSES.length, NO_UNIT);
+    return Object.assign(freshLive(v), DEMO_OFF);
+  };
   if (st.variant === 'f5') Object.assign(st, DEMO_OFF);
 
   // ---------- small helpers ----------
@@ -40,12 +45,15 @@ if (APP5) {
   };
   const total5 = () => agreed5() + approved5().reduce((a, c) => a + c.amount, 0) + (+st.tip || 0);
   const openOffers5 = () => (st.live ? st.live.offers.filter((o) => o.status === 'open') : []);
+  // The prototype's templates drop these strings into HTML unescaped, so no tags may get through.
+  const plain = (s) => String(s ?? '').replace(/[<>]/g, '');
 
   // A Manong row from the database, in the shape the prototype's screens draw.
   function manong5(a) {
     if (!a) return null;
-    const m = { key: a.id, name: a.full_name, first: first5(a.full_name), ini: a.full_name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase(),
-      img: '', skills: a.skills, /* initials only, no profile photos */ rating: Number(a.rating).toFixed(1), jobs: a.jobs_count, vehicle: a.vehicle };
+    const name = plain(a.full_name);
+    const m = { key: a.id, name, first: first5(name), ini: name.split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase(),
+      img: '', skills: plain(a.skills), /* initials only, no profile photos */ rating: Number(a.rating).toFixed(1), jobs: a.jobs_count, vehicle: plain(a.vehicle) };
     MANONGS[m.key] = m;
     return m;
   }
@@ -72,6 +80,21 @@ if (APP5) {
   };
   for (let n = 20; n <= 80; n++) DAY_LONG[n] = WD[dateOfKey(n).getDay()];
   DAYS_F.forEach((x, i) => (x[0] = i === 0 ? 'Today' : WD[dateOfKey(x[1]).getDay()]));
+  // Time slots from the real clock: only times at least 30 minutes from now (the prototype's "today"
+  // list was fixed at 3 PM onward).
+  const slotAt = (day, t) => {
+    const [, h, m, ap] = /^(\d+):(\d+) (AM|PM)$/.exec(t);
+    const d = dateOfKey(day);
+    d.setHours((+h % 12) + (ap === 'PM' ? 12 : 0), +m);
+    return d;
+  };
+  slotsF = (day) => TIMES.filter((t) => slotAt(day, t) - Date.now() > 30 * 60 * 1000);
+  // Plumbing kept the prototype's own tier copy and durations; use the contract durations (U06) and
+  // the plumbing wording, like every other service.
+  for (const [k, c] of [['quick', 'q'], ['standard', 's'], ['major', 'm']]) {
+    const d = CAT3.plumbing.tiers[c].desc.replace(/^e\.g\. /, '');
+    Object.assign(TIERS_PLUMB5[k], { dur: dur3('plumbing', c), desc: d.charAt(0).toUpperCase() + d.slice(1) });
+  }
   const keyOfDate = (iso) => {
     const d = new Date(iso);
     d.setHours(0, 0, 0, 0);
@@ -94,6 +117,12 @@ if (APP5) {
       b.dataset.act = 'time';
       b.dataset.arg = b.textContent;
     });
+    // Late in the day nothing is left today: today can't be picked.
+    if (!slotsF(20).length)
+      phone.querySelectorAll('.f4date[data-arg="20"]').forEach((b) => {
+        b.disabled = true;
+        delete b.dataset.act;
+      });
   }
   const renderLive = render;
   render = (c) => {
@@ -132,9 +161,12 @@ if (APP5) {
   }
   function applyUnits(units) {
     st.units = units;
-    const rows = units.map((u) => ({ id: u.id, t: [u.building, u.tower].filter(Boolean).join(', '),
-      s: [`Unit ${u.unit_number}`, u.floor && `Floor ${u.floor}`, u.tower, u.building, u.street, u.city].filter(Boolean).join(', '),
-      short: [`Unit ${u.unit_number}`, u.tower].filter(Boolean).join(', '), notes: u.notes }));
+    const rows = units.map((x) => {
+      const u = Object.fromEntries(Object.entries(x).map(([k, v]) => [k, typeof v === 'string' ? plain(v) : v]));
+      return { id: u.id, t: [u.building, u.tower].filter(Boolean).join(', '),
+        s: [`Unit ${u.unit_number}`, u.floor && `Floor ${u.floor}`, u.tower, u.building, u.street, u.city].filter(Boolean).join(', '),
+        short: [`Unit ${u.unit_number}`, u.tower].filter(Boolean).join(', '), notes: u.notes };
+    });
     ADDRESSES.splice(0, ADDRESSES.length, ...(rows.length ? rows : [NO_UNIT]));
     const keep = ADDRESSES.findIndex((a) => a.id && a.id === st.unit5);
     st.addrA = keep >= 0 ? keep : Math.max(0, units.findIndex((u) => u.is_default));
@@ -146,6 +178,7 @@ if (APP5) {
       id: ref5(b.id), cat: CATS[b.category] ? b.category : 'repairs', tier: TIER_OF[b.service_type],
       title: `${CATS[b.category] ? CATS[b.category].name : b.category} on ${MON[new Date(b.created_at).getMonth()]} ${new Date(b.created_at).getDate()}`,
       manong: manong5(b.aide), total: (b.agreed_price ?? b.price_offer ?? b.base_price ?? 0) + (b.charges_total || 0) + (b.tip || 0),
+      agreed: b.agreed_price ?? b.price_offer ?? b.base_price ?? 0, extras: b.charges_total || 0, tip: b.tip || 0, pay: b.payment_method,
     }));
   }
   // Signed in: units, bookings and the open booking. flow5.js calls sync5 after log-in and on Bookings.
@@ -209,7 +242,8 @@ if (APP5) {
     }
     const newOffers = openOffers5().length; // st.live is already d here
     const oldOffers = prev.offers.filter((o) => o.status === 'open').length;
-    if (newOffers > oldOffers && st.screen !== 'a-finding') say(`New offer for your ${CATS[b.category] ? CATS[b.category].name.toLowerCase() : ''} request`, 'a-history');
+    // Offers that only reopened because the booked Manong backed out aren't new.
+    if (newOffers > oldOffers && !(a.aide_id && !b.aide_id) && st.screen !== 'a-finding') say(`New offer for your ${CATS[b.category] ? CATS[b.category].name.toLowerCase() : ''} request`, 'a-history');
     const theirs = (x) => x.messages.filter((y) => y.sender === 'aide');
     if (theirs(d).length > theirs(prev).length && !(st.sheet && st.sheet.type === 'chat')) {
       const last = theirs(d)[theirs(d).length - 1];
@@ -308,6 +342,18 @@ if (APP5) {
   };
   const qrLive = SHEETS.qr;
   SHEETS.qr = (s) => qrLive(s).replace(/MJ-8821/g, ref5(st.bid));
+  // Chat: the server takes up to 500 characters.
+  const chatLive = SHEETS.chat;
+  SHEETS.chat = (s) => chatLive(s).replace('<input name="m"', '<input name="m" maxlength="500"');
+  // Past job receipt: what was actually paid, line by line, with that booking's payment method.
+  SHEETS.receiptF = () => {
+    const i = +st.sheet.arg2 || 0, p = st.past[i];
+    if (!p) return '<h3>Receipt not found</h3><button class="btn secondary" data-act="closeSheet">Close</button>';
+    const row = (k, v) => `<div><span>${k}</span><span>${v}</span></div>`;
+    return `<h3>${esc(CATS[p.cat].name)}, ${esc(TIERS_A[p.tier].name.toLowerCase())}</h3><p class="sub">${p.id} • ${esc(p.title.replace(/^.* on /, ''))} • ${esc(p.manong.name)}</p>
+  <div class="greybox kv" style="margin-bottom:16px">${row('Agreed price', peso(p.agreed))}${p.extras ? row('Extra charges', peso(p.extras)) : ''}${p.tip ? row('Tip', peso(p.tip)) : ''}${row('Paid', `<b>${peso(p.total)}</b>`)}${row('Payment', p.pay === 'gcash' ? 'GCash' : 'Cash')}</div>
+  <div class="stack"><button class="btn primary" data-act="rebookF" data-arg="${i}">Book ${esc(p.manong.first)} again</button><button class="btn secondary" data-act="closeSheet">Close</button></div>`;
+  };
 
   // Scheduled and confirmed: real request time.
   const pendingLive = S['a-pending'];
@@ -339,7 +385,9 @@ if (APP5) {
   const histLive = S['a-history'];
   S['a-history'] = () => {
     const keep = st.srv;
-    st.srv = (st.srv || []).filter((b) => b.id !== st.bid && !(b.status === 'Completed' && b.reviewed_at));
+    // Rows show the agreed price once a Manong was booked, not the first offer.
+    st.srv = (st.srv || []).filter((b) => b.id !== st.bid && !(b.status === 'Completed' && b.reviewed_at))
+      .map((b) => ({ ...b, price_offer: b.agreed_price ?? b.price_offer }));
     try {
       return histLive();
     } finally {
@@ -404,9 +452,9 @@ if (APP5) {
     });
   };
   unbook5 = () => {
-    const id = st.bid;
-    Object.assign(st, { bid: null, live: null, fb: null, pickManong: null });
-    if (id) api5('PATCH', `/bookings/${id}/cancel`).catch(err5).finally(sync5);
+    const id = st.bid, reason = st.cxReason5 || null;
+    Object.assign(st, { bid: null, live: null, fb: null, pickManong: null, cxReason5: null });
+    if (id) api5('PATCH', `/bookings/${id}/cancel`, { reason }).catch(err5).finally(sync5);
   };
   Object.assign(ACT, {
     social(n) {
@@ -477,6 +525,9 @@ if (APP5) {
     cancelF() {
       if (notCancellable5()) return;
       st.cx5 = { ref: ref5(st.bid), at: new Date() };
+      // The reason picked in the cancel sheet is saved with the booking (unbook5 sends it).
+      const r = st.sheet && st.sheet.reason;
+      st.cxReason5 = r != null && r >= 0 ? ['Plans changed', 'Fixed it myself', 'Booked the wrong time', 'Other'][r] : null;
       return ACT_LIVE.cancelF.call(ACT);
     },
     leaveFindF() {
@@ -565,9 +616,15 @@ if (APP5) {
       const t = String(text || '').trim();
       if (!t || !st.bid) return;
       if (!(st.live && st.live.aide)) return toast('Chat opens once you accept an offer');
-      st.chat.push({ me: true, t });
+      const mine = { me: true, t };
+      st.chat.push(mine);
       render();
-      api5('POST', `/bookings/${st.bid}/messages`, { body: t }).then(() => refresh5()).catch(err5);
+      api5('POST', `/bookings/${st.bid}/messages`, { body: t }).then(() => refresh5()).catch((e) => {
+        // Refused (too long, chat closed): take it back off the screen, then say why.
+        st.chat = st.chat.filter((m) => m !== mine);
+        rerender5();
+        err5(e);
+      });
     },
   });
 

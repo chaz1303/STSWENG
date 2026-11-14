@@ -204,6 +204,57 @@ describe('after a Manong is booked', () => {
   });
 });
 
+describe('offer rules, start date and cancel reason (marn, 2026-11-14)', () => {
+  it('lets a Manong offer only on his services, never below the resident', async () => {
+    const below = await aide('/offers', { aide_id: hal, price: 480 });
+    expect(below.body.error.fields.price).toMatch(/at least ₱500/);
+    const cleaning = (
+      await request(app)
+        .post('/api/bookings')
+        .set(as())
+        .send({ ...request1, category: 'cleaning', service_type: 'STANDARD', price_offer: 1200 })
+    ).body.booking;
+    const other = await request(app)
+      .post(`/api/mock-aide/bookings/${cleaning.id}/offers`)
+      .set({ 'X-Mock-Aide-Key': KEY })
+      .send({ aide_id: hal });
+    expect([other.status, other.body.error.code]).toEqual([409, 'NOT_YOUR_SERVICE']);
+  });
+  it("won't start a scheduled job days early unless the date is bypassed", async () => {
+    const at = new Date(Date.now() + 3 * 86400000).toISOString();
+    const sched = (
+      await request(app)
+        .post('/api/bookings')
+        .set(as())
+        .send({ ...request1, booking_type: 'scheduled', scheduled_for: at })
+    ).body.booking;
+    const asAide = (path, body, method = 'post') =>
+      request(app)
+        [method](`/api/mock-aide/bookings/${sched.id}${path}`)
+        .set({ 'X-Mock-Aide-Key': KEY })
+        .send(body);
+    const { offer } = (await asAide('/offers', { aide_id: hal })).body;
+    await request(app).post(`/api/bookings/${sched.id}/offers/${offer.id}/accept`).set(as());
+    const early = await asAide('/status', { aide_id: hal, status: S.IN_PROGRESS }, 'patch');
+    expect([early.status, early.body.error.code]).toEqual([409, 'TOO_EARLY']);
+    const bypass = await asAide(
+      '/status',
+      { aide_id: hal, status: S.IN_PROGRESS, bypass_date: true },
+      'patch',
+    );
+    expect(bypass.body.booking.status).toBe(S.IN_PROGRESS);
+  });
+  it('saves why the resident cancelled', async () => {
+    const cancel = (reason) =>
+      request(app).patch(`/api/bookings/${id}/cancel`).set(as()).send({ reason });
+    expect((await cancel('x'.repeat(201))).body.error.fields).toHaveProperty('reason');
+    expect((await cancel('Plans changed')).body.booking).toMatchObject({
+      status: S.CANCELLED,
+      cancel_reason: 'Plans changed',
+    });
+  });
+});
+
 describe('mock aide password', () => {
   it('locks the API without the right key, and stays locked when none is set', async () => {
     const list = (a, key) => {

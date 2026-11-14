@@ -236,12 +236,13 @@ export function memoryStore() {
       const b = bookings.find((x) => x.id === id && x.resident_id === resident_id);
       return b ? own(b) : null;
     },
-    async setBookingStatus(resident_id, id, from, to) {
+    async setBookingStatus(resident_id, id, from, to, cancelReason = null) {
       const b = bookings.find(
         (x) => x.id === id && x.resident_id === resident_id && from.includes(x.status),
       );
       if (!b) return null;
       b.status = to;
+      if (cancelReason) b.cancel_reason = cancelReason;
       return own(b);
     },
 

@@ -13,6 +13,10 @@ import {
 import { buildCatalog, CANCELLABLE, validateBooking } from '../services/bookings.js';
 import {
   billTotal,
+  checkOffer,
+  EARLY_START_MINUTES,
+  tooEarlyToStart,
+  validateCancelReason,
   validateCharge,
   validateMessage,
   validateOffer,
@@ -287,11 +291,14 @@ export function createApp({
     const { id } = req.params;
     const notFound = () => fail(res, 404, 'NOT_FOUND', 'Booking not found.');
     if (!UUID.test(id)) return notFound();
+    const { value, fields } = validateCancelReason(req.body);
+    if (fields) return badFields(res, fields);
     const booking = await store.setBookingStatus(
       req.residentId,
       id,
       CANCELLABLE,
       BOOKING_STATES.CANCELLED,
+      value.reason,
     );
     if (booking) return res.json({ booking });
     // Someone else's booking looks the same as a missing one.
@@ -429,6 +436,9 @@ export function createApp({
       const asked = booking.price_offer ?? booking.base_price;
       const price = value.price ?? asked;
       if (price == null) return badFields(res, { price: 'Name your price.' });
+      const problem = checkOffer(aide, booking, price);
+      if (problem?.code) return fail(res, 409, problem.code, problem.message);
+      if (problem) return badFields(res, { price: problem.field });
       const kind = price === asked ? 'accept' : 'counter';
       const offer = await store.aideMakeOffer(booking.id, aide.id, price, kind);
       if (!offer)
@@ -457,6 +467,14 @@ export function createApp({
         if (!aide) return;
         if (booking.aide_id !== aide.id) return notYours(res);
       }
+      // bypass_date lets testers start a scheduled job days early (this route is the mock aide only).
+      if (to === S.IN_PROGRESS && req.body?.bypass_date !== true && tooEarlyToStart(booking))
+        return fail(
+          res,
+          409,
+          'TOO_EARLY',
+          `This job is booked for ${new Date(booking.scheduled_for).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' })}. It can start ${EARLY_START_MINUTES} minutes before. Tick "Bypass the date" to start it now.`,
+        );
       const moved = await store.aideSetStatus(booking.id, booking.status, to);
       if (!moved) return fail(res, 409, 'STALE', 'The booking changed. Refresh and try again.');
       res.json({ booking: moved });

@@ -89,10 +89,13 @@ function controls(b, aide) {
   if (!aide) return '<p class="muted">Pick who you are acting as.</p>';
   if (OPEN.includes(b.status) && !b.aide_id) {
     const asked = b.price_offer ?? b.base_price;
+    // Offers only on your own services, never below the resident's price (the server checks too).
     const answer = mineOffer
       ? `<p>You offered <b>${peso(mineOffer.price)}</b> (${mineOffer.kind === 'accept' ? 'took their price' : 'counter'}), ${esc(mineOffer.status)}.</p>`
-      : `<div class="row">${asked != null ? btn('offer', `Accept ${peso(asked)}`) : ''}
-          <input type="number" min="0" step="10" data-key="${b.id}:counter" placeholder="₱" aria-label="Counter offer in pesos" />
+      : !aide.categories.includes(b.category)
+        ? `<p class="muted">Not one of your services (${esc(aide.categories.join(', '))}).</p>`
+        : `<div class="row">${asked != null ? btn('offer', `Accept ${peso(asked)}`) : ''}
+          <input type="number" min="${asked ?? 0}" step="10" data-key="${b.id}:counter" placeholder="₱${asked ?? ''}+" aria-label="Counter offer in pesos, at least the resident's price" />
           ${btn('counter', 'Counter', '')}</div>`;
     return `${answer}<div class="row">${btn('decline', 'Close: nobody can take it', 'warn')}</div>`;
   }
@@ -149,6 +152,7 @@ function card(b, aide) {
       <dt>Resident</dt><dd>${esc(b.resident_name)} · ${esc(b.resident_mobile)}</dd>
       <dt>Where</dt><dd>${esc(b.address)}${b.unit_notes ? `<br /><small>${esc(b.unit_notes)}</small>` : ''}</dd>
       <dt>When</dt><dd>${esc(when)}</dd>
+      ${b.cancel_reason ? `<dt>Cancel reason</dt><dd>${esc(b.cancel_reason)}</dd>` : ''}
       <dt>Problem</dt><dd>${esc(b.problem) || '—'}</dd>
       <dt>Symptoms</dt><dd>${esc((b.symptoms ?? []).join(', ')) || '—'}</dd>
       <dt>Duration</dt><dd>${esc(duration(b)) || '—'}</dd>
@@ -182,13 +186,24 @@ function render() {
   chat.forEach((c) => (c.scrollTop = c.scrollHeight));
 }
 
+// Messages stay readable: action results clear after 8 seconds; a failed refresh (wrong password,
+// offline) stays until a refresh works again.
+let sticky = false;
+let msgTimer;
+function say(text, keep = false) {
+  clearTimeout(msgTimer);
+  $('msg').textContent = text;
+  sticky = keep;
+  if (text && !keep) msgTimer = setTimeout(() => ($('msg').textContent = ''), 8000);
+}
+
 async function load() {
   try {
     last = (await api('GET', '/mock-aide/bookings')).bookings;
     render();
-    $('msg').textContent = '';
+    if (sticky) say('');
   } catch (e) {
-    $('msg').textContent = e.message;
+    say(e.message, true);
   }
 }
 
@@ -204,7 +219,11 @@ const ACTIONS = {
     { aide_status: 'on_the_way', eta_minutes: num(val(id, 'eta')) ?? 10 },
   ],
   arrived: (id) => ['PATCH', `/mock-aide/bookings/${id}/progress`, { aide_status: 'arrived' }],
-  start: (id) => ['PATCH', `/mock-aide/bookings/${id}/status`, { status: 'In Progress' }],
+  start: (id) => [
+    'PATCH',
+    `/mock-aide/bookings/${id}/status`,
+    { status: 'In Progress', bypass_date: $('bypass').checked },
+  ],
   done: (id) => ['PATCH', `/mock-aide/bookings/${id}/status`, { status: 'Completed' }],
   withdraw: (id) => ['POST', `/mock-aide/bookings/${id}/withdraw`, {}],
   charge: (id) => [
@@ -234,7 +253,7 @@ async function act(btnEl) {
     await api(method, path, { ...body, aide_id: $('aide').value });
     for (const k of CLEAR[name] ?? []) if (val(id, k)) val(id, k).value = '';
   } catch (err) {
-    $('msg').textContent = err.message;
+    say(err.message);
   }
   load();
 }
@@ -264,9 +283,9 @@ $('sweep').addEventListener('click', async () => {
   try {
     const { deleted } = await api('DELETE', '/mock-aide/bookings', { confirm: 'DELETE' });
     await load();
-    $('msg').textContent = `Deleted ${deleted} booking${deleted === 1 ? '' : 's'}.`;
+    say(`Deleted ${deleted} booking${deleted === 1 ? '' : 's'}.`);
   } catch (e) {
-    $('msg').textContent = e.message;
+    say(e.message);
   }
 });
 $('open').addEventListener('change', render);
@@ -294,7 +313,7 @@ const start = () =>
     }),
   ])
     .then(load)
-    .catch((e) => ($('msg').textContent = e.message));
+    .catch((e) => say(e.message, true));
 
 if (!key) askKey();
 start();

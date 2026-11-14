@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  checkOffer,
+  tooEarlyToStart,
+  validateCancelReason,
   billTotal,
   validateCharge,
   validateMessage,
@@ -70,6 +73,35 @@ describe('job rules', () => {
       'review',
       'tip',
     ]);
+  });
+});
+
+describe('offer, start and cancel rules', () => {
+  const hal = { categories: ['plumbing', 'electrical'] };
+  const b = { category: 'plumbing', price_offer: 500, base_price: 450 };
+  it('checks the Manong services and the minimum price', () => {
+    expect(checkOffer(hal, b, 500)).toBeNull();
+    expect(checkOffer(hal, b, 600)).toBeNull();
+    expect(checkOffer(hal, b, 499).field).toMatch(/₱500/);
+    expect(checkOffer(hal, { ...b, price_offer: null }, 449).field).toMatch(/₱450/);
+    expect(checkOffer(hal, { ...b, category: 'locks' }, 500).code).toBe('NOT_YOUR_SERVICE');
+  });
+  it('lets a scheduled job start from an hour before its time', () => {
+    const at = new Date('2026-11-17T07:00:00Z');
+    const s = { booking_type: 'scheduled', scheduled_for: at.toISOString() };
+    expect(tooEarlyToStart(s, new Date('2026-11-14T12:00:00Z'))).toBe(true);
+    expect(tooEarlyToStart(s, new Date('2026-11-17T05:59:00Z'))).toBe(true);
+    expect(tooEarlyToStart(s, new Date('2026-11-17T06:00:00Z'))).toBe(false);
+    expect(tooEarlyToStart({ booking_type: 'on-demand' })).toBe(false);
+  });
+  it('takes an optional cancel reason up to 200 characters', () => {
+    expect(validateCancelReason({}).value).toEqual({ reason: null });
+    expect(validateCancelReason({ reason: ' Plans changed ' }).value).toEqual({
+      reason: 'Plans changed',
+    });
+    expect(validateCancelReason({ reason: '   ' }).value).toEqual({ reason: null });
+    for (const reason of [7, 'x'.repeat(201)])
+      expect(validateCancelReason({ reason }).fields).toHaveProperty('reason');
   });
 });
 

@@ -18,6 +18,34 @@ export function validateOffer(body) {
   return result(fields, { aide_id: b.aide_id, price });
 }
 
+// marn, 2026-11-14: a Manong offers only on his own services, and never below the resident's price
+// (taking it, or countering higher). Returns null when the offer is allowed, else the problem.
+export function checkOffer(aide, booking, price) {
+  if (!aide.categories.includes(booking.category))
+    return { code: 'NOT_YOUR_SERVICE', message: `${booking.category} isn't one of your services.` };
+  const asked = booking.price_offer ?? booking.base_price;
+  if (asked != null && price < asked)
+    return { field: `Offer at least ₱${asked}, the resident's price.` };
+  return null;
+}
+
+// A scheduled job can start at most this long before its time.
+export const EARLY_START_MINUTES = 60;
+export function tooEarlyToStart(booking, now = new Date()) {
+  if (booking.booking_type !== 'scheduled' || !booking.scheduled_for) return false;
+  return now.getTime() < new Date(booking.scheduled_for).getTime() - EARLY_START_MINUTES * 60000;
+}
+
+// Why the resident cancelled (optional).
+export function validateCancelReason(body) {
+  const r = body?.reason ?? null;
+  if (r === null) return { value: { reason: null } };
+  const reason = str(r);
+  return typeof r !== 'string' || reason.length > 200
+    ? { fields: { reason: 'Keep the reason under 200 characters.' } }
+    : { value: { reason: reason || null } };
+}
+
 // The resident raises the offer while waiting ("Need faster arrival?"). Only up, never down.
 export function validateRaise(body, current) {
   const p = body?.price_offer;
