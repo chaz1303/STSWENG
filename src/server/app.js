@@ -14,7 +14,7 @@ import { getDb } from './db.js';
 import { pgStore } from './store.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const PROTOTYPE_DIR = fileURLToPath(new URL('../../prototype', import.meta.url));
+const PROTOTYPE_DIR = fileURLToPath(new URL('../web', import.meta.url));
 // Compared against when the account doesn't exist, so a wrong number takes as long as a wrong password.
 const DUMMY_HASH = hashPassword('no such resident');
 const TOO_MANY = 'Too many attempts. Please wait a few minutes and try again.';

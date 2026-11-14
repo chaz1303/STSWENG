@@ -14,7 +14,11 @@ const is5 = () => st.variant === 'f5';
 // the screen. Add ?lab to the address to get the prototype picker with Flows 1 to 5 and the Simulate buttons.
 const APP5 = !new URLSearchParams(location.search).has('lab');
 if (APP5) {
-  const fit = () => document.documentElement.style.setProperty('--fit', Math.min(innerWidth / 375, innerHeight / 812));
+  const fit = () => {
+    const s = innerWidth < 600 ? innerWidth / 375 : Math.min(innerWidth / 375, innerHeight / 812);
+    document.documentElement.style.setProperty('--fit', s);
+    document.documentElement.style.setProperty('--h', (innerWidth < 600 ? innerHeight / s : 812) + 'px');
+  };
   const onlyF5 = () => {
     if (!location.hash.startsWith('#f5/')) location.replace(location.pathname + location.search + '#f5/a-welcome');
   };
@@ -32,7 +36,7 @@ const fmtPh5 = (s) => digits5(s).replace(/^(\d{3})(\d{0,3})(\d{0,4}).*$/, '$1 $2
 
 // ---------- every category books through the plumbing path ----------
 // Figma only draws plumbing. The other services reuse its screens with their own tiers and symptoms from
-// Flow 3's catalogue (CAT3, the same data as mobile/mocks CATALOG). TIERS_A and SYMPTOMS_A are swapped in
+// Flow 3's catalogue (CAT3). TIERS_A and SYMPTOMS_A are swapped in
 // place so the Flow 1 screens and price helpers pick them up, and are put back by fresh().
 const TIERS_PLUMB5 = JSON.parse(JSON.stringify(TIERS_A));
 const SYM_PLUMB5 = [...SYMPTOMS_A];
@@ -105,25 +109,24 @@ S['a-login'] = () => (!is5() ? login4() : `<div class="f5auth">${statusBar(true)
     <button class="f5apple" data-act="social" data-arg="Apple">${i5('ic-apple')}Apple</button></div>
   <p class="f5new">New to manong? <button data-act="go" data-arg="a-phone">Sign up</button></p></div>${homeBar}`);
 
-const KEYS5 = [['1', ''], ['2', 'ABC'], ['3', 'DEF'], ['4', 'GHI'], ['5', 'JKL'], ['6', 'MNO'], ['7', 'PQRS'], ['8', 'TUV'], ['9', 'WXYZ'], null, ['0', ''], 'del'];
-const keypad5 = () => `<div class="f5keys">${KEYS5.map((k) => (!k ? '<span></span>' : k === 'del' ? `<button class="del" data-act="key5" data-arg="del" aria-label="Delete">${i5('key-del')}</button>` : `<button data-act="key5" data-arg="${k[0]}"><b>${k[0]}</b>${k[1] ? `<small>${k[1]}</small>` : ''}</button>`)).join('')}</div>`;
 const otpHead5 = (title) => `<button class="f5bk" data-act="back" aria-label="Back">${i5('ic-back-square')}</button>${title ? `<h1 class="f5ttl0">${title}</h1>` : ''}`;
 S['a-phone'] = () => {
   const n = digits5(st.phoneNum);
   return `<div class="f5auth f5otp">${statusBar(true)}${otpHead5('Let’s Get Started')}
   <p class="f5lab0">Phone Number</p>
   <div class="f5ccbox">${i5('cc-box', 'bg')}${i5('flag-ph', 'flag')}<span>+63</span></div>
-  <div class="f5num" id="phoneField"><span class="${n ? '' : 'ph'}">${n ? fmtPh5(n) : '910 123 4567'}</span>${n ? `<button data-act="key5" data-arg="clear" aria-label="Clear number">${i5('ic-clear')}</button>` : '<i class="caret"></i>'}</div>
+  <div class="f5num" id="phoneField"><input id="f5ph" data-model="phoneNum" data-rerender type="tel" inputmode="numeric" maxlength="10" value="${esc(n)}" placeholder="910 123 4567" autocomplete="tel-national" aria-label="Phone number" />${n ? `<button data-act="clearPh5" aria-label="Clear number">${i5('ic-clear')}</button>` : ''}</div>
   ${st.authErr ? `<p class="f5err" role="alert">${esc(st.authErr)}</p>` : ''}
   <p class="f5sms">Send me a verification code through <b>SMS</b></p>
-  <button class="f5next ${n ? '' : 'off'}" data-act="sendCode5">Next</button>${keypad5()}</div>${homeBar}`;
+  <button class="f5next ${n ? '' : 'off'}" data-act="sendCode5">Next</button></div>${homeBar}`;
 };
 S['a-otp'] = () => `<div class="f5auth f5otp">${statusBar(true)}${otpHead5('')}
   <p class="f5sent">Enter the 6-digit code sent to +63 ${esc(digits5(st.phoneNum) || '9661234567')} by <b>SMS.</b></p>
-  <div class="f5boxes" id="otpRow" aria-label="6-digit code">${[0, 1, 2, 3, 4, 5].map((i) => `<span class="${i === st.otp.length ? 'cur' : ''}">${st.otp[i] || ''}</span>`).join('')}</div>
+  <div class="f5boxes" id="otpRow">${[0, 1, 2, 3, 4, 5].map((i) => `<span class="${i === st.otp.length ? 'cur' : ''}">${st.otp[i] || ''}</span>`).join('')}
+    <input id="f5otp" data-model="otp" data-rerender inputmode="numeric" maxlength="6" value="${esc(st.otp)}" autocomplete="one-time-code" aria-label="6-digit code" /></div>
   ${st.authErr ? `<p class="f5err" style="top:310px" role="alert">${esc(st.authErr)}</p>` : ''}
   <p class="f5exp">Code expires in <span data-live="f5exp"></span>s.<br />Didn’t received any code? <button data-act="resend5">Resend</button></p>
-  ${keypad5()}</div>${homeBar}`;
+</div>${homeBar}`;
 // Added: Figma jumps from the code straight back to Log in, so nothing ever collects a name or password.
 S['a-signup'] = () => `<div class="f5auth f5otp">${statusBar(true)}${otpHead5('Let’s Get Started')}
   <div class="f5reg" id="regForm">
@@ -326,12 +329,10 @@ Object.assign(ACT, {
     if (is5()) st.guest = false;
     return act4.social.call(ACT, n);
   },
-  key5(k) {
-    const f = st.screen === 'a-otp' ? 'otp' : 'phoneNum', max = f === 'otp' ? 6 : 10;
-    st[f] = k === 'clear' ? '' : k === 'del' ? digits5(st[f]).slice(0, -1) : (digits5(st[f]) + k).slice(0, max);
-    st.authErr = '';
+  clearPh5() {
+    st.phoneNum = st.authErr = '';
     render();
-    if (f === 'otp' && st.otp.length === 6) setTimeout(() => is5() && st.screen === 'a-otp' && ACT.verify5(), 250);
+    phone.querySelector('#f5ph')?.focus();
   },
   sendCode5() {
     const n = digits5(st.phoneNum);
@@ -495,12 +496,16 @@ Object.assign(ACT, {
     toast('Cancellation notice downloaded');
   },
 });
-// The keypad screens have no text field, so a hardware keyboard types into them too.
-document.addEventListener('keydown', (e) => {
-  if (!is5() || st.sheet || !['a-phone', 'a-otp'].includes(st.screen) || e.ctrlKey || e.metaKey) return;
-  if (/^\d$/.test(e.key)) ACT.key5(e.key);
-  else if (e.key === 'Backspace') ACT.key5('del');
-  else if (e.key === 'Enter' && st.screen === 'a-phone') ACT.sendCode5();
+// Phone and code fields use the device's own number keyboard. Capture phase: digits only, before app.js stores the value.
+phone.addEventListener('input', (e) => {
+  const t = e.target;
+  if (!is5() || !['f5ph', 'f5otp'].includes(t.id)) return;
+  t.value = digits5(t.value).slice(0, t.maxLength);
+  st.authErr = '';
+  if (t.id === 'f5otp' && t.value.length === 6) setTimeout(() => is5() && st.screen === 'a-otp' && st.otp.length === 6 && ACT.verify5(), 250);
+}, true);
+phone.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'f5ph') ACT.sendCode5();
 });
 
 // ---------- back end (src/server/app.js) ----------
@@ -679,8 +684,10 @@ if (APP5) addEventListener('DOMContentLoaded', () => {
     if (!e.offline) saveToken5(null);
   });
 });
+AFTER['a-phone'] = () => is5() && phone.querySelector('#f5ph')?.focus();
 AFTER['a-otp'] = () => {
   if (!is5()) return;
+  phone.querySelector('#f5otp')?.focus();
   every(1000, () => {
     st.f5exp = Math.max(0, st.f5exp - 1);
     live();

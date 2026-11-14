@@ -80,26 +80,20 @@
 .f5 .f5ccbox .flag { position: absolute; left: 5px; top: 13px; }
 .f5 .f5ccbox span { position: absolute; left: 34px; top: 14px; font-size: 16px; line-height: 19px; }
 .f5 .f5num { position: absolute; left: 108px; top: 181px; width: 247px; height: 45px; border-radius: 12px; background: rgba(255, 255, 255, 0.5); box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25); display: flex; align-items: center; padding: 0 14px 0 16px; font-size: 16px; }
-.f5 .f5num span { flex: 1; }
-.f5 .f5num .ph { color: rgba(0, 0, 0, 0.35); order: 2; }
-.f5 .f5num .caret { width: 1px; height: 22px; background: #555; margin-right: 1px; animation: f5blink 1s steps(1) infinite; }
+.f5 .f5num input { flex: 1; min-width: 0; height: 100%; border: 0; background: none; outline: 0; font: inherit; letter-spacing: 0.5px; }
+.f5 .f5num input::placeholder { color: rgba(0, 0, 0, 0.35); }
 .f5 .f5num button { display: grid; }
 @keyframes f5blink { 50% { opacity: 0; } }
 .f5 .f5err { position: absolute; left: 20px; top: 242px; margin: 0; font-size: 16px; line-height: 19px; color: #e0192d; }
 .f5 .f5sms { position: absolute; top: 428px; left: 0; right: 0; margin: 0; text-align: center; font-size: 16px; line-height: 19px; }
 .f5 .f5next { position: absolute; left: 20px; top: 461px; width: 335px; height: 50px; border-radius: 12px; background: #222; box-shadow: 0 4px 4px rgba(0, 0, 0, 0.05); font: 400 20px var(--int); color: #fff; }
 .f5 .f5next.off { opacity: 0.7; }
-.f5 .f5keys { position: absolute; left: 0; right: 0; top: 545px; height: 267px; background: #d1d3d9; padding: 6px 6px 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 46px; gap: 7px 5px; align-content: start; }
-.f5 .f5keys button { position: relative; border-radius: 4.6px; background: #fff; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3); font-family: -apple-system, Inter, system-ui, sans-serif; color: #000; }
-.f5 .f5keys button:active { background: #b9bcc5; }
-.f5 .f5keys b { position: absolute; left: 0; right: 0; top: 2px; font-size: 25px; line-height: 26px; font-weight: 400; letter-spacing: 0.29px; }
-.f5 .f5keys b:only-child { top: 10px; }
-.f5 .f5keys small { position: absolute; left: 0; right: 0; top: 29px; font-size: 10px; line-height: 12px; font-weight: 700; letter-spacing: 2px; padding-left: 2px; }
-.f5 .f5keys .del { background: none; box-shadow: none; display: grid; place-items: center; }
-.f5 .f5keys .del img { width: 100%; height: 100%; }
 .f5 .f5sent { position: absolute; left: 20px; top: 106px; width: 340px; margin: 0; font-size: 14px; line-height: 17px; }
 .f5 .f5boxes { position: absolute; left: 15px; top: 235px; width: 345px; display: flex; gap: 3px; }
 .f5 .f5boxes span { flex: 1; height: 55px; border-radius: 10px; background: rgba(255, 255, 255, 0.75); box-shadow: 0 4px 4px rgba(0, 0, 0, 0.18); display: grid; place-items: center; font-size: 24px; }
+/* Invisible field over the boxes: tapping them opens the device keyboard. */
+.f5 .f5boxes input { position: absolute; inset: 0; width: 100%; opacity: 0; border: 0; font-size: 16px; }
+.f5 .f5boxes:not(:focus-within) .cur::after { display: none; }
 .f5 .f5boxes .cur::after { content: ''; width: 1px; height: 24px; background: #222; animation: f5blink 1s steps(1) infinite; }
 .f5 .f5exp { position: absolute; left: 22px; top: 400px; margin: 0; font-size: 16px; line-height: 23px; }
 .f5 .f5exp button { font: 700 16px/23px var(--int); }
@@ -354,11 +348,11 @@
 .f5 .f5login:disabled, .f5 .f5next:disabled { opacity: 0.7; }
 
 /* ---------- installed app (html.app is set in flow5.js): the phone frame is the whole screen ---------- */
-html.app, html.app body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #ffc72c; }
+html.app, html.app body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #ffd230; } /* same yellow as .f5auth, so the frame edge disappears */
 html.app body { display: block; }
 html.app { -webkit-tap-highlight-color: transparent; } /* no grey flash on tap in Android Chrome */
 html.app .panel, html.app .flow-badge, html.app .frame-name { display: none; }
 html.app .stage { display: block; padding: 0; margin: 0; }
-html.app .phone { position: absolute; left: 50%; top: 0; margin-left: -187.5px; border-radius: 0; box-shadow: none; transform-origin: top center; transform: scale(var(--fit, 1)); }
+html.app .phone { position: absolute; left: 50%; top: 0; margin-left: -187.5px; width: 375px; height: var(--h, 812px); border-radius: 0; box-shadow: none; transform-origin: top center; transform: scale(var(--fit, 1)); }
 /* The device draws its own status bar and home indicator. */
 html.app .notch, html.app .statusbar, html.app .homebar { display: none; }
