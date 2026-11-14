@@ -32,7 +32,7 @@ const fmtPh5 = (s) => digits5(s).replace(/^(\d{3})(\d{0,3})(\d{0,4}).*$/, '$1 $2
 
 // ---------- every category books through the plumbing path ----------
 // Figma only draws plumbing. The other services reuse its screens with their own tiers and symptoms from
-// Flow 3's catalogue (CAT3, the same data as mobile/mocks CATALOG). TIERS_A and SYMPTOMS_A are swapped in
+// Flow 3's catalogue (CAT3). TIERS_A and SYMPTOMS_A are swapped in
 // place so the Flow 1 screens and price helpers pick them up, and are put back by fresh().
 const TIERS_PLUMB5 = JSON.parse(JSON.stringify(TIERS_A));
 const SYM_PLUMB5 = [...SYMPTOMS_A];
