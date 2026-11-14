@@ -12,8 +12,7 @@ export default [
       'icm/',
       'graphify-out/',
       '.impeccable/',
-      'prototype/',
-      'mobile/.expo/',
+      'src/web/', // never linted yet; remove once it passes ESLint
     ],
   },
   js.configs.recommended,

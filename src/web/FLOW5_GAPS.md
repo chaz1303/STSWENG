@@ -43,7 +43,7 @@ Assets exported from Figma are in `assets/f5/` (map, logo, Sofio's photo, 57 ico
 
 | # | Screen / area | What Figma is missing | What I did | Why (what I based it on) | Confidence | Needs a decision from |
 |---|---|---|---|---|---|---|
-| 1 | Other services | Only plumbing has a booking path | Cleaning, Locksmith and Movers use the same six screens with their own tier names, prices, durations and symptom chips | Flow 3's catalogue `CAT3` in `full.js` (same data as `mobile/mocks` `CATALOG` and `DURATION`); rosters from `ROSTER3` | High | PO + Team 2 (categories, open item 8) |
+| 1 | Other services | Only plumbing has a booking path | Cleaning, Locksmith and Movers use the same six screens with their own tier names, prices, durations and symptom chips | Flow 3's catalogue `CAT3` in `full.js`; rosters from `ROSTER3` | High | PO + Team 2 (categories, open item 8) |
 | 2 | Sign up | After the 6-digit code Figma goes "back to the Log in page". Nothing collects a name, email or password | Added a "Create account" screen in the OTP screens' style (name, email, password), then Log in with the mobile filled in | U01 spec needs email, mobile, password and full name | Medium | PO (open item 24) |
 | 3 | Sign up | No rule for a wrong number, expired code or resend | Number must be 10 digits starting with 9. The code counts down from 120s, Resend restarts it, any 6 digits pass | Figma copy ("Code expires in 120s", "Resend") and Flow 2's phone screens | Medium | PO (open items 17, 24) |
 | 4 | Welcome | "Explore services as Guest" leads nowhere | Guest lands on Home and can browse. Tapping a service asks them to log in | Smallest reading of the link text | Medium | PO (open item 27) |
