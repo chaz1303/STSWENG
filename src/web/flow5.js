@@ -84,12 +84,12 @@ const welcome4 = S['a-welcome'], login4 = S['a-login'];
 const heroCard5 = (cls, icon, title, sub) => `<div class="f5hc ${cls}"><span class="ic">${i5(icon)}</span><span><b>${title}</b><small>${sub}</small></span></div>`;
 S['a-welcome'] = () => (!is5() ? welcome4() : `<div class="f5auth">${statusBar(true)}
   <img class="f5logo" style="top:-22px;left:27px" src="${F5}manong-logo.png" alt="manong" />
-  <div class="f5head"><h2>Your trusted handyman,<br /><u>always on call.</u></h2>
+  <div class="f5head"><h2 data-anim="headline">Your trusted handyman,<br /><u>always on call.</u></h2>
     <p>Book certified Filipino technicians for aircon,<br />electrical, plumbing &amp; urgent home fixes in<br />minutes.</p></div>
   <i class="f5glow"></i>
-  ${heroCard5('c1', 'ic-aircon', 'Aircon Cleaning', '<em class="g">Available in 30m</em>')}
+  <div data-anim="deck">${heroCard5('c1', 'ic-aircon', 'Aircon Cleaning', '<em class="g">Available in 30m</em>')}
   ${heroCard5('c2', 'ic-electrical', 'Electrical &amp; Wiring', 'From ₱350')}
-  ${heroCard5('c3', 'ic-plumbing', 'Plumbing &amp; Leaks <i></i>', '<em class="a">★ 4.9 (12k+ reviews)</em>')}
+  ${heroCard5('c3', 'ic-plumbing', 'Plumbing &amp; Leaks <i></i>', '<em class="a">★ 4.9 (12k+ reviews)</em>')}</div>
   <span class="f5top">TOP RATED PROS</span>
   <span class="f5pill p1"><span>⚡</span>Vetted Kuya Pros</span><span class="f5pill p3">${i5('ic-clock')}Same-day Arrival</span><span class="f5pill p2"><span>🛡️</span>Upfront Rates</span>
   <p class="f5proof">${i5('ic-star')}Trusted by <b>50,000+ Pinoy households</b></p>
