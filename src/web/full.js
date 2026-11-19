@@ -1511,7 +1511,7 @@ const whenF = (b) => (b.time === 'Now' ? 'Now' : `${DAY_LONG[b.day]}, Oct ${b.da
 const stF = (b) => {
   const k = keyF(b), f = b.m.first;
   const t = {
-    finding: ['Finding your Manong', `${TIERS_A[b.tier].name} • Now`],
+    finding: ['Finding your Manong', `${TIERS_A[b.tier].name} • ${whenF(b)}`],
     pending: [`Waiting for ${f} to confirm`, whenF(b)],
     confirmed: [`${f} confirmed`, whenF(b)],
     declined: [`${f} can't take it`, 'Tap to choose another Manong'],

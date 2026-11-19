@@ -212,7 +212,8 @@ if (APP5) {
     st.offer = b.price_offer;
     if (b.payment_method) st.pay = b.payment_method;
     const u = ADDRESSES.findIndex((a) => a.id && a.id === b.unit_id);
-    if (u >= 0) st.addrA = u;
+    // st.unit5 too, or the next units refresh puts the default unit back on the Confirm screen.
+    if (u >= 0) Object.assign(st, { addrA: u, unit5: b.unit_id });
     const m = manong5(d.aide);
     if (m) pin5(m, b.category);
     else st.pickManong = null;
@@ -220,8 +221,21 @@ if (APP5) {
     st.arrived = b.aide_status === 'arrived' || b.status === 'In Progress';
     st.chat = d.messages.map((x) => ({ me: x.sender === 'resident', t: x.body }));
     const sched = b.scheduled_for;
+    // The booking's own day and time, so Confirm (after cancelling a request) shows what was booked.
+    const time = sched ? new Date(sched).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).replace(/\s/g, ' ') : 'Now';
+    if (sched) Object.assign(st, { day: keyOfDate(sched), time });
     st.fb = { status: keyOf5(b), mode: st.when, cat: b.category, tier: st.tierA, m: m || SOMEONE, bid: b.id,
-      day: sched ? keyOfDate(sched) : 20, time: sched ? new Date(sched).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'Now' };
+      day: sched ? keyOfDate(sched) : 20, time };
+  }
+  // The approval sheet for an extra charge (U14) opens once per charge, as soon as no other sheet
+  // (chat, say) is in the way. Closing it leaves the "Review extra charge" button on the screen.
+  const askedCharges5 = new Set();
+  function askCharge5() {
+    const c = st.live && st.live.charges.find((x) => x.status === 'pending' && !askedCharges5.has(x.id));
+    if (!c || st.sheet) return;
+    askedCharges5.add(c.id);
+    st.sheet = { type: 'charge5', arg2: c.id };
+    render();
   }
   function transitions5(prev, d) {
     const a = prev && prev.booking, b = d.booking;
@@ -250,8 +264,6 @@ if (APP5) {
       pushN(`${m.first}: ${last.body}`, 'a-messages');
       toast(`${m.first}: ${last.body}`);
     }
-    const pending = d.charges.find((c) => c.status === 'pending' && !prev.charges.some((p) => p.id === c.id));
-    if (pending && !st.sheet) st.sheet = { type: 'charge5', arg2: pending.id };
   }
   // Polls the open booking. Re-renders only when something changed.
   async function refresh5() {
@@ -290,6 +302,7 @@ if (APP5) {
     polling = true;
     try {
       await refresh5();
+      askCharge5();
     } catch {
       /* offline for a moment: the next poll tries again */
     } finally {
