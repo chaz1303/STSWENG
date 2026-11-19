@@ -22,6 +22,7 @@ import {
   validateOffer,
   validateProgress,
   validateRaise,
+  validateAide,
   validateReview,
 } from '../services/offers.js';
 import { MAX_UNITS, validateUnit } from '../services/units.js';
@@ -429,6 +430,24 @@ export function createApp({
 
     app.get('/api/mock-aide/aides', async (req, res) => {
       res.json({ aides: await store.aideList() });
+    });
+    app.get('/api/mock-aide/condos', async (req, res) => {
+      res.json({ condos: await store.aideCondos() });
+    });
+    // Manage the test Manongs: add one, or change his services, condos or active flag.
+    app.post('/api/mock-aide/aides', async (req, res) => {
+      const { value, fields } = validateAide(req.body);
+      if (fields) return badFields(res, fields);
+      res.status(201).json({ aide: await store.aideCreate(value) });
+    });
+    app.patch('/api/mock-aide/aides/:aideId', async (req, res) => {
+      const notFound = () => fail(res, 404, 'NOT_FOUND', 'No such Manong.');
+      if (!UUID.test(req.params.aideId)) return notFound();
+      const { value, fields } = validateAide(req.body, { partial: true });
+      if (fields) return badFields(res, fields);
+      const aide = await store.aideUpdate(req.params.aideId, value);
+      if (!aide) return notFound();
+      res.json({ aide });
     });
     app.get('/api/mock-aide/bookings', async (req, res) => {
       res.json({ bookings: await store.aideListBookings() });

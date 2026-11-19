@@ -36,6 +36,7 @@ const BOOKING = `b.booking_id AS id, lower(sc.name) AS category, b.service_type,
   concat_ws(', ', 'Unit ' || ra.unit_number, 'Floor ' || nullif(ra.floor, ''), nullif(ra.tower, ''), co.name,
     nullif(co.street, ''), nullif(co.city, '')) AS address,
   b.description AS problem, b.price_offer, b.resident_address_id AS unit_id, ra.notes AS unit_notes,
+  co.condo_building_id AS condo_id, co.name AS condo_name,
   b.symptoms, b.base_price, b.payment_method, b.aide_id, b.agreed_price,
   CASE b.status WHEN '${ON_THE_WAY}' THEN 'on_the_way' WHEN '${ARRIVED}' THEN 'arrived' END AS aide_status,
   b.eta_minutes, rv.rating, rv.review, rv.tip, rv.reviewed_at, b.cancel_reason, b.created_at, b.updated_at`;
@@ -45,12 +46,16 @@ const BOOKING = `b.booking_id AS id, lower(sc.name) AS category, b.service_type,
 const AIDES = `(SELECT a.aide_id AS id, lower(a.first_name) AS key, concat_ws(' ', a.first_name, a.last_name) AS full_name,
     coalesce(string_agg(c.name, ' & ' ORDER BY c.sort_order), '') AS skills,
     coalesce(array_agg(lower(c.name) ORDER BY c.sort_order) FILTER (WHERE c.name IS NOT NULL), '{}') AS categories,
-    a.rating::float AS rating, a.jobs_count, a.profile_photo_path AS photo, NULL::text AS vehicle, a.is_active
+    a.rating::float AS rating, a.jobs_count, a.profile_photo_path AS photo, NULL::text AS vehicle, a.is_active,
+    a.first_name, a.last_name,
+    (SELECT coalesce(array_agg(x.condo_building_id), '{}') FROM aide_condominium_accreditations x
+     WHERE x.aide_id = a.aide_id AND x.accreditation_status = 'Accredited') AS condos
   FROM aide_aides a
   LEFT JOIN aide_aides_categories ac ON ac.aide_id = a.aide_id
   LEFT JOIN aide_service_categories c ON c.service_category_id = ac.service_category_id
   GROUP BY a.aide_id)`;
-const AIDE = 'id, key, full_name, skills, categories, rating, jobs_count, photo, vehicle';
+const AIDE =
+  'id, key, full_name, first_name, last_name, skills, categories, condos, rating, jobs_count, photo, vehicle, is_active';
 const aideJson = (a) =>
   `CASE WHEN ${a}.id IS NULL THEN NULL ELSE json_build_object('id', ${a}.id, 'key', ${a}.key,
      'full_name', ${a}.full_name, 'skills', ${a}.skills, 'rating', ${a}.rating,
@@ -108,6 +113,30 @@ export function pgStore(getDb) {
   };
   const resident = (id) => ({ role: 'resident', id });
   const aide = (id) => ({ role: 'aide', id });
+  // Replaces a Manong's services and/or accredited condos (mock aide management).
+  async function setAideLinks(t, id, { categories, condos }) {
+    if (categories) {
+      await t(`DELETE FROM aide_aides_categories WHERE aide_id = $1`, [id]);
+      await t(
+        `INSERT INTO aide_aides_categories (aide_id, service_category_id)
+         SELECT $1, service_category_id FROM aide_service_categories WHERE lower(name) = ANY($2)`,
+        [id, categories],
+      );
+    }
+    if (condos) {
+      await t(
+        `UPDATE aide_condominium_accreditations SET accreditation_status = 'Revoked'
+         WHERE aide_id = $1 AND NOT (condo_building_id = ANY($2)) AND accreditation_status = 'Accredited'`,
+        [id, condos],
+      );
+      await t(
+        `INSERT INTO aide_condominium_accreditations (aide_id, condo_building_id, accreditation_status)
+         SELECT $1, condo_building_id, 'Accredited' FROM usr_condominiums WHERE condo_building_id = ANY($2)
+         ON CONFLICT (aide_id, condo_building_id) DO UPDATE SET accreditation_status = 'Accredited'`,
+        [id, condos],
+      );
+    }
+  }
   const unitById = async (run, id) =>
     (await run(`SELECT ${UNIT} FROM ${UNIT_FROM} WHERE ra.resident_address_id = $1`, [id]))[0];
 
@@ -460,8 +489,40 @@ export function pgStore(getDb) {
     },
 
     // ---------- mock aide side (npm run mock-aide) ----------
+    // Every Manong, active or not; the page offers only active ones to act as.
     aideList() {
-      return q(`SELECT ${AIDE} FROM ${AIDES} a WHERE a.is_active ORDER BY a.full_name`);
+      return q(`SELECT ${AIDE} FROM ${AIDES} a ORDER BY a.full_name`);
+    },
+    aideCondos() {
+      return q(
+        `SELECT condo_building_id AS id, name, is_accredited FROM usr_condominiums ORDER BY name`,
+      );
+    },
+    // a: { first_name, last_name, categories: [keys], condos: [condo ids] }. Returns the new Manong.
+    aideCreate(a) {
+      return tx(async (t) => {
+        const [{ id }] = await t(
+          `INSERT INTO aide_aides (first_name, last_name) VALUES ($1, $2) RETURNING aide_id AS id`,
+          [a.first_name, a.last_name],
+        );
+        await setAideLinks(t, id, a);
+        return (await t(`SELECT ${AIDE} FROM ${AIDES} a WHERE a.id = $1`, [id]))[0];
+      });
+    },
+    // Any of first_name, last_name, is_active, categories (replaces his services), condos (the condos he is accredited at;
+    // others he had become Revoked). Returns null for an unknown id.
+    aideUpdate(id, a) {
+      return tx(async (t) => {
+        const [row] = await t(
+          `UPDATE aide_aides SET is_active = COALESCE($2, is_active), first_name = COALESCE($3, first_name),
+             last_name = COALESCE($4, last_name)
+           WHERE aide_id = $1 RETURNING aide_id`,
+          [id, a.is_active ?? null, a.first_name ?? null, a.last_name ?? null],
+        );
+        if (!row) return null;
+        await setAideLinks(t, id, a);
+        return (await t(`SELECT ${AIDE} FROM ${AIDES} a WHERE a.id = $1`, [id]))[0];
+      });
     },
     findAide(id) {
       return one(`SELECT ${AIDE} FROM ${AIDES} a WHERE a.id = $1 AND a.is_active`, [id]);
@@ -469,13 +530,15 @@ export function pgStore(getDb) {
     // Every resident's recent bookings with who, where, and each one's offers, charges and chat.
     async aideListBookings() {
       const bookings = await q(
-        `SELECT ${BOOKING}, r.full_name AS resident_name, r.mobile_number AS resident_mobile, ${aideJson('a')} AS aide
+        `SELECT ${BOOKING}, r.full_name AS resident_name, r.mobile_number AS resident_mobile, ${aideJson('a')} AS aide,
+           v.unit_label, v.total_amount, v.started_at, v.completed_at
          FROM ${BOOKING_FROM} JOIN usr_residents r ON r.resident_id = b.resident_id
+         JOIN usr_bookings_v v ON v.booking_id = b.booking_id
          LEFT JOIN ${AIDES} a ON a.id = b.aide_id
          ORDER BY b.created_at DESC LIMIT 50`,
       );
       const ids = bookings.map((b) => b.id);
-      const [offers, charges, messages] = await Promise.all([
+      const [offers, charges, messages, history] = await Promise.all([
         q(
           `SELECT ${OFFER} FROM usr_booking_offers WHERE booking_id = ANY($1) ORDER BY created_at`,
           [ids],
@@ -488,6 +551,11 @@ export function pgStore(getDb) {
           `SELECT ${MESSAGE} FROM usr_booking_messages WHERE booking_id = ANY($1) ORDER BY created_at`,
           [ids],
         ),
+        q(
+          `SELECT booking_id, from_status, to_status, changed_by_role, changed_by_id, changed_at
+           FROM usr_booking_status_history WHERE booking_id = ANY($1) ORDER BY changed_at`,
+          [ids],
+        ),
       ]);
       const of = (rows, id) => rows.filter((r) => r.booking_id === id);
       return bookings.map((b) => ({
@@ -495,6 +563,7 @@ export function pgStore(getDb) {
         offers: of(offers, b.id),
         charges: of(charges, b.id),
         messages: of(messages, b.id),
+        history: of(history, b.id),
       }));
     },
     // Clean sweep: deletes every booking of every resident; offers, chat, charges, reviews and history

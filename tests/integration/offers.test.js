@@ -323,3 +323,55 @@ describe('POST /api/auth/google-debug', () => {
     expect(me.body.resident.email).toBe('enzo.demo@example.com');
   });
 });
+
+describe('mock aide: managing Manongs and condo accreditation (marn, 2026-11-19)', () => {
+  const mk = { 'X-Mock-Aide-Key': KEY };
+  it('adds a Manong who can offer only in condos he is accredited at', async () => {
+    const { condos } = (await request(app).get('/api/mock-aide/condos').set(mk)).body;
+    const avida = condos.find((c) => c.is_accredited).id;
+    const bad = await request(app)
+      .post('/api/mock-aide/aides')
+      .set(mk)
+      .send({ first_name: '', categories: 'plumbing', condos: ['nope'] });
+    expect(Object.keys(bad.body.error.fields).sort()).toEqual([
+      'categories',
+      'condos',
+      'first_name',
+      'last_name',
+    ]);
+    const made = await request(app)
+      .post('/api/mock-aide/aides')
+      .set(mk)
+      .send({ first_name: 'Kara', last_name: 'Danvers', categories: ['plumbing'], condos: [] });
+    expect(made.status).toBe(201);
+    const kara = made.body.aide;
+    expect(kara).toMatchObject({ full_name: 'Kara Danvers', categories: ['plumbing'], condos: [] });
+    const refused = await aide('/offers', { aide_id: kara.id });
+    expect([refused.status, refused.body.error.code]).toEqual([409, 'NOT_ACCREDITED']);
+    const edit = await request(app)
+      .patch(`/api/mock-aide/aides/${kara.id}`)
+      .set(mk)
+      .send({ condos: [avida] });
+    expect(edit.body.aide.condos).toEqual([avida]);
+    expect((await aide('/offers', { aide_id: kara.id })).status).toBe(201);
+  });
+  it('turns a Manong off so nobody can act as him', async () => {
+    const off = await request(app)
+      .patch(`/api/mock-aide/aides/${arthur}`)
+      .set(mk)
+      .send({ is_active: false });
+    expect(off.body.aide.is_active).toBe(false);
+    expect((await aide('/offers', { aide_id: arthur })).body.error.fields).toHaveProperty(
+      'aide_id',
+    );
+    const list = (await request(app).get('/api/mock-aide/aides').set(mk)).body.aides;
+    expect(list.map((a) => a.is_active)).toEqual([true, false]);
+    expect(
+      (await request(app).patch('/api/mock-aide/aides/nope').set(mk).send({ is_active: true }))
+        .status,
+    ).toBe(404);
+    expect(
+      (await request(app).patch(`/api/mock-aide/aides/${arthur}`).set(mk).send({})).status,
+    ).toBe(400);
+  });
+});

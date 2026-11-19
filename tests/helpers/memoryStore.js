@@ -31,12 +31,6 @@ export function memoryStore() {
     p('cleaning', 'STANDARD', 1200),
     p('retired', 'CHECKUP', 100),
   ];
-  // Two of the Manongs (migration 004, renamed by 005).
-  const aides = [
-    { id: randomUUID(), key: 'hal', full_name: 'Hal Jordan', categories: ['plumbing'] },
-    { id: randomUUID(), key: 'arthur', full_name: 'Arthur Curry', categories: ['plumbing'] },
-  ];
-  const aideById = (id) => aides.find((a) => a.id === id) ?? null;
   // db/schema.sql's one accredited condo, plus one that isn't accredited.
   const condos = [
     {
@@ -48,6 +42,19 @@ export function memoryStore() {
     },
     { id: randomUUID(), name: 'Not Yet Tower', street: '', city: '', is_accredited: false },
   ];
+  // Two of the Manongs from db/schema.sql, both accredited at the condo.
+  const manong = (first_name, last_name, categories) => ({
+    id: randomUUID(),
+    key: first_name.toLowerCase(),
+    first_name,
+    last_name,
+    full_name: `${first_name} ${last_name}`,
+    categories,
+    condos: [condos[0].id],
+    is_active: true,
+  });
+  const aides = [manong('Hal', 'Jordan', ['plumbing']), manong('Arthur', 'Curry', ['plumbing'])];
+  const aideById = (id) => aides.find((a) => a.id === id) ?? null;
   const offers = [];
   const charges = [];
   const messages = [];
@@ -74,6 +81,7 @@ export function memoryStore() {
     bookings,
     units,
     categories,
+    condos,
     aides,
     offers,
     charges,
@@ -178,6 +186,8 @@ export function memoryStore() {
         tip: null,
         ...b,
         address: formatUnitAddress(unitOut(units.find((u) => u.id === b.unit_id))),
+        condo_id: units.find((u) => u.id === b.unit_id).condo_building_id,
+        condo_name: unitOut(units.find((u) => u.id === b.unit_id)).building,
         created_at: now(),
         updated_at: now(),
       };
@@ -276,7 +286,27 @@ export function memoryStore() {
       return aides;
     },
     async findAide(id) {
-      return aideById(id);
+      const a = aideById(id);
+      return a?.is_active ? a : null;
+    },
+    async aideCondos() {
+      return condos.map(({ id, name, is_accredited }) => ({ id, name, is_accredited }));
+    },
+    async aideCreate(a) {
+      const row = manong(a.first_name, a.last_name, []);
+      aides.push(row);
+      return this.aideUpdate(row.id, a);
+    },
+    async aideUpdate(id, a) {
+      const row = aideById(id);
+      if (!row) return null;
+      const known = (k) => categories.some((c) => c.key === k);
+      Object.assign(row, {
+        ...(a.is_active !== undefined && { is_active: a.is_active }),
+        ...(a.categories && { categories: a.categories.filter(known) }),
+        ...(a.condos && { condos: a.condos.filter((c) => condos.some((x) => x.id === c)) }),
+      });
+      return row;
     },
     async aideListBookings() {
       return bookings.map((b) => {
@@ -291,6 +321,7 @@ export function memoryStore() {
           offers: of(offers),
           charges: of(charges),
           messages: of(messages),
+          history: [], // the status history is written by a database trigger
         };
       });
     },

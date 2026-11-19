@@ -77,14 +77,24 @@ describe('job rules', () => {
 });
 
 describe('offer, start and cancel rules', () => {
-  const hal = { categories: ['plumbing', 'electrical'] };
-  const b = { category: 'plumbing', price_offer: 500, base_price: 450 };
+  const hal = { categories: ['plumbing', 'electrical'], condos: ['avida'] };
+  const b = {
+    category: 'plumbing',
+    condo_id: 'avida',
+    condo_name: 'Avida',
+    price_offer: 500,
+    base_price: 450,
+  };
   it('checks the Manong services and the minimum price', () => {
     expect(checkOffer(hal, b, 500)).toBeNull();
     expect(checkOffer(hal, b, 600)).toBeNull();
     expect(checkOffer(hal, b, 499).field).toMatch(/₱500/);
     expect(checkOffer(hal, { ...b, price_offer: null }, 449).field).toMatch(/₱450/);
     expect(checkOffer(hal, { ...b, category: 'locks' }, 500).code).toBe('NOT_YOUR_SERVICE');
+    expect(checkOffer(hal, { ...b, condo_id: 'other' }, 500)).toEqual({
+      code: 'NOT_ACCREDITED',
+      message: "You aren't accredited at Avida.",
+    });
   });
   it('lets a scheduled job start from an hour before its time', () => {
     const at = new Date('2026-11-17T07:00:00Z');
