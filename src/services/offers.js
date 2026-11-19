@@ -18,6 +18,74 @@ export function validateOffer(body) {
   return result(fields, { aide_id: b.aide_id, price });
 }
 
+// marn, 2026-11-14: a Manong offers only on his own services, and never below the resident's price
+// (taking it, or countering higher). 2026-11-19: and only in a condo he is accredited at.
+// Returns null when the offer is allowed, else the problem.
+export function checkOffer(aide, booking, price) {
+  if (!aide.categories.includes(booking.category))
+    return { code: 'NOT_YOUR_SERVICE', message: `${booking.category} isn't one of your services.` };
+  if (!aide.condos.includes(booking.condo_id))
+    return {
+      code: 'NOT_ACCREDITED',
+      message: `You aren't accredited at ${booking.condo_name}.`,
+    };
+  const asked = booking.price_offer ?? booking.base_price;
+  if (asked != null && price < asked)
+    return { field: `Offer at least ₱${asked}, the resident's price.` };
+  return null;
+}
+
+// Mock aide: add a Manong, or (partial) change his services, accredited condos or active flag.
+// categories and condos are full replacement lists. Returns { value } or { fields }.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+export function validateAide(body, { partial = false } = {}) {
+  const b = body ?? {};
+  const fields = {};
+  const value = {};
+  for (const k of ['first_name', 'last_name']) {
+    if (partial && b[k] === undefined) continue;
+    const v = str(b[k]);
+    if (!v || v.length > 60) fields[k] = 'Enter a name of up to 60 characters.';
+    else value[k] = v;
+  }
+  if (b.categories !== undefined || !partial) {
+    const c = b.categories ?? [];
+    if (!Array.isArray(c) || c.length > 20 || c.some((x) => typeof x !== 'string' || x.length > 30))
+      fields.categories = 'Pick his services.';
+    else value.categories = c.map((x) => x.toLowerCase());
+  }
+  if (b.condos !== undefined || !partial) {
+    const c = b.condos ?? [];
+    if (!Array.isArray(c) || c.length > 50 || c.some((x) => typeof x !== 'string' || !UUID.test(x)))
+      fields.condos = 'Pick the condos he is accredited at.';
+    else value.condos = c;
+  }
+  if (b.is_active !== undefined) {
+    if (typeof b.is_active !== 'boolean') fields.is_active = 'Use true or false.';
+    else value.is_active = b.is_active;
+  }
+  if (partial && !Object.keys(fields).length && !Object.keys(value).length)
+    fields.is_active = 'Send at least one field to change.';
+  return result(fields, value);
+}
+
+// A scheduled job can start at most this long before its time.
+export const EARLY_START_MINUTES = 60;
+export function tooEarlyToStart(booking, now = new Date()) {
+  if (booking.booking_type !== 'scheduled' || !booking.scheduled_for) return false;
+  return now.getTime() < new Date(booking.scheduled_for).getTime() - EARLY_START_MINUTES * 60000;
+}
+
+// Why the resident cancelled (optional).
+export function validateCancelReason(body) {
+  const r = body?.reason ?? null;
+  if (r === null) return { value: { reason: null } };
+  const reason = str(r);
+  return typeof r !== 'string' || reason.length > 200
+    ? { fields: { reason: 'Keep the reason under 200 characters.' } }
+    : { value: { reason: reason || null } };
+}
+
 // The resident raises the offer while waiting ("Need faster arrival?"). Only up, never down.
 export function validateRaise(body, current) {
   const p = body?.price_offer;

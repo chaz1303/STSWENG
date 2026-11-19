@@ -16,7 +16,6 @@ export function validateBooking(body, now = new Date()) {
   const b = body ?? {};
   const fields = {};
   const category = str(b.category).toLowerCase();
-  const address = str(b.address);
   const problem = str(b.problem);
   const booking_type = b.booking_type;
   const price_offer = b.price_offer ?? null;
@@ -37,11 +36,10 @@ export function validateBooking(body, now = new Date()) {
   } else if (b.scheduled_for != null) {
     fields.scheduled_for = 'On-demand bookings have no scheduled time.';
   }
-  // A saved unit (U02) gives the address, so address is needed only without one.
-  if (unit_id !== null && !(typeof unit_id === 'string' && UUID.test(unit_id)))
+  // Every booking is at one of the resident's saved units (U02) in an accredited condo.
+  if (unit_id === null) fields.unit_id = 'Add your condo unit first.';
+  else if (!(typeof unit_id === 'string' && UUID.test(unit_id)))
     fields.unit_id = 'Choose one of your saved units.';
-  else if (unit_id === null ? !address || address.length > 200 : address.length > 200)
-    fields.address = 'Enter the service address.';
   if (!symptoms || symptoms.length > 10 || symptoms.some((x) => !x || x.length > 40))
     fields.symptoms = 'Pick up to 10 symptoms.';
   if (problem.length > 300) fields.problem = 'Keep the description under 300 characters.';
@@ -63,7 +61,6 @@ export function validateBooking(body, now = new Date()) {
       booking_type,
       status,
       scheduled_for,
-      address,
       problem,
       price_offer,
       unit_id,

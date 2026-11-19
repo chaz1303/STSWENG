@@ -13,14 +13,19 @@ import {
 import { buildCatalog, CANCELLABLE, validateBooking } from '../services/bookings.js';
 import {
   billTotal,
+  checkOffer,
+  EARLY_START_MINUTES,
+  tooEarlyToStart,
+  validateCancelReason,
   validateCharge,
   validateMessage,
   validateOffer,
   validateProgress,
   validateRaise,
+  validateAide,
   validateReview,
 } from '../services/offers.js';
-import { formatUnitAddress, MAX_UNITS, validateUnit } from '../services/units.js';
+import { MAX_UNITS, validateUnit } from '../services/units.js';
 import { BOOKING_STATES, canTransition } from '../utils/contract.js';
 import { getDb } from './db.js';
 import { pgStore } from './store.js';
@@ -239,13 +244,28 @@ export function createApp({
 
   // U02 saved condo units. Someone else's unit answers the same as a missing one.
   const unitNotFound = (res) => fail(res, 404, 'NOT_FOUND', 'Unit not found.');
+  // The building must be one of the accredited condos; its id replaces the typed name.
+  const withCondo = async (res, value) => {
+    if (value.building === undefined) return value;
+    const condo = await store.findCondo(value.building);
+    if (condo) return { ...value, condo_building_id: condo.id };
+    const names = await store.listCondos();
+    badFields(res, {
+      building: names.length
+        ? `Mang Juan serves only ${names.join(', ')} for now.`
+        : 'Mang Juan does not serve any building yet.',
+    });
+    return null;
+  };
   app.get('/api/me/units', requireResident, async (req, res) => {
     res.json({ units: await store.listUnits(req.residentId) });
   });
   app.post('/api/me/units', requireResident, async (req, res) => {
     const { value, fields } = validateUnit(req.body);
     if (fields) return badFields(res, fields);
-    const unit = await store.createUnit(req.residentId, value, MAX_UNITS);
+    const withId = await withCondo(res, value);
+    if (!withId) return;
+    const unit = await store.createUnit(req.residentId, withId, MAX_UNITS);
     if (!unit) return fail(res, 409, 'TOO_MANY_UNITS', `You can save up to ${MAX_UNITS} units.`);
     res.status(201).json({ unit });
   });
@@ -253,7 +273,9 @@ export function createApp({
     if (!UUID.test(req.params.id)) return unitNotFound(res);
     const { value, fields } = validateUnit(req.body, { partial: true });
     if (fields) return badFields(res, fields);
-    const unit = await store.updateUnit(req.residentId, req.params.id, value);
+    const withId = await withCondo(res, value);
+    if (!withId) return;
+    const unit = await store.updateUnit(req.residentId, req.params.id, withId);
     if (!unit) return unitNotFound(res);
     res.json({ unit });
   });
@@ -263,20 +285,18 @@ export function createApp({
     res.status(204).end();
   });
 
-  // U04 to U06: the booking keeps the problem, symptoms and the base price shown at booking time.
+  // U04 to U06: the booking keeps the saved unit, problem, symptoms and the base price shown at booking time.
   app.post('/api/bookings', requireResident, async (req, res) => {
     const { value, fields } = validateBooking(req.body);
     if (fields) return badFields(res, fields);
     const price = await store.findPrice(value.category, value.service_type);
     if (!price) return badFields(res, { category: 'This service is not available.' });
-    if (value.unit_id) {
-      const unit = await store.findUnit(req.residentId, value.unit_id);
-      if (!unit) return badFields(res, { unit_id: 'Choose one of your saved units.' });
-      value.address = formatUnitAddress(unit);
-    }
+    if (!(await store.findUnit(req.residentId, value.unit_id)))
+      return badFields(res, { unit_id: 'Choose one of your saved units.' });
     const booking = await store.createBooking(req.residentId, {
       ...value,
       base_price: price.base_price,
+      service_category_id: price.service_category_id,
     });
     res.status(201).json({ booking });
   });
@@ -287,11 +307,14 @@ export function createApp({
     const { id } = req.params;
     const notFound = () => fail(res, 404, 'NOT_FOUND', 'Booking not found.');
     if (!UUID.test(id)) return notFound();
+    const { value, fields } = validateCancelReason(req.body);
+    if (fields) return badFields(res, fields);
     const booking = await store.setBookingStatus(
       req.residentId,
       id,
       CANCELLABLE,
       BOOKING_STATES.CANCELLED,
+      value.reason,
     );
     if (booking) return res.json({ booking });
     // Someone else's booking looks the same as a missing one.
@@ -408,6 +431,24 @@ export function createApp({
     app.get('/api/mock-aide/aides', async (req, res) => {
       res.json({ aides: await store.aideList() });
     });
+    app.get('/api/mock-aide/condos', async (req, res) => {
+      res.json({ condos: await store.aideCondos() });
+    });
+    // Manage the test Manongs: add one, or change his services, condos or active flag.
+    app.post('/api/mock-aide/aides', async (req, res) => {
+      const { value, fields } = validateAide(req.body);
+      if (fields) return badFields(res, fields);
+      res.status(201).json({ aide: await store.aideCreate(value) });
+    });
+    app.patch('/api/mock-aide/aides/:aideId', async (req, res) => {
+      const notFound = () => fail(res, 404, 'NOT_FOUND', 'No such Manong.');
+      if (!UUID.test(req.params.aideId)) return notFound();
+      const { value, fields } = validateAide(req.body, { partial: true });
+      if (fields) return badFields(res, fields);
+      const aide = await store.aideUpdate(req.params.aideId, value);
+      if (!aide) return notFound();
+      res.json({ aide });
+    });
     app.get('/api/mock-aide/bookings', async (req, res) => {
       res.json({ bookings: await store.aideListBookings() });
     });
@@ -429,6 +470,9 @@ export function createApp({
       const asked = booking.price_offer ?? booking.base_price;
       const price = value.price ?? asked;
       if (price == null) return badFields(res, { price: 'Name your price.' });
+      const problem = checkOffer(aide, booking, price);
+      if (problem?.code) return fail(res, 409, problem.code, problem.message);
+      if (problem) return badFields(res, { price: problem.field });
       const kind = price === asked ? 'accept' : 'counter';
       const offer = await store.aideMakeOffer(booking.id, aide.id, price, kind);
       if (!offer)
@@ -457,7 +501,15 @@ export function createApp({
         if (!aide) return;
         if (booking.aide_id !== aide.id) return notYours(res);
       }
-      const moved = await store.aideSetStatus(booking.id, booking.status, to);
+      // bypass_date lets testers start a scheduled job days early (this route is the mock aide only).
+      if (to === S.IN_PROGRESS && req.body?.bypass_date !== true && tooEarlyToStart(booking))
+        return fail(
+          res,
+          409,
+          'TOO_EARLY',
+          `This job is booked for ${new Date(booking.scheduled_for).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' })}. It can start ${EARLY_START_MINUTES} minutes before. Tick "Bypass the date" to start it now.`,
+        );
+      const moved = await store.aideSetStatus(booking.id, booking.status, to, booking.aide_id);
       if (!moved) return fail(res, 409, 'STALE', 'The booking changed. Refresh and try again.');
       res.json({ booking: moved });
     });

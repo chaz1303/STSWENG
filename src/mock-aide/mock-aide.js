@@ -1,6 +1,7 @@
 // Mock aide side: act as one Manong and answer requests through /api/mock-aide. Take the resident's
 // price or counter once, then for the job you win: on the way / arrived, chat, extra charges, start,
 // job done, or back out. Refreshes every 4 seconds without losing what you are typing.
+// "Manage Manongs" adds test Manongs and sets their services, accredited condos and active flag.
 const $ = (id) => document.getElementById(id);
 const esc = (v) =>
   String(v ?? '').replace(
@@ -8,12 +9,15 @@ const esc = (v) =>
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c],
   );
 const peso = (n) => (n == null ? '—' : `₱${Number(n).toLocaleString('en-PH')}`);
+const at = (t) =>
+  t ? new Date(t).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
 const DONE = ['Completed', 'Declined', 'Cancelled'];
 const OPEN = ['Requested', 'Pending Confirmation'];
 const ASSIGNED = ['Accepted', 'Confirmed'];
 const PROGRESS = { on_the_way: 'On the way', arrived: 'Arrived' };
 let catalog = {};
 let aides = [];
+let condos = [];
 let last = [];
 
 const store = {
@@ -32,7 +36,7 @@ const store = {
     }
   },
 };
-const me = () => aides.find((a) => a.id === $('aide').value);
+const me = () => aides.find((a) => a.id === $('aide').value && a.is_active);
 
 // The mock aide password (MOCK_AIDE_KEY on the server), kept for this browser tab only.
 let key = (() => {
@@ -89,10 +93,15 @@ function controls(b, aide) {
   if (!aide) return '<p class="muted">Pick who you are acting as.</p>';
   if (OPEN.includes(b.status) && !b.aide_id) {
     const asked = b.price_offer ?? b.base_price;
+    // Offers only on your own services, never below the resident's price (the server checks too).
     const answer = mineOffer
       ? `<p>You offered <b>${peso(mineOffer.price)}</b> (${mineOffer.kind === 'accept' ? 'took their price' : 'counter'}), ${esc(mineOffer.status)}.</p>`
-      : `<div class="row">${asked != null ? btn('offer', `Accept ${peso(asked)}`) : ''}
-          <input type="number" min="0" step="10" data-key="${b.id}:counter" placeholder="₱" aria-label="Counter offer in pesos" />
+      : !aide.categories.includes(b.category)
+        ? `<p class="muted">Not one of your services (${esc(aide.categories.join(', '))}).</p>`
+        : !aide.condos.includes(b.condo_id)
+          ? `<p class="muted">You aren't accredited at ${esc(b.condo_name)}.</p>`
+          : `<div class="row">${asked != null ? btn('offer', `Accept ${peso(asked)}`) : ''}
+          <input type="number" min="${asked ?? 0}" step="10" data-key="${b.id}:counter" placeholder="₱${asked ?? ''}+" aria-label="Counter offer in pesos, at least the resident's price" />
           ${btn('counter', 'Counter', '')}</div>`;
     return `${answer}<div class="row">${btn('decline', 'Close: nobody can take it', 'warn')}</div>`;
   }
@@ -142,21 +151,41 @@ function card(b, aide) {
         )
         .join('')}</ul>`
     : '';
+  // Who changed the status, from usr_booking_status_history.
+  const who = (h) =>
+    h.changed_by_role === 'resident'
+      ? b.resident_name
+      : h.changed_by_role === 'aide'
+        ? aideName(h.changed_by_id)
+        : h.changed_by_role;
+  const history = (b.history ?? []).length
+    ? `<h3>Status history</h3><ol class="history">${b.history
+        .map(
+          (h) =>
+            `<li><span class="muted">${esc(at(h.changed_at))}</span> ${h.from_status ? `${esc(h.from_status)} → ` : ''}<b>${esc(h.to_status)}</b> <span class="muted">by ${esc(who(h))}</span></li>`,
+        )
+        .join('')}</ol>`
+    : '';
   return `<article data-id="${esc(b.id)}">
     <div class="top"><b>${esc(cat?.name ?? b.category)}, ${esc(svc?.label ?? b.service_type)}</b>
       <span class="status">${esc(status)}</span></div>
     <dl>
       <dt>Resident</dt><dd>${esc(b.resident_name)} · ${esc(b.resident_mobile)}</dd>
+      <dt>Condo</dt><dd>${esc(b.condo_name)}${b.unit_label ? ` · ${esc(b.unit_label)}` : ''}</dd>
       <dt>Where</dt><dd>${esc(b.address)}${b.unit_notes ? `<br /><small>${esc(b.unit_notes)}</small>` : ''}</dd>
       <dt>When</dt><dd>${esc(when)}</dd>
+      ${b.cancel_reason ? `<dt>Cancel reason</dt><dd>${esc(b.cancel_reason)}</dd>` : ''}
       <dt>Problem</dt><dd>${esc(b.problem) || '—'}</dd>
       <dt>Symptoms</dt><dd>${esc((b.symptoms ?? []).join(', ')) || '—'}</dd>
       <dt>Duration</dt><dd>${esc(duration(b)) || '—'}</dd>
-      <dt>Base price</dt><dd>${peso(b.base_price)}${svc?.price_is_minimum ? '+' : ''}</dd>
+      <dt>Base price</dt><dd>${peso(b.base_price)}</dd>
       <dt>Their offer</dt><dd>${peso(b.price_offer)}</dd>
       ${b.agreed_price != null ? `<dt>Agreed</dt><dd><b>${peso(b.agreed_price)}</b> with ${esc(b.aide?.full_name)}</dd>` : ''}
-      ${b.rating ? `<dt>Rating</dt><dd>${'★'.repeat(b.rating)}${b.tip ? ` · tip ${peso(b.tip)}` : ''}</dd>` : ''}
-    </dl>${offers}${charges}${controls(b, aide)}
+      ${b.total_amount != null ? `<dt>Total</dt><dd>${peso(b.total_amount)} <small class="muted">agreed + approved charges</small></dd>` : ''}
+      ${b.started_at ? `<dt>Started</dt><dd>${esc(at(b.started_at))}</dd>` : ''}
+      ${b.completed_at ? `<dt>Finished</dt><dd>${esc(at(b.completed_at))}</dd>` : ''}
+      ${b.rating ? `<dt>Review</dt><dd>${'★'.repeat(b.rating)}${b.tip ? ` · tip ${peso(b.tip)}` : ''}${b.review ? `<br /><small>${esc(b.review)}</small>` : ''}</dd>` : ''}
+    </dl>${offers}${charges}${history}${controls(b, aide)}
   </article>`;
 }
 
@@ -172,7 +201,11 @@ function render() {
       (b) => !DONE.includes(b.status) || (b.status === 'Completed' && !b.reviewed_at),
     );
   if ($('mine').checked && aide)
-    shown = shown.filter((b) => aide.categories.includes(b.category) || b.aide_id === aide.id);
+    shown = shown.filter(
+      (b) =>
+        (aide.categories.includes(b.category) && aide.condos.includes(b.condo_id)) ||
+        b.aide_id === aide.id,
+    );
   $('list').innerHTML = shown.map((b) => card(b, aide)).join('') || '<p>No bookings.</p>';
   document.querySelectorAll('[data-key]').forEach((el) => {
     if (typed[el.dataset.key]) el.value = typed[el.dataset.key];
@@ -182,13 +215,24 @@ function render() {
   chat.forEach((c) => (c.scrollTop = c.scrollHeight));
 }
 
+// Messages stay readable: action results clear after 8 seconds; a failed refresh (wrong password,
+// offline) stays until a refresh works again.
+let sticky = false;
+let msgTimer;
+function say(text, keep = false) {
+  clearTimeout(msgTimer);
+  $('msg').textContent = text;
+  sticky = keep;
+  if (text && !keep) msgTimer = setTimeout(() => ($('msg').textContent = ''), 8000);
+}
+
 async function load() {
   try {
     last = (await api('GET', '/mock-aide/bookings')).bookings;
     render();
-    $('msg').textContent = '';
+    if (sticky) say('');
   } catch (e) {
-    $('msg').textContent = e.message;
+    say(e.message, true);
   }
 }
 
@@ -204,7 +248,11 @@ const ACTIONS = {
     { aide_status: 'on_the_way', eta_minutes: num(val(id, 'eta')) ?? 10 },
   ],
   arrived: (id) => ['PATCH', `/mock-aide/bookings/${id}/progress`, { aide_status: 'arrived' }],
-  start: (id) => ['PATCH', `/mock-aide/bookings/${id}/status`, { status: 'In Progress' }],
+  start: (id) => [
+    'PATCH',
+    `/mock-aide/bookings/${id}/status`,
+    { status: 'In Progress', bypass_date: $('bypass').checked },
+  ],
   done: (id) => ['PATCH', `/mock-aide/bookings/${id}/status`, { status: 'Completed' }],
   withdraw: (id) => ['POST', `/mock-aide/bookings/${id}/withdraw`, {}],
   charge: (id) => [
@@ -234,7 +282,7 @@ async function act(btnEl) {
     await api(method, path, { ...body, aide_id: $('aide').value });
     for (const k of CLEAR[name] ?? []) if (val(id, k)) val(id, k).value = '';
   } catch (err) {
-    $('msg').textContent = err.message;
+    say(err.message);
   }
   load();
 }
@@ -264,9 +312,9 @@ $('sweep').addEventListener('click', async () => {
   try {
     const { deleted } = await api('DELETE', '/mock-aide/bookings', { confirm: 'DELETE' });
     await load();
-    $('msg').textContent = `Deleted ${deleted} booking${deleted === 1 ? '' : 's'}.`;
+    say(`Deleted ${deleted} booking${deleted === 1 ? '' : 's'}.`);
   } catch (e) {
-    $('msg').textContent = e.message;
+    say(e.message);
   }
 });
 $('open').addEventListener('change', render);
@@ -276,6 +324,73 @@ $('aide').addEventListener('change', () => {
   render();
 });
 
+// ---------- Manage Manongs ----------
+const checks = (name, items, picked) =>
+  items
+    .map(
+      ([v, label]) =>
+        `<label class="chk"><input type="checkbox" name="${name}" value="${esc(v)}" ${picked.includes(v) ? 'checked' : ''} /> ${esc(label)}</label>`,
+    )
+    .join('');
+const catItems = () => Object.values(catalog).map((c) => [c.key, c.name]);
+const condoItems = () =>
+  condos.map((c) => [c.id, `${c.name}${c.is_accredited ? '' : ' (not open to residents)'}`]);
+function aideForm(a) {
+  const id = a ? ` data-aide="${esc(a.id)}"` : '';
+  const head = a
+    ? `<b class="grow">${esc(a.full_name)}</b><label class="chk"><input type="checkbox" name="is_active" ${a.is_active ? 'checked' : ''} /> Active</label>`
+    : `<input type="text" name="first_name" maxlength="60" placeholder="First name" aria-label="First name" required />
+       <input type="text" name="last_name" maxlength="60" placeholder="Last name" aria-label="Last name" required />`;
+  return `<form class="aideform"${id}>
+    <div class="row">${head}</div>
+    <div class="row"><span class="muted">Services</span> ${checks('categories', catItems(), a?.categories ?? [])}</div>
+    <div class="row"><span class="muted">Accredited at</span> ${checks('condos', condoItems(), a?.condos ?? [])}</div>
+    <div class="row"><button type="submit" class="${a ? '' : 'go'}">${a ? 'Save' : 'Add Manong'}</button></div>
+  </form>`;
+}
+function renderManage() {
+  $('manageList').innerHTML = aideForm(null) + aides.map(aideForm).join('');
+}
+// "Acting as" lists active Manongs only.
+function fillPicker() {
+  const keep = $('aide').value || store.get('mj_mock_aide');
+  $('aide').innerHTML = aides
+    .filter((a) => a.is_active)
+    .map(
+      (a) =>
+        `<option value="${esc(a.id)}">${esc(a.full_name)} (${esc(a.categories.join(', ') || 'no services')})</option>`,
+    )
+    .join('');
+  if (aides.some((a) => a.id === keep && a.is_active)) $('aide').value = keep;
+}
+$('manageList').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const picked = (name) =>
+    [...form.querySelectorAll(`input[name="${name}"]:checked`)].map((x) => x.value);
+  const body = { categories: picked('categories'), condos: picked('condos') };
+  const id = form.dataset.aide;
+  if (id) body.is_active = form.querySelector('input[name="is_active"]').checked;
+  else Object.assign(body, { first_name: form.first_name.value, last_name: form.last_name.value });
+  const button = form.querySelector('button[type="submit"]');
+  button.disabled = true;
+  try {
+    const { aide } = await api(
+      id ? 'PATCH' : 'POST',
+      id ? `/mock-aide/aides/${id}` : '/mock-aide/aides',
+      body,
+    );
+    aides = (await api('GET', '/mock-aide/aides')).aides;
+    fillPicker();
+    renderManage();
+    render();
+    say(`${id ? 'Saved' : 'Added'} ${aide.full_name}.`);
+  } catch (err) {
+    button.disabled = false;
+    say(err.message);
+  }
+});
+
 const start = () =>
   Promise.all([
     api('GET', '/categories').then(({ categories }) => {
@@ -283,18 +398,15 @@ const start = () =>
     }),
     api('GET', '/mock-aide/aides').then((r) => {
       aides = r.aides;
-      $('aide').innerHTML = aides
-        .map(
-          (a) =>
-            `<option value="${esc(a.id)}">${esc(a.full_name)} (${esc(a.categories.join(', '))})</option>`,
-        )
-        .join('');
-      const saved = store.get('mj_mock_aide');
-      if (aides.some((a) => a.id === saved)) $('aide').value = saved;
+      fillPicker();
+    }),
+    api('GET', '/mock-aide/condos').then((r) => {
+      condos = r.condos;
     }),
   ])
+    .then(renderManage)
     .then(load)
-    .catch((e) => ($('msg').textContent = e.message));
+    .catch((e) => say(e.message, true));
 
 if (!key) askKey();
 start();

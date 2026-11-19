@@ -1,18 +1,16 @@
 // Saved condo units (U02). Pure functions: no database, no Express.
 export const MAX_UNITS = 10;
 
-// [field, max length, required]
+// [field, max length, required]. Street and city come from the condo, so they aren't asked.
 const UNIT_FIELDS = [
   ['building', 100, true],
   ['tower', 40, false],
   ['floor', 10, false],
   ['unit_number', 20, true],
-  ['street', 150, false],
-  ['city', 60, false],
   ['notes', 200, false],
 ];
 const LABELS = {
-  building: 'Enter the condo or building name.',
+  building: 'Enter your condo name.',
   unit_number: 'Enter the unit number.',
 };
 

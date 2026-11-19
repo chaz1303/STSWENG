@@ -171,6 +171,31 @@
       .muted {
         color: var(--muted);
       }
+      .history {
+        margin: 0;
+        padding-left: 18px;
+        font-size: 14px;
+      }
+      details {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 14px;
+      }
+      summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .aideform {
+        border-top: 1px solid var(--line);
+        padding: 8px 0;
+      }
+      .aideform:first-child {
+        border-top: 0;
+      }
+      .chk {
+        white-space: nowrap;
+      }
     </style>
   </head>
   <body>
@@ -183,11 +208,22 @@
       ></label>
       <label><input type="checkbox" id="open" checked /> Open only</label>
       <label><input type="checkbox" id="mine" /> My services only</label>
+      <label title="Testing only: start a scheduled job before its date"
+        ><input type="checkbox" id="bypass" /> Bypass the date</label
+      >
       <button id="refresh">Refresh</button>
       <button id="sweep" class="warn">Delete all bookings</button>
     </header>
     <main>
       <p id="msg" role="status" aria-live="polite"></p>
+      <details>
+        <summary>Manage Manongs</summary>
+        <p class="muted">
+          Add a test Manong, or change his services, the condos he is accredited at, and whether he
+          is active. A Manong can offer only on his services, in condos he is accredited at.
+        </p>
+        <div id="manageList"></div>
+      </details>
       <div id="list"></div>
     </main>
     <script src="mock-aide.js"></script>

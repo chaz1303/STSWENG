@@ -7,14 +7,16 @@ const unit = {
   tower: 'Tower 1',
   floor: '12',
   unit_number: '12B',
-  street: 'Taft Ave',
-  city: 'Pasay City',
 };
 
 describe('validateUnit (U02)', () => {
   it('trims a new unit and needs building and unit number', () => {
     expect(validateUnit(unit).value).toEqual({ ...unit, building: 'Avida Towers Prime Taft' });
     expect(Object.keys(validateUnit({}).fields).sort()).toEqual(['building', 'unit_number']);
+    // Street and city come from the condo, so they are dropped.
+    expect(validateUnit({ ...unit, street: 'Taft Ave', city: 'Pasay' }).value).not.toHaveProperty(
+      'city',
+    );
     expect(validateUnit({ ...unit, unit_number: '  ' }).fields).toHaveProperty('unit_number');
   });
   it('limits lengths and types', () => {
@@ -34,9 +36,9 @@ describe('validateUnit (U02)', () => {
 
 describe('formatUnitAddress', () => {
   it('reads as one line and skips empty parts', () => {
-    expect(formatUnitAddress(validateUnit(unit).value)).toBe(
-      'Unit 12B, Floor 12, Tower 1, Avida Towers Prime Taft, Taft Ave, Pasay City',
-    );
+    expect(
+      formatUnitAddress({ ...validateUnit(unit).value, street: 'Taft Ave', city: 'Pasay City' }),
+    ).toBe('Unit 12B, Floor 12, Tower 1, Avida Towers Prime Taft, Taft Ave, Pasay City');
     expect(formatUnitAddress({ unit_number: '6', building: 'Avida' })).toBe('Unit 6, Avida');
   });
 });

@@ -17,7 +17,6 @@ const request1 = {
   category: 'plumbing',
   service_type: 'STANDARD',
   booking_type: 'on-demand',
-  address: 'Unit 12B, Tower 1',
   problem: 'Kitchen sink leaks',
   price_offer: 500,
   payment_method: 'gcash',
@@ -42,6 +41,12 @@ beforeEach(async () => {
     mockAideKey: KEY,
   });
   token = (await request(app).post('/api/auth/register').send(juan)).body.token;
+  request1.unit_id = (
+    await request(app)
+      .post('/api/me/units')
+      .set(as())
+      .send({ building: 'Avida Towers Prime Taft', unit_number: '12B', tower: 'Tower 1' })
+  ).body.unit.id;
   id = (await request(app).post('/api/bookings').set(as()).send(request1)).body.booking.id;
   [hal, arthur] = store.aides.map((a) => a.id);
 });
@@ -204,6 +209,57 @@ describe('after a Manong is booked', () => {
   });
 });
 
+describe('offer rules, start date and cancel reason (marn, 2026-11-14)', () => {
+  it('lets a Manong offer only on his services, never below the resident', async () => {
+    const below = await aide('/offers', { aide_id: hal, price: 480 });
+    expect(below.body.error.fields.price).toMatch(/at least ₱500/);
+    const cleaning = (
+      await request(app)
+        .post('/api/bookings')
+        .set(as())
+        .send({ ...request1, category: 'cleaning', service_type: 'STANDARD', price_offer: 1200 })
+    ).body.booking;
+    const other = await request(app)
+      .post(`/api/mock-aide/bookings/${cleaning.id}/offers`)
+      .set({ 'X-Mock-Aide-Key': KEY })
+      .send({ aide_id: hal });
+    expect([other.status, other.body.error.code]).toEqual([409, 'NOT_YOUR_SERVICE']);
+  });
+  it("won't start a scheduled job days early unless the date is bypassed", async () => {
+    const at = new Date(Date.now() + 3 * 86400000).toISOString();
+    const sched = (
+      await request(app)
+        .post('/api/bookings')
+        .set(as())
+        .send({ ...request1, booking_type: 'scheduled', scheduled_for: at })
+    ).body.booking;
+    const asAide = (path, body, method = 'post') =>
+      request(app)
+        [method](`/api/mock-aide/bookings/${sched.id}${path}`)
+        .set({ 'X-Mock-Aide-Key': KEY })
+        .send(body);
+    const { offer } = (await asAide('/offers', { aide_id: hal })).body;
+    await request(app).post(`/api/bookings/${sched.id}/offers/${offer.id}/accept`).set(as());
+    const early = await asAide('/status', { aide_id: hal, status: S.IN_PROGRESS }, 'patch');
+    expect([early.status, early.body.error.code]).toEqual([409, 'TOO_EARLY']);
+    const bypass = await asAide(
+      '/status',
+      { aide_id: hal, status: S.IN_PROGRESS, bypass_date: true },
+      'patch',
+    );
+    expect(bypass.body.booking.status).toBe(S.IN_PROGRESS);
+  });
+  it('saves why the resident cancelled', async () => {
+    const cancel = (reason) =>
+      request(app).patch(`/api/bookings/${id}/cancel`).set(as()).send({ reason });
+    expect((await cancel('x'.repeat(201))).body.error.fields).toHaveProperty('reason');
+    expect((await cancel('Plans changed')).body.booking).toMatchObject({
+      status: S.CANCELLED,
+      cancel_reason: 'Plans changed',
+    });
+  });
+});
+
 describe('mock aide password', () => {
   it('locks the API without the right key, and stays locked when none is set', async () => {
     const list = (a, key) => {
@@ -265,5 +321,57 @@ describe('POST /api/auth/google-debug', () => {
       .get('/api/me')
       .set({ Authorization: `Bearer ${res.body.token}` });
     expect(me.body.resident.email).toBe('enzo.demo@example.com');
+  });
+});
+
+describe('mock aide: managing Manongs and condo accreditation (marn, 2026-11-19)', () => {
+  const mk = { 'X-Mock-Aide-Key': KEY };
+  it('adds a Manong who can offer only in condos he is accredited at', async () => {
+    const { condos } = (await request(app).get('/api/mock-aide/condos').set(mk)).body;
+    const avida = condos.find((c) => c.is_accredited).id;
+    const bad = await request(app)
+      .post('/api/mock-aide/aides')
+      .set(mk)
+      .send({ first_name: '', categories: 'plumbing', condos: ['nope'] });
+    expect(Object.keys(bad.body.error.fields).sort()).toEqual([
+      'categories',
+      'condos',
+      'first_name',
+      'last_name',
+    ]);
+    const made = await request(app)
+      .post('/api/mock-aide/aides')
+      .set(mk)
+      .send({ first_name: 'Kara', last_name: 'Danvers', categories: ['plumbing'], condos: [] });
+    expect(made.status).toBe(201);
+    const kara = made.body.aide;
+    expect(kara).toMatchObject({ full_name: 'Kara Danvers', categories: ['plumbing'], condos: [] });
+    const refused = await aide('/offers', { aide_id: kara.id });
+    expect([refused.status, refused.body.error.code]).toEqual([409, 'NOT_ACCREDITED']);
+    const edit = await request(app)
+      .patch(`/api/mock-aide/aides/${kara.id}`)
+      .set(mk)
+      .send({ condos: [avida] });
+    expect(edit.body.aide.condos).toEqual([avida]);
+    expect((await aide('/offers', { aide_id: kara.id })).status).toBe(201);
+  });
+  it('turns a Manong off so nobody can act as him', async () => {
+    const off = await request(app)
+      .patch(`/api/mock-aide/aides/${arthur}`)
+      .set(mk)
+      .send({ is_active: false });
+    expect(off.body.aide.is_active).toBe(false);
+    expect((await aide('/offers', { aide_id: arthur })).body.error.fields).toHaveProperty(
+      'aide_id',
+    );
+    const list = (await request(app).get('/api/mock-aide/aides').set(mk)).body.aides;
+    expect(list.map((a) => a.is_active)).toEqual([true, false]);
+    expect(
+      (await request(app).patch('/api/mock-aide/aides/nope').set(mk).send({ is_active: true }))
+        .status,
+    ).toBe(404);
+    expect(
+      (await request(app).patch(`/api/mock-aide/aides/${arthur}`).set(mk).send({})).status,
+    ).toBe(400);
   });
 });

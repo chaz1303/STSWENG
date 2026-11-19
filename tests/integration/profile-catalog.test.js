@@ -140,11 +140,45 @@ describe('POST /api/bookings with U02 to U06 data', () => {
     expect(res.status).toBe(201);
     expect(res.body.booking).toMatchObject({
       unit_id: u.id,
-      address: 'Unit 12B, Tower 1, Avida Towers Prime Taft',
+      address: 'Unit 12B, Tower 1, Avida Towers Prime Taft, Taft Ave, Pasay City',
       symptoms: ['Leak'],
       base_price: 450,
       status: S.REQUESTED,
     });
+  });
+  it('saves units only in an accredited condo, and a removed unit stays on its booking', async () => {
+    const token = await tokenFor(juan);
+    for (const building of ['Some Other Tower', 'Not Yet Tower']) {
+      const res = await request(app)
+        .post('/api/me/units')
+        .set(as(token))
+        .send({ ...unit, building });
+      expect(res.body.error.fields.building).toBe(
+        'Mang Juan serves only Avida Towers Prime Taft for now.',
+      );
+    }
+    const u = (
+      await request(app)
+        .post('/api/me/units')
+        .set(as(token))
+        .send({ ...unit, building: ' avida towers prime taft ' })
+    ).body.unit;
+    expect(u).toMatchObject({ building: 'Avida Towers Prime Taft', city: 'Pasay City' });
+    const { id } = (
+      await request(app)
+        .post('/api/bookings')
+        .set(as(token))
+        .send({ ...booking, unit_id: u.id })
+    ).body.booking;
+    expect((await request(app).delete(`/api/me/units/${u.id}`).set(as(token))).status).toBe(204);
+    expect((await request(app).get('/api/me/units').set(as(token))).body.units).toEqual([]);
+    const b = (await request(app).get(`/api/bookings/${id}`).set(as(token))).body.booking;
+    expect(b).toMatchObject({ unit_id: u.id, address: expect.stringContaining('Unit 12B') });
+    const gone = await request(app)
+      .post('/api/bookings')
+      .set(as(token))
+      .send({ ...booking, unit_id: u.id });
+    expect(Object.keys(gone.body.error.fields)).toEqual(['unit_id']);
   });
   it("refuses another resident's unit and services that aren't offered", async () => {
     const [juanT, mariaT] = [await tokenFor(juan), await tokenFor(maria)];
@@ -162,7 +196,7 @@ describe('POST /api/bookings with U02 to U06 data', () => {
       const res = await request(app)
         .post('/api/bookings')
         .set(as(juanT))
-        .send({ ...booking, address: 'Unit 1', ...bad });
+        .send({ ...booking, unit_id: u.id, ...bad });
       expect([res.status, Object.keys(res.body.error.fields)]).toEqual([400, ['category']]);
     }
   });
