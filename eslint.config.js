@@ -25,7 +25,7 @@ export default [
     },
   },
   {
-    files: ['src/client/**', 'src/mock-aide/**'],
+    files: ['src/client/**', 'src/mock-aide/**', 'src/anim/**'],
     languageOptions: { globals: { ...globals.browser } },
   },
   {
