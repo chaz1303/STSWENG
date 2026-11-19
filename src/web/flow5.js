@@ -173,7 +173,7 @@ S['a-confirm'] = () => {
     <section class="f5card f5sum">
       <div class="row top"><span class="ic">${i5('ic-tools')}</span><div class="grow"><small>Service scope</small><b class="big">${tA().name} (${st.cat === 'plumbing' ? FD[st.tierA] : tA().dur})</b><p>${scope5()}</p></div>${i5('ic-verified', 'ver')}</div>
       <hr /><div class="row"><span class="ic">${i5('ic-calendar')}</span><div class="grow"><small>When</small><b>${when5()}</b></div><button class="ed" data-act="sheet" data-arg="when5" aria-label="Edit time">${i5('ic-pencil')}</button></div>
-      <hr /><div class="row top"><span class="ic">${i5('ic-where')}</span><div class="grow"><small>Where</small><b>${esc(addrA().short)}</b><span class="gate">${i5('ic-shield')}Gate pass ready at lobby guard</span></div><button class="ed" data-act="sheet" data-arg="addressA" aria-label="Edit address details">${i5('ic-pencil')}</button></div>
+      <hr /><div class="row top"><span class="ic">${i5('ic-where')}</span><div class="grow"><small>Where</small><b>${esc(addrA().short)}</b>${addrA().notes ? `<span class="gate">${i5('ic-shield')}${esc(addrA().notes)}</span>` : ''}</div><button class="ed" data-act="sheet" data-arg="addressA" aria-label="Edit address details">${i5('ic-pencil')}</button></div>
     </section>
     <section class="f5card f5fare">
       <div class="hd"><div><small>Your price offer</small><p>Fixed base price: ${peso(base)}</p></div><span class="rate">${i5('ic-bolt')}${o <= base ? 'Cheapest Rate' : o < base + 100 ? 'Cheapest Rate' : 'Fast Match'}</span></div>
@@ -303,7 +303,7 @@ Object.assign(ACT, {
     }
     if (is5() && !st.fb) {
       setCat5(k);
-      Object.assign(st, { tierA: 'quick', symptomsA: k === 'plumbing' ? ['Dripping Water'] : [], photosA: k === 'plumbing' ? [{ src: A + 'pipe.png', label: 'Pipe Joint' }] : [], descA: '', notesA: '', offer: null, inc: 50, f5no: [] });
+      Object.assign(st, { tierA: 'quick', symptomsA: [], photosA: [], descA: '', notesA: '', offer: null, inc: 50, f5no: [] });
     }
     return act4.startA.call(ACT, k);
   },
@@ -541,7 +541,7 @@ async function api5(method, path, body) {
     throw { offline: true };
   }
   const j = await r.json().catch(() => null);
-  if (r.ok && j) return j;
+  if (r.ok) return j || {}; // 204 No Content has no body
   // An expired or bad token on any signed-in call: drop it and send the resident to Log in.
   if (r.status === 401 && !path.startsWith('/auth')) {
     saveToken5(null);
@@ -657,34 +657,16 @@ AFTER['a-finding'] = () => {
     live();
   });
 };
-// The app has no Simulate panel, so a scheduled request moves on by itself: confirmed, then on the way.
-const afterPending5 = AFTER['a-pending'];
-AFTER['a-pending'] = () => {
-  if (afterPending5) afterPending5();
-  if (!is5() || !APP5) return;
-  const step = (from, fn) => setTimeout(() => {
-    const b = st.fb;
-    if (is5() && st.screen === 'a-pending' && b && b.status === from && !st.sheet) fn(b);
-  }, 6000);
-  step('pending', (b) => {
-    b.status = 'confirmed';
-    pushN(`${b.m.first} confirmed ${DAY_LONG[b.day]}, Oct ${b.day} at ${b.time}`, 'a-history');
-    render(true);
-  });
-  step('confirmed', (b) => {
-    b.status = 'onway';
-    Object.assign(st, { eta: 10, km: 1.4, arrived: false });
-    go('a-found', { replace: true });
-    toast(`${b.m.first} is on the way`);
-  });
-};
-// A saved session goes straight to Home.
+// Scheduled bookings no longer move on by themselves: the aide side moves them (live.js).
+// A saved session signs back in on any screen (a reload on Bookings stays on Bookings); from the
+// welcome or log-in screen it goes straight to Home.
 if (APP5) addEventListener('DOMContentLoaded', () => {
   if (!token5() || !is5()) return;
   api5('GET', '/me').then(({ resident }) => {
-    if (!is5() || !['a-welcome', 'a-login'].includes(st.screen)) return;
+    if (!is5()) return;
     Object.assign(st, { user: resident, api: true });
-    go('a-home', { reset: true, replace: true });
+    if (['a-welcome', 'a-login'].includes(st.screen)) go('a-home', { reset: true, replace: true });
+    else render();
     sync5();
   }).catch((e) => {
     if (!e.offline) saveToken5(null);

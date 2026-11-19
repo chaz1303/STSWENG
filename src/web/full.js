@@ -1511,7 +1511,7 @@ const whenF = (b) => (b.time === 'Now' ? 'Now' : `${DAY_LONG[b.day]}, Oct ${b.da
 const stF = (b) => {
   const k = keyF(b), f = b.m.first;
   const t = {
-    finding: ['Finding your Manong', `${TIERS_A[b.tier].name} • Now`],
+    finding: ['Finding your Manong', `${TIERS_A[b.tier].name} • ${whenF(b)}`],
     pending: [`Waiting for ${f} to confirm`, whenF(b)],
     confirmed: [`${f} confirmed`, whenF(b)],
     declined: [`${f} can't take it`, 'Tap to choose another Manong'],
@@ -1559,7 +1559,8 @@ S['a-service'] = () => {
 const DAYS_F = [['Today', 20], ['Wed', 21], ['Thu', 22], ['Fri', 23], ['Sat', 24], ['Sun', 25], ['Mon', 26], ['Tue', 27], ['Wed', 28], ['Thu', 29], ['Fri', 30], ['Sat', 31]];
 Object.assign(DAY_LONG, { 25: 'Sun', 26: 'Mon', 27: 'Tue', 28: 'Wed', 29: 'Thu', 30: 'Fri', 31: 'Sat' });
 // Today only offers slots at least ~30 mins after the current time (2:03 PM in this prototype).
-const slotsF = (day) => TIMES.filter((t) => day !== 20 || ['3:00 PM', '4:30 PM', '6:00 PM'].includes(t));
+// let, not const: the live app (live.js) replaces it with slots based on the real time.
+let slotsF = (day) => TIMES.filter((t) => day !== 20 || ['3:00 PM', '4:30 PM', '6:00 PM'].includes(t));
 const baseDet = S['a-details'];
 S['a-details'] = () => {
   if (!isF()) return baseDet();
@@ -1680,7 +1681,7 @@ S['a-home'] = () => {
 };
 S['a-notifs'] = () => {
   const grp = (t) => st.nF.filter((n) => n.g === t);
-  const sec = (t) => (grp(t).length ? `<div class="f4group"><h3>${t}</h3><div class="list">${grp(t).map((n) => `<button class="listrow" data-act="notifF" data-arg="${st.nF.indexOf(n)}"><i class="f4dot ${n.unread ? '' : 'off'}"></i><div class="grow"><b>${n.t}</b><small>${n.time}</small></div>${ic('chevR')}</button>`).join('')}</div></div>` : '');
+  const sec = (t) => (grp(t).length ? `<div class="f4group"><h3>${t}</h3><div class="list">${grp(t).map((n) => `<button class="listrow" data-act="notifF" data-arg="${st.nF.indexOf(n)}"><i class="f4dot ${n.unread ? '' : 'off'}"></i><div class="grow"><b>${esc(n.t)}</b><small>${esc(n.time)}</small></div>${ic('chevR')}</button>`).join('')}</div></div>` : '');
   return `${statusBar()}<div class="ohome">${topF('Notifications', { back: 'back', right: unreadN() ? '<button class="f4hdrlink" data-act="readAllF">Mark all read</button>' : '' })}
   <div class="scroll" style="padding:4px 16px 24px">${sec('Today')}${sec('Earlier')}</div></div>${homeBar}`;
 };

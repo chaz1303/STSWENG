@@ -24,7 +24,6 @@ const plumbing = {
   category: 'plumbing',
   service_type: 'CHECKUP',
   booking_type: 'on-demand',
-  address: 'Unit 6, Tower 1',
   problem: 'Dripping water',
   price_offer: 250,
 };
@@ -38,6 +37,20 @@ const register = (body) => request(app).post('/api/auth/register').send(body);
 const login = (body) => request(app).post('/api/auth/login').send(body);
 const as = (token) => ({ Authorization: `Bearer ${token}` });
 const tokenFor = async (who) => (await register(who)).body.token;
+// Bookings need one of the resident's saved units; the first booking saves one.
+const unitOf = {};
+const book = async (token, body) => {
+  unitOf[token] ??= (
+    await request(app)
+      .post('/api/me/units')
+      .set(as(token))
+      .send({ building: 'Avida Towers Prime Taft', unit_number: '6', tower: 'Tower 1' })
+  ).body.unit.id;
+  return request(app)
+    .post('/api/bookings')
+    .set(as(token))
+    .send({ unit_id: unitOf[token], ...body });
+};
 
 describe('POST /api/auth/register', () => {
   it('creates the account, returns a token and never the password hash', async () => {
@@ -155,7 +168,7 @@ describe('GET /api/me', () => {
 describe('bookings', () => {
   it('creates a booking in the contract initial state and lists it', async () => {
     const token = await tokenFor(juan);
-    const made = await request(app).post('/api/bookings').set(as(token)).send(plumbing);
+    const made = await book(token, plumbing);
     expect(made.status).toBe(201);
     expect(made.body.booking).toMatchObject({
       category: 'plumbing',
@@ -164,24 +177,20 @@ describe('bookings', () => {
       price_offer: 250,
     });
     expect(made.body.booking).not.toHaveProperty('resident_id');
-    const sched = await request(app)
-      .post('/api/bookings')
-      .set(as(token))
-      .send({
-        ...plumbing,
-        category: 'cleaning',
-        service_type: 'STANDARD',
-        booking_type: 'scheduled',
-        scheduled_for: '2099-01-01T02:30:00Z',
-      });
+    const sched = await book(token, {
+      ...plumbing,
+      category: 'cleaning',
+      service_type: 'STANDARD',
+      booking_type: 'scheduled',
+      scheduled_for: '2099-01-01T02:30:00Z',
+    });
     expect(sched.body.booking.status).toBe(S.PENDING_CONFIRMATION);
     const list = await request(app).get('/api/bookings').set(as(token));
     expect(list.body.bookings.map((b) => b.category)).toEqual(['cleaning', 'plumbing']);
   });
   it("never shows or cancels someone else's booking", async () => {
     const [juanToken, mariaToken] = [await tokenFor(juan), await tokenFor(maria)];
-    const { id } = (await request(app).post('/api/bookings').set(as(juanToken)).send(plumbing)).body
-      .booking;
+    const { id } = (await book(juanToken, plumbing)).body.booking;
     expect((await request(app).get('/api/bookings').set(as(mariaToken))).body.bookings).toEqual([]);
     const res = await request(app).patch(`/api/bookings/${id}/cancel`).set(as(mariaToken));
     expect([res.status, res.body.error.code]).toEqual([404, 'NOT_FOUND']);
@@ -189,14 +198,12 @@ describe('bookings', () => {
   });
   it('cancels before In Progress and refuses after', async () => {
     const token = await tokenFor(juan);
-    const { id } = (await request(app).post('/api/bookings').set(as(token)).send(plumbing)).body
-      .booking;
+    const { id } = (await book(token, plumbing)).body.booking;
     const ok = await request(app).patch(`/api/bookings/${id}/cancel`).set(as(token));
     expect([ok.status, ok.body.booking.status]).toEqual([200, S.CANCELLED]);
     const again = await request(app).patch(`/api/bookings/${id}/cancel`).set(as(token));
     expect([again.status, again.body.error.code]).toEqual([409, 'CANNOT_CANCEL']);
-    const second = (await request(app).post('/api/bookings').set(as(token)).send(plumbing)).body
-      .booking;
+    const second = (await book(token, plumbing)).body.booking;
     store.bookings.find((b) => b.id === second.id).status = S.IN_PROGRESS;
     expect(
       (await request(app).patch(`/api/bookings/${second.id}/cancel`).set(as(token))).status,
@@ -207,9 +214,9 @@ describe('bookings', () => {
     const bad = await request(app)
       .post('/api/bookings')
       .set(as(token))
-      .send({ ...plumbing, service_type: 'QUICK', address: '' });
+      .send({ ...plumbing, service_type: 'QUICK' });
     expect(bad.status).toBe(400);
-    expect(Object.keys(bad.body.error.fields).sort()).toEqual(['address', 'service_type']);
+    expect(Object.keys(bad.body.error.fields).sort()).toEqual(['service_type', 'unit_id']);
     expect(
       (await request(app).patch('/api/bookings/not-a-uuid/cancel').set(as(token))).status,
     ).toBe(404);

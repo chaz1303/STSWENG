@@ -1,13 +1,19 @@
 import { describe, expect, it } from 'vitest';
-import { CANCELLABLE, canCancel, validateBooking } from '../../src/services/bookings.js';
+import {
+  buildCatalog,
+  CANCELLABLE,
+  canCancel,
+  validateBooking,
+} from '../../src/services/bookings.js';
 import { BOOKING_STATES as S } from '../../src/utils/contract.js';
 
 const now = new Date('2026-11-12T08:00:00Z');
+const unit_id = '0b7c6f2e-5d1a-4c3b-9e8f-1a2b3c4d5e6f';
 const onDemand = {
   category: 'Plumbing',
   service_type: 'CHECKUP',
   booking_type: 'on-demand',
-  address: ' Unit 6, Tower 1 ',
+  unit_id,
   problem: 'Dripping water',
   price_offer: 250,
 };
@@ -20,10 +26,21 @@ describe('validateBooking', () => {
       booking_type: 'on-demand',
       status: S.REQUESTED,
       scheduled_for: null,
-      address: 'Unit 6, Tower 1',
       problem: 'Dripping water',
       price_offer: 250,
+      unit_id,
+      symptoms: [],
+      payment_method: null,
     });
+  });
+  it('needs a saved unit, and takes a short symptom list (U02, U04)', () => {
+    const v = validateBooking({ ...onDemand, symptoms: [' Leak ', 'No water'] }, now).value;
+    expect(v).toMatchObject({ unit_id, symptoms: ['Leak', 'No water'] });
+    expect(v).not.toHaveProperty('address');
+    for (const bad of [undefined, null, 'nope', 7, ''])
+      expect(validateBooking({ ...onDemand, unit_id: bad }, now).fields).toHaveProperty('unit_id');
+    for (const symptoms of ['Leak', [''], [7], Array(11).fill('x'), ['x'.repeat(41)]])
+      expect(validateBooking({ ...onDemand, symptoms }, now).fields).toHaveProperty('symptoms');
   });
   it('starts a scheduled booking as Pending Confirmation', () => {
     const v = validateBooking(
@@ -45,10 +62,10 @@ describe('validateBooking', () => {
   });
   it('names every bad field', () => {
     expect(Object.keys(validateBooking({}, now).fields).sort()).toEqual([
-      'address',
       'booking_type',
       'category',
       'service_type',
+      'unit_id',
     ]);
     expect(validateBooking(null, now).fields).toBeDefined();
   });
@@ -62,9 +79,6 @@ describe('validateBooking', () => {
     expect(validateBooking({ ...onDemand, problem: 'x'.repeat(301) }, now).fields).toHaveProperty(
       'problem',
     );
-    expect(validateBooking({ ...onDemand, address: 'x'.repeat(201) }, now).fields).toHaveProperty(
-      'address',
-    );
     expect(validateBooking({ ...onDemand, category: '<script>' }, now).fields).toHaveProperty(
       'category',
     );
@@ -75,6 +89,39 @@ describe('validateBooking', () => {
     expect(
       validateBooking({ ...onDemand, price_offer: undefined, problem: undefined }, now).value,
     ).toMatchObject({ price_offer: null, problem: '' });
+  });
+});
+
+describe('buildCatalog', () => {
+  it('joins contract durations with DB prices and drops unpriced types (U03, U06)', () => {
+    const cats = [
+      { key: 'plumbing', name: 'Plumbing', description: 'Leaks' },
+      { key: 'empty', name: 'Empty', description: '' },
+    ];
+    const prices = [
+      { category: 'plumbing', service_type: 'MAJOR', base_price: 800, price_is_minimum: true },
+      { category: 'plumbing', service_type: 'CHECKUP', base_price: 250, price_is_minimum: false },
+    ];
+    const [plumbing, empty] = buildCatalog(cats, prices);
+    expect(plumbing.services).toEqual([
+      {
+        service_type: 'CHECKUP',
+        label: 'Checkup / Quick Repair',
+        min_minutes: 15,
+        max_minutes: 15,
+        base_price: 250,
+        price_is_minimum: false,
+      },
+      {
+        service_type: 'MAJOR',
+        label: 'Major Repair',
+        min_minutes: 60,
+        max_minutes: null,
+        base_price: 800,
+        price_is_minimum: true,
+      },
+    ]);
+    expect(empty.services).toEqual([]);
   });
 });
 

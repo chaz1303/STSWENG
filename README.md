@@ -1,11 +1,5 @@
 # STSWENG
 
-## Run the web app
-
-1. `npm install`
-2. Copy `.env.example` to `.env` and fill it in (database URL, CA file, JWT secret, demo password).
-3. `npm start`, then open http://localhost:3000. Add `?lab` for the prototype picker with Flows 1 to 5.
-
 ## Folder map
 
 Initial folder strucutre for now for progress, used `feature/qa-pipeline` framework from QAs
