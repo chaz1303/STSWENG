@@ -173,7 +173,7 @@ S['a-confirm'] = () => {
     <section class="f5card f5sum">
       <div class="row top"><span class="ic">${i5('ic-tools')}</span><div class="grow"><small>Service scope</small><b class="big">${tA().name} (${st.cat === 'plumbing' ? FD[st.tierA] : tA().dur})</b><p>${scope5()}</p></div>${i5('ic-verified', 'ver')}</div>
       <hr /><div class="row"><span class="ic">${i5('ic-calendar')}</span><div class="grow"><small>When</small><b>${when5()}</b></div><button class="ed" data-act="sheet" data-arg="when5" aria-label="Edit time">${i5('ic-pencil')}</button></div>
-      <hr /><div class="row top"><span class="ic">${i5('ic-where')}</span><div class="grow"><small>Where</small><b>${esc(addrA().short)}</b><span class="gate">${i5('ic-shield')}Gate pass ready at lobby guard</span></div><button class="ed" data-act="sheet" data-arg="addressA" aria-label="Edit address details">${i5('ic-pencil')}</button></div>
+      <hr /><div class="row top"><span class="ic">${i5('ic-where')}</span><div class="grow"><small>Where</small><b>${esc(addrA().short)}</b>${addrA().notes ? `<span class="gate">${i5('ic-shield')}${esc(addrA().notes)}</span>` : ''}</div><button class="ed" data-act="sheet" data-arg="addressA" aria-label="Edit address details">${i5('ic-pencil')}</button></div>
     </section>
     <section class="f5card f5fare">
       <div class="hd"><div><small>Your price offer</small><p>Fixed base price: ${peso(base)}</p></div><span class="rate">${i5('ic-bolt')}${o <= base ? 'Cheapest Rate' : o < base + 100 ? 'Cheapest Rate' : 'Fast Match'}</span></div>
@@ -658,13 +658,15 @@ AFTER['a-finding'] = () => {
   });
 };
 // Scheduled bookings no longer move on by themselves: the aide side moves them (live.js).
-// A saved session goes straight to Home.
+// A saved session signs back in on any screen (a reload on Bookings stays on Bookings); from the
+// welcome or log-in screen it goes straight to Home.
 if (APP5) addEventListener('DOMContentLoaded', () => {
   if (!token5() || !is5()) return;
   api5('GET', '/me').then(({ resident }) => {
-    if (!is5() || !['a-welcome', 'a-login'].includes(st.screen)) return;
+    if (!is5()) return;
     Object.assign(st, { user: resident, api: true });
-    go('a-home', { reset: true, replace: true });
+    if (['a-welcome', 'a-login'].includes(st.screen)) go('a-home', { reset: true, replace: true });
+    else render();
     sync5();
   }).catch((e) => {
     if (!e.offline) saveToken5(null);
