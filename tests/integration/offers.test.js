@@ -17,7 +17,6 @@ const request1 = {
   category: 'plumbing',
   service_type: 'STANDARD',
   booking_type: 'on-demand',
-  address: 'Unit 12B, Tower 1',
   problem: 'Kitchen sink leaks',
   price_offer: 500,
   payment_method: 'gcash',
@@ -42,6 +41,12 @@ beforeEach(async () => {
     mockAideKey: KEY,
   });
   token = (await request(app).post('/api/auth/register').send(juan)).body.token;
+  request1.unit_id = (
+    await request(app)
+      .post('/api/me/units')
+      .set(as())
+      .send({ building: 'Avida Towers Prime Taft', unit_number: '12B', tower: 'Tower 1' })
+  ).body.unit.id;
   id = (await request(app).post('/api/bookings').set(as()).send(request1)).body.booking.id;
   [hal, arthur] = store.aides.map((a) => a.id);
 });

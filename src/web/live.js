@@ -414,7 +414,7 @@ if (APP5) {
   const field5 = (model, label, ph, max) => `<label class="sub" style="display:block;margin:10px 0 4px">${label}</label><input class="sheetin" data-model="${model}" value="${esc(st[model] || '')}" placeholder="${ph}" maxlength="${max}" aria-label="${label}" />`;
   SHEETS.unit5 = () => `<h3>Add your condo unit</h3><p class="sub">So Manong knows where to go.</p><div id="unitForm">
   ${field5('u5b', 'Condo or building', 'Avida Towers Prime Taft', 100)}${field5('u5n', 'Unit number', '12B', 20)}${field5('u5t', 'Tower (optional)', 'Tower 1', 40)}${field5('u5f', 'Floor (optional)', '12', 10)}
-  ${field5('u5s', 'Street (optional)', 'Taft Ave', 150)}${field5('u5c', 'City (optional)', 'Pasay City', 60)}${field5('u5x', 'Notes for Manong (optional)', 'Gate 2, ask the guard', 200)}</div>
+  ${field5('u5x', 'Notes for Manong (optional)', 'Gate 2, ask the guard', 200)}</div>
   <div class="stack" style="margin-top:14px"><button class="btn primary" data-act="saveUnit5" ${st.busy ? 'disabled' : ''}>Save unit</button><button class="btn secondary" data-act="closeSheet">Cancel</button></div>`;
   SHEETS.profile5 = () => `<h3>Edit profile</h3><div id="profileForm">${field5('p5n', 'Full name', 'Juan Dela Cruz', 100)}${field5('p5e', 'Email', 'name@email.com', 254)}${field5('p5m', 'Mobile number', '0917 123 4567', 20)}</div>
   <div class="stack" style="margin-top:14px"><button class="btn primary" data-act="saveProfile5" ${st.busy ? 'disabled' : ''}>Save</button><button class="btn secondary" data-act="closeSheet">Cancel</button></div>`;
@@ -572,11 +572,11 @@ if (APP5) {
       api5('DELETE', `/me/units/${id}`).then(() => toast('Unit removed')).catch(err5).finally(() => sync5().then(() => st.sheet && render()));
     },
     saveUnit5() {
-      const body = { building: st.u5b || '', unit_number: st.u5n || '', tower: st.u5t || '', floor: st.u5f || '', street: st.u5s || '', city: st.u5c || '', notes: st.u5x || '' };
+      const body = { building: st.u5b || '', unit_number: st.u5n || '', tower: st.u5t || '', floor: st.u5f || '', notes: st.u5x || '' };
       st.busy = true;
       render();
       api5('POST', '/me/units', body).then(({ unit }) => {
-        Object.assign(st, { busy: false, sheet: null, unit5: unit.id, u5b: '', u5n: '', u5t: '', u5f: '', u5s: '', u5c: '', u5x: '' });
+        Object.assign(st, { busy: false, sheet: null, unit5: unit.id, u5b: '', u5n: '', u5t: '', u5f: '', u5x: '' });
         toast('Unit saved');
         return sync5();
       }).catch((e) => {

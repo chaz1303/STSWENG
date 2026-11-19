@@ -8,11 +8,12 @@ import {
 import { BOOKING_STATES as S } from '../../src/utils/contract.js';
 
 const now = new Date('2026-11-12T08:00:00Z');
+const unit_id = '0b7c6f2e-5d1a-4c3b-9e8f-1a2b3c4d5e6f';
 const onDemand = {
   category: 'Plumbing',
   service_type: 'CHECKUP',
   booking_type: 'on-demand',
-  address: ' Unit 6, Tower 1 ',
+  unit_id,
   problem: 'Dripping water',
   price_offer: 250,
 };
@@ -25,22 +26,18 @@ describe('validateBooking', () => {
       booking_type: 'on-demand',
       status: S.REQUESTED,
       scheduled_for: null,
-      address: 'Unit 6, Tower 1',
       problem: 'Dripping water',
       price_offer: 250,
-      unit_id: null,
+      unit_id,
       symptoms: [],
       payment_method: null,
     });
   });
-  it('takes a saved unit instead of an address, and a short symptom list (U02, U04)', () => {
-    const unit_id = '0b7c6f2e-5d1a-4c3b-9e8f-1a2b3c4d5e6f';
-    const v = validateBooking(
-      { ...onDemand, address: undefined, unit_id, symptoms: [' Leak ', 'No water'] },
-      now,
-    ).value;
-    expect(v).toMatchObject({ unit_id, address: '', symptoms: ['Leak', 'No water'] });
-    for (const bad of ['nope', 7, ''])
+  it('needs a saved unit, and takes a short symptom list (U02, U04)', () => {
+    const v = validateBooking({ ...onDemand, symptoms: [' Leak ', 'No water'] }, now).value;
+    expect(v).toMatchObject({ unit_id, symptoms: ['Leak', 'No water'] });
+    expect(v).not.toHaveProperty('address');
+    for (const bad of [undefined, null, 'nope', 7, ''])
       expect(validateBooking({ ...onDemand, unit_id: bad }, now).fields).toHaveProperty('unit_id');
     for (const symptoms of ['Leak', [''], [7], Array(11).fill('x'), ['x'.repeat(41)]])
       expect(validateBooking({ ...onDemand, symptoms }, now).fields).toHaveProperty('symptoms');
@@ -65,10 +62,10 @@ describe('validateBooking', () => {
   });
   it('names every bad field', () => {
     expect(Object.keys(validateBooking({}, now).fields).sort()).toEqual([
-      'address',
       'booking_type',
       'category',
       'service_type',
+      'unit_id',
     ]);
     expect(validateBooking(null, now).fields).toBeDefined();
   });
@@ -81,9 +78,6 @@ describe('validateBooking', () => {
   it('limits the text fields and the price', () => {
     expect(validateBooking({ ...onDemand, problem: 'x'.repeat(301) }, now).fields).toHaveProperty(
       'problem',
-    );
-    expect(validateBooking({ ...onDemand, address: 'x'.repeat(201) }, now).fields).toHaveProperty(
-      'address',
     );
     expect(validateBooking({ ...onDemand, category: '<script>' }, now).fields).toHaveProperty(
       'category',

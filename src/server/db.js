@@ -3,6 +3,11 @@
 import { readFileSync } from 'node:fs';
 import pg from 'pg';
 
+// Money is NUMERIC(10,2); pg returns it as a string, which would turn `price + charge` into text.
+// shortcut: parsed as a JS number (exact to the centavo below ~₱90 trillion); use a decimal library
+// if amounts ever need exact arithmetic beyond display and simple sums.
+pg.types.setTypeParser(pg.types.builtins.NUMERIC, parseFloat);
+
 let pool;
 
 export function getDb() {

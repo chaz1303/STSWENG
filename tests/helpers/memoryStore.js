@@ -1,7 +1,9 @@
 // In-memory stand-in for src/server/store.js, so API tests never touch the shared database
 // (CI plan §3.3). It keeps the same rules the SQL enforces: unique email and mobile, one default unit,
-// units and bookings scoped to their resident, and a status change that only happens from an allowed state.
+// units and bookings scoped to their resident, units only in an accredited condo, archived (not deleted)
+// units, and a status change that only happens from an allowed state.
 import { randomUUID } from 'node:crypto';
+import { formatUnitAddress } from '../../src/services/units.js';
 
 const OPEN = ['Requested', 'Pending Confirmation'];
 const ASSIGNED = ['Accepted', 'Confirmed'];
@@ -35,6 +37,17 @@ export function memoryStore() {
     { id: randomUUID(), key: 'arthur', full_name: 'Arthur Curry', categories: ['plumbing'] },
   ];
   const aideById = (id) => aides.find((a) => a.id === id) ?? null;
+  // db/schema.sql's one accredited condo, plus one that isn't accredited.
+  const condos = [
+    {
+      id: randomUUID(),
+      name: 'Avida Towers Prime Taft',
+      street: 'Taft Ave',
+      city: 'Pasay City',
+      is_accredited: true,
+    },
+    { id: randomUUID(), name: 'Not Yet Tower', street: '', city: '', is_accredited: false },
+  ];
   const offers = [];
   const charges = [];
   const messages = [];
@@ -43,7 +56,14 @@ export function memoryStore() {
   const pub = without('password_hash');
   const own = without('resident_id');
   const now = () => new Date().toISOString();
-  const mine = (resident_id) => units.filter((u) => u.resident_id === resident_id);
+  const mine = (resident_id) =>
+    units.filter((u) => u.resident_id === resident_id && !u.is_archived);
+  const unitOut = (u) => {
+    const c = condos.find((x) => x.id === u.condo_building_id);
+    const hidden = ['resident_id', 'condo_building_id', 'is_archived'];
+    const rest = Object.fromEntries(Object.entries(u).filter(([k]) => !hidden.includes(k)));
+    return { ...rest, building: c.name, street: c.street, city: c.city };
+  };
   const taken = (r, id) => {
     for (const k of ['email', 'mobile_number'])
       if (r[k] !== undefined && residents.some((x) => x.id !== id && x[k] === r[k]))
@@ -82,14 +102,21 @@ export function memoryStore() {
       return pub(r);
     },
 
+    async findCondo(name) {
+      const c = condos.find((x) => x.is_accredited && x.name.toLowerCase() === name.toLowerCase());
+      return c ? { id: c.id, name: c.name } : null;
+    },
+    async listCondos() {
+      return condos.filter((c) => c.is_accredited).map((c) => c.name);
+    },
     async listUnits(resident_id) {
       return mine(resident_id)
         .sort((a, b) => b.is_default - a.is_default)
-        .map(own);
+        .map(unitOut);
     },
     async findUnit(resident_id, id) {
       const u = mine(resident_id).find((x) => x.id === id);
-      return u ? own(u) : null;
+      return u ? unitOut(u) : null;
     },
     async createUnit(resident_id, u, max) {
       const list = mine(resident_id);
@@ -100,30 +127,30 @@ export function memoryStore() {
         id: randomUUID(),
         resident_id,
         ...Object.fromEntries(
-          ['building', 'tower', 'floor', 'unit_number', 'street', 'city', 'notes'].map((k) => [
+          ['condo_building_id', 'tower', 'floor', 'unit_number', 'notes'].map((k) => [
             k,
             u[k] ?? '',
           ]),
         ),
         is_default,
+        is_archived: false,
         created_at: now(),
         updated_at: now(),
       };
       units.push(row);
-      return own(row);
+      return unitOut(row);
     },
     async updateUnit(resident_id, id, u) {
       const row = mine(resident_id).find((x) => x.id === id);
       if (!row) return null;
       if (u.is_default === true) mine(resident_id).forEach((x) => (x.is_default = false));
-      Object.assign(row, u, { updated_at: now() });
-      return own(row);
+      Object.assign(row, without('building')(u), { updated_at: now() });
+      return unitOut(row);
     },
     async deleteUnit(resident_id, id) {
-      const i = units.findIndex((x) => x.id === id && x.resident_id === resident_id);
-      if (i < 0) return false;
-      units.splice(i, 1);
-      bookings.forEach((b) => b.unit_id === id && (b.unit_id = null));
+      const u = mine(resident_id).find((x) => x.id === id);
+      if (!u) return false;
+      Object.assign(u, { is_archived: true, is_default: false });
       return true;
     },
 
@@ -136,9 +163,7 @@ export function memoryStore() {
     async findPrice(category, service_type) {
       const active = categories.some((c) => c.key === category && c.is_active);
       const hit = prices.find((x) => x.category === category && x.service_type === service_type);
-      return active && hit
-        ? { base_price: hit.base_price, price_is_minimum: hit.price_is_minimum }
-        : null;
+      return active && hit ? { base_price: hit.base_price, service_category_id: category } : null;
     },
 
     async createBooking(resident_id, b) {
@@ -152,6 +177,7 @@ export function memoryStore() {
         reviewed_at: null,
         tip: null,
         ...b,
+        address: formatUnitAddress(unitOut(units.find((u) => u.id === b.unit_id))),
         created_at: now(),
         updated_at: now(),
       };
@@ -302,8 +328,13 @@ export function memoryStore() {
         else if (o.status === 'expired') o.status = 'open';
       }
       charges
-        .filter((c) => c.booking_id === id && c.aide_id === aide_id && c.status === 'pending')
-        .forEach((c) => (c.status = 'declined'));
+        .filter(
+          (c) =>
+            c.booking_id === id &&
+            c.aide_id === aide_id &&
+            ['pending', 'approved'].includes(c.status),
+        )
+        .forEach((c) => (c.status = 'void'));
       return own(b);
     },
     async aideAddCharge(id, aide_id, { label, amount }) {
