@@ -1,4 +1,4 @@
-# CI plan (docs/CI_Plane.pdf §4, §8). Phases 1–4 are live; 5–7 are stubs for later sprints.
+# CI plan (docs/CI_Plane.pdf §4, §8). Phases 1–6 are live; Phase 7 remains a stub for later deployment.
 name: mang-juan-user-ci
 
 on:
@@ -39,8 +39,8 @@ jobs:
       - run: npm audit --audit-level=high
 
   # contract: # Phase 2. Compare src/utils/contract.js with Team 2's definitions once they publish them.
-  #   runs-on: ubuntu-latest
-  #   steps: ...
+  # runs on: ubuntu-latest
+  # steps: ...
 
   build: # Phase 3
     needs: [lint, audit]
@@ -65,16 +65,61 @@ jobs:
       - run: npm ci
       - run: npx vitest run tests/unit --coverage
 
-  # integration: # Phase 5. needs: unit; skip on feature pushes; DB service container from the shared schema.
-  #   if: github.event_name != 'push' || !startsWith(github.ref, 'refs/heads/feature/')
-  #   steps: ... npx vitest run tests/integration
+  integration: # Phase 5
+    needs: unit
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: user_side
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: mang_juan_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://user_side:testpassword@localhost:5432/mang_juan_test # edit DATABASE_URL
+      JWT_SECRET: integration-test-secret # edit JWT_SECRET
+      PORT: 3000
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .nvmrc, cache: npm }
+      - run: npm ci
+      - name: Apply DB Schema
+        run: |
+          PGPASSWORD=testpassword psql -h localhost -U user_side -d mang_juan_test -f db/schema.sql
+      - name: Run Integration Tests
+        run: npx vitest run tests/integration
 
-  # e2e: # Phase 6. needs: integration; Robot Framework (requirements.txt) + Lighthouse CI.
-  #   steps:
-  #     - uses: actions/setup-python@v5
-  #     - run: pip install -r requirements.txt
-  #     - run: npm run test:e2e
-  #     - upload reports/e2e as an artifact
+  e2e: # Phase 6
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version-file: .nvmrc, cache: npm }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist/ }
+      - run: pip install -r requirements.txt
+      - name: Run E2E Tests
+        run: npm run test:e2e
+      - name: Upload E2E Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-reports
+          path: reports/e2e/
 
-  # deploy-staging: # Phase 7. needs: e2e; if: develop or release/*. Host undecided.
-  # deploy-production: # Phase 7. needs: e2e; if: main; environment: production (manual approval).
+  # deploy-staging:if: develop or release/*. Host undecided.
+  # deploy-production: if: main; environment: production (manual approval).

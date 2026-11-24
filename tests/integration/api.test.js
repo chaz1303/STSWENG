@@ -1,4 +1,4 @@
-// API tests against an in-memory store. They never reach the shared database (CI plan §3.3).
+// API tests against an in-memory store. They never reach the shared database (CI plan 3.3).
 // Gap: the SQL in src/server/store.js is not run here. There is no local Postgres or CI service
 // container yet (ICM open item 30).
 import { beforeEach, describe, expect, it } from 'vitest';
